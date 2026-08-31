@@ -9,6 +9,7 @@ ACTOOL="$(xcrun --find actool 2>/dev/null || echo /Applications/Xcode.app/Conten
 
 CONCEPT=sa-stack                       # the chosen mark
 FILL="srgb:0.055,0.055,0.063,1.000"    # near-black, as the category uses
+PREVIEW_DIR="$ROOT/tools/icon/preview"
 
 echo "==> App icon"
 rm -rf Tenuo.icon && mkdir -p Tenuo.icon/Assets
@@ -42,20 +43,20 @@ cp "$BUILD/Assets.car" "$ROOT/Tenuo/Resources/Assets.car"
 cp "$BUILD/Tenuo.icns" "$ROOT/Tenuo/Resources/Tenuo.icns"
 echo "    Assets.car, Tenuo.icns -> Tenuo/Resources"
 
-echo "==> Standalone artwork"
-mkdir -p "$ROOT/artwork/menubar"
+echo "==> Preview artwork"
+mkdir -p "$PREVIEW_DIR"
 for size in 1024 512 256 128 64; do
-    xcrun swift render-html.swift concepts.html "$ROOT/artwork/caps-$size.png" "$size" caps 1024
+    xcrun swift render-html.swift concepts.html "$PREVIEW_DIR/caps-$size.png" "$size" caps 1024
 done
-echo "    artwork/caps-{1024,512,256,128,64}.png"
+echo "    tools/icon/preview/caps-{1024,512,256,128,64}.png"
 
-xcrun swift render-html.swift concepts.html "$ROOT/artwork/menubar/TenuoTemplate.png" 18 menubar 1024
-xcrun swift render-html.swift concepts.html "$ROOT/artwork/menubar/TenuoTemplate@2x.png" 36 menubar 1024
-xcrun swift render-html.swift concepts.html "$ROOT/artwork/menubar/TenuoTemplate@3x.png" 54 menubar 1024
-echo "    artwork/menubar/TenuoTemplate{,@2x,@3x}.png"
+xcrun swift render-html.swift concepts.html "$PREVIEW_DIR/TenuoTemplate.png" 18 menubar 1024
+xcrun swift render-html.swift concepts.html "$PREVIEW_DIR/TenuoTemplate@2x.png" 36 menubar 1024
+xcrun swift render-html.swift concepts.html "$PREVIEW_DIR/TenuoTemplate@3x.png" 54 menubar 1024
+echo "    tools/icon/preview/TenuoTemplate{,@2x,@3x}.png"
 
-cp "$ROOT/artwork/menubar/TenuoTemplate.png"    "$ROOT/Tenuo/Resources/"
-cp "$ROOT/artwork/menubar/TenuoTemplate@2x.png" "$ROOT/Tenuo/Resources/"
+cp "$PREVIEW_DIR/TenuoTemplate.png"    "$ROOT/Tenuo/Resources/"
+cp "$PREVIEW_DIR/TenuoTemplate@2x.png" "$ROOT/Tenuo/Resources/"
 echo "    TenuoTemplate{,@2x}.png -> Tenuo/Resources"
 
 xcrun swift render-html.swift concepts.html "$ROOT/Tenuo/Resources/TenuoMark.png" 26 caps 1024

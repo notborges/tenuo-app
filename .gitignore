@@ -2,7 +2,13 @@
 build/
 DerivedData/
 dist/
+.build/
 *.xcarchive
+*.app
+*.dSYM/
+*.ipa
+*.dmg
+*.zip
 
 # Xcode state
 xcuserdata/

@@ -1,7 +1,7 @@
 # App icon
 
 `Tenuo.icon` is the source for the app icon. `export.sh` renders the source and
-writes the checked-in bundle resources and app artwork.
+writes the checked-in bundle resources and ignored preview images.
 
 Run it from the repository root:
 
