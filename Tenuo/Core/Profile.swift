@@ -299,31 +299,31 @@ enum ProfileError: LocalizedError, Equatable {
         switch self {
         case let .tooManyLayers(found):
             return """
-                That profile holds \(found) layers, and a profile may have at \
-                most \(Profile.maxTriggeredLayers).
+                This profile has \(found) triggered layers. Profiles can have up to \
+                \(Profile.maxTriggeredLayers).
                 """
         case let .invalidBaseLayerCount(found):
-            return "A profile must contain exactly one base layer, but this one has \(found)."
+            return "This profile needs exactly one base layer. It currently has \(found)."
         case .duplicateLayerIDs:
-            return "That profile contains duplicate layer identifiers."
-        case let .invalidTapThreshold(milliseconds):
-            return "The tap threshold \(milliseconds) ms is outside the supported range."
+            return "This profile contains duplicate layers and cannot be imported."
+        case .invalidTapThreshold:
+            return "The tap window must be between 80 and 500 ms."
         case let .unknownTriggerKey(layer):
-            return "Layer \"\(layer)\" uses an unknown trigger key."
+            return "Layer “\(layer)” has an unsupported trigger key."
         case let .unknownSourceKey(layer, key):
-            return "Layer \"\(layer)\" maps an unknown source key \"\(key)\"."
+            return "Layer “\(layer)” uses an unsupported source key: \(key)."
         case let .unknownDestinationKey(layer, key):
-            return "Layer \"\(layer)\" maps to an unknown destination key \"\(key)\"."
+            return "Layer “\(layer)” uses an unsupported destination key: \(key)."
         }
     }
 
     var recoverySuggestion: String? {
         switch self {
         case .tooManyLayers:
-            return "Split it into more than one profile, then import each."
+            return "Remove a layer or split this setup into more than one profile."
         case .invalidBaseLayerCount, .duplicateLayerIDs, .invalidTapThreshold,
             .unknownTriggerKey, .unknownSourceKey, .unknownDestinationKey:
-            return "Export the profile again from a current version of Tenuo."
+            return "Use a profile exported by Tenuo, or fix the unsupported value and try again."
         }
     }
 }

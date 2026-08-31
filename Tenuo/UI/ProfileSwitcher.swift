@@ -27,14 +27,14 @@ struct ProfileSection: View {
                 .contextMenu { menu(for: profile) }
             }
 
-            SidebarAddRow(title: "New Profile", action: model.newProfile)
+            SidebarAddRow(title: "New profile", action: model.newProfile)
         }
     }
 
     @ViewBuilder
     private func menu(for profile: Profile) -> some View {
         if profile.id != model.activeProfileID {
-            Button("Switch to This") { model.selectProfile(profile.id) }
+            Button("Switch to profile") { model.selectProfile(profile.id) }
             Divider()
         }
         Button("Rename…") { renaming = profile }
@@ -55,9 +55,9 @@ struct RenameProfileSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.medium) {
-            Text("Rename Profile").font(DS.Typography.display)
+            Text("Rename profile").font(DS.Typography.display)
 
-            TextField("Name", text: $draft)
+            TextField("Profile name", text: $draft)
                 .textFieldStyle(.plain)
                 .font(DS.Typography.body)
                 .padding(.horizontal, 9)

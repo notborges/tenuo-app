@@ -48,7 +48,7 @@ final class MenuBarController: NSObject, NSWindowDelegate {
         button.toolTip =
             model.isTrusted
             ? (model.isEnabled ? "Tenuo is active" : "Tenuo is disabled")
-            : "Tenuo needs Accessibility permission"
+            : "Tenuo needs Accessibility access"
     }
 
     @objc private func togglePanel() {

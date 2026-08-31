@@ -89,16 +89,16 @@ struct LayersPage: View {
     private var sentence: String {
         let layer = model.selectedLayer
         guard let trigger = layer.trigger else {
-            return "Always active · applies when no chord is held"
+            return "Always active · used when no other layer is active"
         }
         var parts = ["Hold \(trigger.displayLabel)"]
         if let tap = layer.tapAction {
             parts.append("tap for \(tap.displayLabel)")
         }
         switch layer.holdMode {
-        case .inject: parts.append("held keys send ⌃⌥⌘⇧")
+        case .inject: parts.append("all held keys send Hyper")
         case .layer: parts.append("unmapped keys pass through")
-        case .injectAndLayer: parts.append("unmapped keys send ⌃⌥⌘⇧")
+        case .injectAndLayer: parts.append("unmapped keys send Hyper")
         }
         return parts.joined(separator: " · ")
     }
@@ -114,7 +114,7 @@ struct LayersPage: View {
             }
 
             if model.sortedMappings.isEmpty {
-                Text("No mappings yet. Click any key to bind it.")
+                Text("No mappings yet. Select a key to add one.")
                     .font(DS.Typography.body)
                     .foregroundStyle(DS.Ink.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -226,7 +226,7 @@ struct LayersPage: View {
                     .tooltip("Deselect")
                 }
             } else {
-                Text(model.selectedLayer.isBase ? "Base Layer" : "Layer")
+                Text(model.selectedLayer.isBase ? "Base layer" : "Layer")
                     .font(DS.Typography.title)
             }
         }
@@ -240,18 +240,24 @@ struct LayersPage: View {
     @ViewBuilder
     private var destructiveAction: some View {
         if let selectedKey, model.selectedLayer.mappings[selectedKey] != nil {
-            InspectorDestructiveButton(title: "Clear Mapping") {
+            InspectorDestructiveButton(title: "Clear mapping") {
                 model.selectedLayer.mappings.removeValue(forKey: selectedKey)
             }
         } else if selectedKey == nil, !model.selectedLayer.isBase {
             InspectorDestructiveButton(
-                title: "Remove Layer",
-                confirm:
-                    "Remove “\(model.selectedLayer.name)” and its \(model.selectedLayer.mappings.count) mappings?"
+                title: "Remove layer",
+                confirm: removalConfirmation
             ) {
                 model.removeSelectedLayer()
             }
         }
+    }
+
+    private var removalConfirmation: String {
+        let layer = model.selectedLayer
+        guard !layer.mappings.isEmpty else { return "Remove “\(layer.name)”?" }
+        let mappingWord = layer.mappings.count == 1 ? "mapping" : "mappings"
+        return "Remove “\(layer.name)” and its \(layer.mappings.count) \(mappingWord)?"
     }
 }
 
@@ -266,7 +272,7 @@ private struct LayerNameField: View {
     var body: some View {
         Group {
             if isEditing {
-                TextField("Layer name", text: $text)
+                TextField("Name this layer", text: $text)
                     .textFieldStyle(.plain)
                     .font(DS.Typography.display)
                     .focused($isFocused)
@@ -277,7 +283,7 @@ private struct LayerNameField: View {
                     }
             } else {
                 HStack(spacing: 5) {
-                    Text(text.isEmpty ? "Layer name" : text)
+                    Text(text.isEmpty ? "Name this layer" : text)
                         .font(DS.Typography.display)
                         .foregroundStyle(text.isEmpty ? DS.Ink.tertiary : DS.Ink.primary)
                         .lineLimit(1)
@@ -315,7 +321,7 @@ private struct KeyInspector: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.medium) {
-            InspectorCard(title: "Sends with") {
+            InspectorCard(title: "Output") {
                 InspectorWideRow(label: "Modifiers", divider: false) {
                     HStack(spacing: 5) {
                         ForEach(Modifier.allCases, id: \.self) { modifier in
@@ -373,7 +379,7 @@ private struct LayerInspector: View {
     var body: some View {
         if model.selectedLayer.isBase {
             Text(
-                "Always active. Keys mapped here apply when no chord is held, and every other layer falls through to it."
+                "Always active. Mapped keys apply when no other layer is active; every other key passes through."
             )
             .font(DS.Typography.body)
             .foregroundStyle(DS.Ink.secondary)
@@ -381,16 +387,16 @@ private struct LayerInspector: View {
         } else {
             VStack(alignment: .leading, spacing: DS.Space.medium) {
                 InspectorCard(title: "Trigger", footer: chordSentence) {
-                    InspectorRow(label: "Hold") {
+                    InspectorRow(label: "Key") {
                         TriggerKeyField(trigger: trigger.key)
                     }
-                    InspectorWideRow(label: "Together with", divider: false) {
+                    InspectorWideRow(label: "Modifiers", divider: false) {
                         ModifierChips(trigger: trigger)
                     }
                 }
 
                 InspectorCard(
-                    title: "Behaviour",
+                    title: "Behavior",
                     footer: model.selectedLayer.holdMode.summary
                 ) {
                     InspectorRow(label: "Unmapped keys") {
@@ -441,11 +447,12 @@ private struct LayerInspector: View {
     }
 
     private var chordSentence: String {
-        var sentence = "Hold \(trigger.wrappedValue.displayLabel) to reach this layer."
+        var sentence = "Hold \(trigger.wrappedValue.displayLabel) to activate this layer."
         if trigger.wrappedValue.key.isConsumedWhileHeld,
             model.selectedLayer.tapAction == nil
         {
-            sentence += " It will stop typing on its own, so give it a tap action below to keep it."
+            sentence +=
+                " This key is consumed while held. Add a tap action if you want it to do something when tapped."
         }
         return sentence
     }

@@ -23,7 +23,7 @@ final class PermissionWindowController {
         )
         hosting.safeAreaRegions = []
         let newWindow = NSWindow(contentViewController: hosting)
-        newWindow.title = "Welcome to Tenuo"
+        newWindow.title = "Tenuo needs Accessibility access"
         newWindow.styleMask = [.titled, .closable, .fullSizeContentView]
         newWindow.titleVisibility = .hidden
         newWindow.titlebarAppearsTransparent = true
@@ -51,11 +51,11 @@ private struct PermissionView: View {
     private var updatesLine: String {
         guard model.updatesAvailable else {
             return
-                "No other permission, no accounts, no analytics. This build has no update server behind it, so it never opens a network connection at all."
+                "This source build does not check for updates. Tenuo does not collect usage data."
         }
         return model.checksForUpdates
-            ? "No other permission, no accounts, no analytics. Tenuo asks tenuo.app for the latest version number and sends nothing else, ever."
-            : "No other permission, no accounts, no analytics. Tenuo uses the network only when it looks for an update, and it will not do that on its own."
+            ? "If you turn on automatic checks, Tenuo contacts tenuo.app in the background to look for new versions. It does not collect usage data."
+            : "Tenuo only contacts tenuo.app when you ask it to check for a new version. It does not collect usage data."
     }
 
     private var shipped: Layer? { Presets.library.first?.triggeredLayers.first }
@@ -67,13 +67,13 @@ private struct PermissionView: View {
                 .frame(width: 56, height: 56)
                 .padding(.bottom, DS.Space.small)
 
-            Text("One key. A whole layer under it.")
+            Text("Use Caps Lock as a second layer.")
                 .font(DS.Typography.display)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, DS.Space.tight)
 
             Text(
-                "Hold your trigger key and the keys under your fingers become whatever you map them to. Tap it for Escape."
+                "Hold Caps Lock, then press H, J, K, or L to move around. Tap Caps Lock for Escape."
             )
             .font(DS.Typography.body)
             .foregroundStyle(DS.Ink.secondary)
@@ -94,7 +94,7 @@ private struct PermissionView: View {
                 .padding(.vertical, DS.Space.large)
 
             Text(
-                "Tenuo needs Accessibility permission to read and replace keystrokes. It starts working the moment you grant it."
+                "Tenuo needs Accessibility access to remap keys. Turn on Tenuo in System Settings, then come back here."
             )
             .font(DS.Typography.body)
             .foregroundStyle(DS.Ink.secondary)
@@ -119,7 +119,7 @@ private struct PermissionView: View {
                         .foregroundStyle(
                             model.checksForUpdates
                                 ? DS.Ink.primary : DS.Ink.tertiary)
-                        Text("Check tenuo.app for updates")
+                        Text("Check for updates automatically")
                             .font(DS.Typography.body)
                             .foregroundStyle(DS.Ink.secondary)
                     }

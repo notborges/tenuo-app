@@ -50,22 +50,22 @@ struct LayerList: View {
                 get: { deletingProfile != nil },
                 set: { if !$0 { deletingProfile = nil } })
         ) {
-            Button("Delete Profile", role: .destructive) {
+            Button("Delete profile", role: .destructive) {
                 if let profile = deletingProfile { model.removeProfile(profile.id) }
                 deletingProfile = nil
             }
             Button("Cancel", role: .cancel) { deletingProfile = nil }
         } message: {
-            Text("Its layers and mappings go with it.")
+            Text("This deletes all of its layers and mappings.")
         }
         .confirmationDialog(
-            pendingRemoval.map { "Remove “\($0.name)” and its \($0.mappings.count) mappings?" }
+            pendingRemoval.map(removalTitle(for:))
                 ?? "",
             isPresented: Binding(
                 get: { pendingRemoval != nil },
                 set: { if !$0 { pendingRemoval = nil } })
         ) {
-            Button("Remove Layer", role: .destructive) {
+            Button("Remove layer", role: .destructive) {
                 if let layer = pendingRemoval { model.remove(layer) }
                 pendingRemoval = nil
             }
@@ -108,7 +108,7 @@ struct LayerList: View {
     }
 
     private var statusText: String {
-        guard model.isTrusted else { return "No access" }
+        guard model.isTrusted else { return "Needs Accessibility access" }
         return model.isActive ? "Active" : "Off"
     }
 
@@ -127,7 +127,9 @@ struct LayerList: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: DS.Icon.small))
                                 .foregroundStyle(DS.Signal.warning)
-                                .tooltip("Another layer uses this chord, so only one can activate")
+                                .tooltip(
+                                    "This trigger is also used by another layer. Only one layer will activate."
+                                )
                         }
                         if !layer.mappings.isEmpty {
                             Text("\(layer.mappings.count)")
@@ -140,11 +142,11 @@ struct LayerList: View {
             }
 
             SidebarAddRow(
-                title: "New Layer",
+                title: "New layer",
                 isEnabled: model.canAddLayer,
                 reason: """
-                    A profile holds up to \(Profile.maxTriggeredLayers) layers. \
-                    Make another profile for more.
+                    This profile already has \(Profile.maxTriggeredLayers) layers. \
+                    Create another profile to add more.
                     """,
                 action: model.addLayer
             )
@@ -157,8 +159,14 @@ struct LayerList: View {
             .disabled(!model.canAddLayer)
         if !layer.isBase {
             Divider()
-            Button("Remove Layer…", role: .destructive) { pendingRemoval = layer }
+            Button("Remove layer…", role: .destructive) { pendingRemoval = layer }
         }
+    }
+
+    private func removalTitle(for layer: Layer) -> String {
+        guard !layer.mappings.isEmpty else { return "Remove “\(layer.name)”?" }
+        let mappingWord = layer.mappings.count == 1 ? "mapping" : "mappings"
+        return "Remove “\(layer.name)” and its \(layer.mappings.count) \(mappingWord)?"
     }
 
     private func conflicts(_ layer: Layer) -> Bool {

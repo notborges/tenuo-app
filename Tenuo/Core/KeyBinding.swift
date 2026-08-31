@@ -81,20 +81,20 @@ enum HoldMode: String, Codable, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .inject: return "Hyper only"
-        case .layer: return "Remap only"
-        case .injectAndLayer: return "Remap + Hyper"
+        case .inject: return "Send Hyper"
+        case .layer: return "Remap keys"
+        case .injectAndLayer: return "Remap keys + send Hyper"
         }
     }
 
     var summary: String {
         switch self {
         case .inject:
-            return "Held keys send ⌃⌥⌘⇧. Your mappings are ignored."
+            return "Every held key sends Hyper (⌃⌥⌘⇧). Mappings are ignored."
         case .layer:
-            return "Mapped keys are remapped. Everything else is untouched."
+            return "Mapped keys send their assigned output. Everything else passes through."
         case .injectAndLayer:
-            return "Mapped keys are remapped. Everything else sends ⌃⌥⌘⇧."
+            return "Mapped keys send their assigned output. Everything else sends Hyper (⌃⌥⌘⇧)."
         }
     }
 

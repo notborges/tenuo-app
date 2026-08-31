@@ -1,7 +1,6 @@
 import Foundation
 
-// Profiles are stored as one JSON value so import and export use the same
-// representation as persistence.
+// Store profiles as one JSON value so persistence and import/export share a format.
 final class Settings {
     private enum Key {
         static let isEnabled = "TenuoEnabled"

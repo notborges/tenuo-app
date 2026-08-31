@@ -161,9 +161,9 @@ struct KeyboardLayoutView: View {
         inherited: KeyAction?,
         isTrigger: Bool
     ) -> String? {
-        if isTrigger { return "\(triggerName) holds this layer open" }
+        if isTrigger { return "\(triggerName) activates this layer" }
         guard key.isMappable, action == nil else { return nil }
-        if inherited != nil { return "Inherited. Click to override" }
+        if inherited != nil { return "Inherited from an earlier layer. Click to override" }
         return nil
     }
 }

@@ -82,7 +82,7 @@ final class AppModel: ObservableObject {
         guard canAddLayer else { return }
         var copy = layer
         copy.id = UUID()
-        copy.name = "\(layer.name) Copy"
+        copy.name = "Copy of \(layer.name)"
         guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
         copy.trigger = trigger
         profile.layers.append(copy)
@@ -126,11 +126,11 @@ final class AppModel: ObservableObject {
     }
 
     func newProfile() {
-        addProfile(from: Profile(name: "", layers: [Presets.emptyBase()]), named: "New Profile")
+        addProfile(from: Profile(name: "", layers: [Presets.emptyBase()]), named: "New profile")
     }
 
     func duplicateProfile(_ profile: Profile) {
-        addProfile(from: profile, named: "\(profile.name) Copy")
+        addProfile(from: profile, named: "Copy of \(profile.name)")
     }
 
     func duplicateActiveProfile() { duplicateProfile(profile) }

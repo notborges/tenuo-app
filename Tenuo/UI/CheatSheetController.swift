@@ -135,8 +135,8 @@ struct CheatSheetView: View {
                 isInteractive: false
             )
 
-            if mappings.isEmpty {
-                Text("Held keys send ⌃⌥⌘⇧")
+            if let layer {
+                Text(layer.holdMode.summary)
                     .font(DS.Typography.body)
                     .foregroundStyle(DS.Ink.secondary)
             }

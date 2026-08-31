@@ -17,7 +17,7 @@ struct LayerEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DS.Surface.window)
         .alert(
-            "Could not read that profile",
+            "Could not complete that action",
             isPresented: Binding(
                 get: { model.errorMessage != nil },
                 set: { if !$0 { model.errorMessage = nil } })

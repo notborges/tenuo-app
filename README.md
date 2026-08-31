@@ -1,26 +1,29 @@
 # Tenuo
 
-Tenuo is a macOS menu bar utility for keyboard layers. Hold a trigger key to
-turn ordinary keys into navigation, editing, or custom shortcuts, then release
-it to return to the normal keyboard.
+Tenuo lets you turn a key such as Caps Lock into a temporary layer of
+shortcuts. Hold the key, use the layer, and release it to return to normal
+typing.
 
 ## Features
 
-- Multiple profiles with up to six triggered layers each.
-- Caps Lock, modifier keys, or any catalogued key as a layer trigger.
-- Hold, tap, Hyper, blocked, transparent, and modifier-aware mappings.
-- A visual editor, layer cheat sheet, profile import, and profile export.
-- Optional Sparkle updates for builds configured by a distributor.
+- Multiple profiles, each with up to six additional layers.
+- Use Caps Lock, a modifier, or another key as a trigger.
+- Map keys to other keys or shortcuts, pass keys through, block them, or send
+  Hyper (⌃⌥⌘⇧).
+- Edit profiles visually, see what is active while you hold a trigger, and
+  import or export profiles.
+- Optional update support for distributor builds.
 
 ## Requirements
 
 - macOS 15 or later.
 - Xcode 26 or later to build from source.
-- Accessibility permission for the app.
+- Accessibility permission to remap keys.
 
-Tenuo uses a system-wide `CGEventTap`, so it is not sandboxed. Caps Lock is
-temporarily remapped to F18 with `hidutil` while Tenuo is running. The app does
-not read keyboard input outside the event stream needed to implement layers.
+Tenuo uses a system-wide `CGEventTap` to remap keyboard events, so it is not
+sandboxed. Caps Lock is temporarily remapped to F18 with `hidutil` while Tenuo
+is running. The app does not store keystrokes or read keyboard input outside
+the events it needs to implement layers.
 
 ## Build
 
@@ -33,7 +36,7 @@ xcodebuild -project Tenuo.xcodeproj -scheme Tenuo -configuration Debug test
 ```
 
 The default configuration uses ad-hoc signing, which means macOS may ask for
-Accessibility permission again after a rebuild. For a stable local identity:
+Accessibility access again after a rebuild. For a stable local identity:
 
 ```sh
 cp Local.xcconfig.example Local.xcconfig
@@ -73,7 +76,7 @@ this repository.
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 Bug reports involving keyboard input should include the macOS version, the
 trigger and mapping involved, and whether Secure Input was active. Do not
-include private keyboard data or signing credentials.
+include private profiles or signing credentials.
 
 ## License
 

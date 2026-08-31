@@ -50,7 +50,7 @@ private struct PreferencesView: View {
             group(
                 "General",
                 footer: model.launchNeedsApproval
-                    ? "Approve in System Settings → General → Login Items."
+                    ? "Allow Tenuo in System Settings → General → Login Items."
                     : nil
             ) {
                 InspectorRow(label: "Enable Tenuo") {
@@ -70,31 +70,32 @@ private struct PreferencesView: View {
             }
 
             group(
-                "Layer hint",
+                "Active layer",
                 footer:
-                    "The board appears after a short hold, so anyone fluent never sees it. Switch it off if you would rather nothing appeared at all."
+                    "Show the active layer after you hold its trigger for a moment."
             ) {
-                InspectorRow(label: "Show while holding", divider: false) {
+                InspectorRow(label: "Show active layer while holding", divider: false) {
                     AppSwitch(
                         isOn: Binding(
                             get: { model.showsCheatSheet },
                             set: { model.showsCheatSheet = $0 }),
-                        label: "Show the layer hint while holding a trigger")
+                        label: "Show the active layer while holding a trigger")
                 }
             }
 
             group(
                 "Timing",
-                footer: "How long a trigger may be held and still count as a tap."
+                footer:
+                    "How long you can hold a trigger before Tenuo treats it as a hold instead of a tap."
             ) {
-                InspectorRow(label: "Tap threshold", divider: false) {
+                InspectorRow(label: "Tap window", divider: false) {
                     HStack(spacing: DS.Space.small) {
                         AppSlider(
                             value: Binding(
                                 get: { Double(model.profile.tapThresholdMilliseconds) },
                                 set: { model.profile.tapThresholdMilliseconds = Int($0) }
                             ),
-                            range: 80...500, step: 10, label: "Tap threshold"
+                            range: 80...500, step: 10, label: "Tap window"
                         )
                         Text("\(model.profile.tapThresholdMilliseconds) ms")
                             .font(DS.Typography.label.monospacedDigit())
@@ -106,7 +107,7 @@ private struct PreferencesView: View {
 
             if model.updatesAvailable {
                 group("Updates", footer: updatesFooter) {
-                    InspectorRow(label: "Check automatically") {
+                    InspectorRow(label: "Check for updates automatically") {
                         AppSwitch(
                             isOn: Binding(
                                 get: { model.checksForUpdates },
@@ -119,7 +120,7 @@ private struct PreferencesView: View {
                                 model.updates.install()
                             }
                         } else {
-                            QuietButton(title: "Check Now") { model.updates.check() }
+                            QuietButton(title: "Check now") { model.updates.check() }
                                 .opacity(model.updates.status.isBusy ? 0.4 : 1)
                         }
                     }
@@ -129,7 +130,7 @@ private struct PreferencesView: View {
             group(
                 "Permission",
                 footer:
-                    "The only permission Tenuo asks for. It never opens a HID device, so Input Monitoring is not required."
+                    "Tenuo only needs Accessibility access to remap keys. It does not need Input Monitoring."
             ) {
                 InspectorRow(label: "Accessibility", divider: false) {
                     if model.isTrusted {
@@ -141,8 +142,10 @@ private struct PreferencesView: View {
                         .foregroundStyle(DS.Signal.ok)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     } else {
-                        QuietButton(title: "Open Settings", action: model.openAccessibilitySettings)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                        QuietButton(
+                            title: "Open System Settings", action: model.openAccessibilitySettings
+                        )
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
             }
@@ -165,8 +168,8 @@ private struct PreferencesView: View {
 
     private var updatesFooter: String {
         model.checksForUpdates
-            ? "Tenuo asks tenuo.app for the latest version number, in the background. That request is the only thing it ever sends anywhere: no analytics, no accounts, nothing about you or your machine. It never installs on its own: an update appears here and in the menu bar, and waits."
-            : "Tenuo will not contact anything on its own. Checking by hand does use the network. Asking tenuo.app for the latest version number is the only thing Tenuo ever sends anywhere, and it carries nothing about you or your machine."
+            ? "Tenuo checks tenuo.app in the background for new versions. It does not collect usage data or install updates without asking you."
+            : "Tenuo checks tenuo.app only when you ask it to look for a new version. It does not collect usage data."
     }
 
     private var updateStatus: String {
@@ -176,7 +179,7 @@ private struct PreferencesView: View {
             return "Checked \(Self.relative.localizedString(for: checked, relativeTo: Date()))"
         case .checking: return "Checking…"
         case .upToDate: return "Up to date"
-        case let .available(version): return "Version \(version) available"
+        case let .available(version): return "Version \(version) is available"
         case let .downloading(done): return "Downloading \(Int(done * 100))%"
         case .installing: return "Installing…"
         case let .failed(message): return message

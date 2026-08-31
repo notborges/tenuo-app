@@ -56,11 +56,11 @@ enum MainMenu {
         let menu = NSMenu(title: "File")
 
         add(
-            to: menu, title: "New Profile", key: "n", target: target,
+            to: menu, title: "New profile", key: "n", target: target,
             action: #selector(AppDelegate.menuNewProfile(_:)))
 
-        let presets = NSMenuItem(title: "New from Preset", action: nil, keyEquivalent: "")
-        let presetMenu = NSMenu(title: "New from Preset")
+        let presets = NSMenuItem(title: "New from preset", action: nil, keyEquivalent: "")
+        let presetMenu = NSMenu(title: "New from preset")
         for (index, preset) in Presets.all.enumerated() {
             let entry = NSMenuItem(
                 title: preset.name,
@@ -75,11 +75,11 @@ enum MainMenu {
         menu.addItem(.separator())
 
         let importItem = add(
-            to: menu, title: "Import Profile…", key: "i", target: target,
+            to: menu, title: "Import profile…", key: "i", target: target,
             action: #selector(AppDelegate.menuImportProfile(_:)))
         importItem.keyEquivalentModifierMask = [.command, .shift]
         let exportItem = add(
-            to: menu, title: "Export Profile…", key: "e", target: target,
+            to: menu, title: "Export profile…", key: "e", target: target,
             action: #selector(AppDelegate.menuExportProfile(_:)))
         exportItem.keyEquivalentModifierMask = [.command, .shift]
         menu.addItem(.separator())

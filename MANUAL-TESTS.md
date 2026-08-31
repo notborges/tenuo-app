@@ -7,9 +7,9 @@ CoreGraphics, `hidutil`, and application focus.
 ## First launch
 
 - Launch Tenuo and confirm it appears in the menu bar.
-- Grant Accessibility permission when prompted.
-- Confirm the permission state updates without restarting the app.
-- Open the editor and confirm the keyboard layout renders correctly.
+- Allow Accessibility access when prompted.
+- Confirm the app notices the change without restarting.
+- Open the editor and confirm the keyboard preview looks correct.
 
 ## Trigger behavior
 
@@ -19,14 +19,14 @@ CoreGraphics, `hidutil`, and application focus.
 - Tap Caps Lock and confirm the configured tap action fires once.
 - Hold a modifier trigger and confirm its normal modifier behavior remains
   available outside mapped keys.
-- Try an ordinary-key trigger and confirm it is consumed only while held.
+- Try a letter key as a trigger and confirm it is consumed only while held.
 
 ## Profiles and editing
 
 - Switch between every shipped profile.
 - Add, rename, edit, duplicate, and delete a profile.
 - Export a profile, import it twice, and confirm both copies are present.
-- Set a profile with conflicting triggers and confirm the editor reports it.
+- Create two layers with the same trigger and confirm the editor reports the conflict.
 - Restart Tenuo and confirm settings and the active profile persist.
 
 ## Recovery

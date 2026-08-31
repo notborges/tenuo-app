@@ -177,7 +177,7 @@ struct ModifierChips: View {
             trigger.modifiers.removeAll { [plain, left, right].contains($0) }
             if let next { trigger.modifiers.append(next) }
         }
-        .tooltip("\(plain.displayName) · click to cycle")
+        .tooltip("\(plain.displayName) · click to cycle through any, left, and right")
     }
 }
 
@@ -362,7 +362,7 @@ struct TriggerKeyField: View {
             }
             Section {
                 if let custom { entry(custom) }
-                Text("Other Key…").tag(Choice.other)
+                Text("Other key…").tag(Choice.other)
             }
         }
         .popover(isPresented: $isChoosing, arrowEdge: .bottom) {

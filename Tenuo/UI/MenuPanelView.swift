@@ -73,7 +73,7 @@ struct MenuPanelView: View {
     }
 
     private var statusText: String {
-        guard model.isTrusted else { return "Needs permission" }
+        guard model.isTrusted else { return "Needs Accessibility access" }
         guard model.isEnabled else { return "Off" }
         let count = model.profile.triggeredLayers.count
         return "On · \(count) layer\(count == 1 ? "" : "s")"
@@ -121,7 +121,9 @@ struct MenuPanelView: View {
     }
 
     private func detail(for layer: Layer) -> String {
-        guard !layer.mappings.isEmpty else { return "⌃⌥⌘⇧" }
+        guard !layer.mappings.isEmpty else {
+            return layer.holdMode.injectsHyper ? "Hyper" : "Pass through"
+        }
         return "\(layer.mappings.count) key\(layer.mappings.count == 1 ? "" : "s")"
     }
 
@@ -149,12 +151,12 @@ struct MenuPanelView: View {
 
     private var permissionNotice: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Label("Accessibility permission required", systemImage: "exclamationmark.triangle.fill")
+            Label("Accessibility access required", systemImage: "exclamationmark.triangle.fill")
                 .font(DS.Typography.body.weight(.medium))
                 .foregroundStyle(DS.Signal.warning)
 
             Text(
-                "Tenuo needs permission to read and replace keystrokes. It starts working the moment you grant it, with no restart."
+                "Tenuo needs Accessibility access to remap keys. Enable it in System Settings to start using your profiles."
             )
             .font(DS.Typography.label)
             .foregroundStyle(DS.Ink.secondary)
@@ -176,7 +178,7 @@ struct MenuPanelView: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Ink.primary)
             Spacer(minLength: 8)
-            PrimaryButton(title: "Update") { updates.install() }
+            PrimaryButton(title: "Install update") { updates.install() }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -184,7 +186,7 @@ struct MenuPanelView: View {
 
     private var footer: some View {
         VStack(spacing: 0) {
-            FooterRow(title: "Edit Layers…", action: onOpenEditor)
+            FooterRow(title: "Edit layers…", action: onOpenEditor)
             FooterRow(title: "Settings…", action: onOpenPreferences)
             FooterRow(title: "Quit Tenuo", action: model.quit)
         }

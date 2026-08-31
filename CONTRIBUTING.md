@@ -11,9 +11,10 @@ Before opening a pull request:
 4. Manually test changes that affect keyboard events, permissions, windows, or
    persistence. The relevant cases are listed in `MANUAL-TESTS.md`.
 
-Core behavior belongs in `Tenuo/Core` and should be covered by tests. Keep
-Core independent from AppKit and SwiftUI. Changes to the event tap or
-`hidutil` integration should document failure and recovery behavior.
+Core behavior belongs in `Tenuo/Core`. Add tests for important behavior and
+regressions; UI layout and trivial accessors do not need tests. Keep Core
+independent from AppKit and SwiftUI. Changes to the event tap or `hidutil`
+integration should document failure and recovery behavior.
 
 Do not commit signing identities, provisioning files, notarization credentials,
-personal keyboard layouts, or local configuration.
+personal profiles, or local configuration.
