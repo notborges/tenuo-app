@@ -3,16 +3,12 @@ import Combine
 import SwiftUI
 
 @MainActor
-final class MenuBarController: NSObject, NSWindowDelegate {
+final class MenuBarController: NSObject, NSPopoverDelegate {
     private let model: AppModel
     private let statusItem: NSStatusItem
-    private var panel: NSPanel?
-    private var hosting: NSHostingView<MenuPanelView>?
-    private var dismissMonitor: Any?
-    private var localDismissMonitor: Any?
+    private var popover: NSPopover?
+    private var hosting: NSHostingController<MenuPanelView>?
     private var contentObserver: AnyCancellable?
-
-    private static let menuBarGap: CGFloat = 8
 
     var onOpenEditor: (() -> Void)?
     var onOpenPreferences: (() -> Void)?
@@ -52,15 +48,16 @@ final class MenuBarController: NSObject, NSWindowDelegate {
     }
 
     @objc private func togglePanel() {
-        if panel?.isVisible == true {
+        if popover?.isShown == true {
             closePanel()
         } else {
             openPanel()
         }
     }
 
-    private func openPanel() {
+    private func openPanel(isTransient: Bool = true) {
         refresh()
+        guard let button = statusItem.button else { return }
 
         let view = MenuPanelView(model: model, updates: model.updates) { [weak self] in
             self?.closePanel()
@@ -70,139 +67,47 @@ final class MenuBarController: NSObject, NSWindowDelegate {
             self?.onOpenPreferences?()
         }
 
-        let hosting = NSHostingView(rootView: view)
-        hosting.setFrameSize(hosting.fittingSize)
+        let hosting = NSHostingController(rootView: view)
+        let popover = NSPopover()
+        popover.behavior = isTransient ? .transient : .applicationDefined
+        popover.animates = false
+        popover.appearance = NSAppearance(named: .darkAqua)
+        popover.contentViewController = hosting
+        popover.contentSize = hosting.view.fittingSize
+        popover.delegate = self
 
-        let backdrop = NSVisualEffectView(frame: NSRect(origin: .zero, size: hosting.fittingSize))
-        backdrop.material = .menu
-        backdrop.blendingMode = .behindWindow
-        backdrop.state = .active
-        backdrop.maskImage = Self.roundedMask(radius: DS.Radius.panel)
-        hosting.autoresizingMask = [.width, .height]
-        backdrop.addSubview(hosting)
-
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.contentView = backdrop
-        panel.isFloatingPanel = true
-        panel.level = .statusBar
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = true
-        panel.hidesOnDeactivate = false
-        panel.isMovable = false
-        panel.animationBehavior = .utilityWindow
-        panel.delegate = self
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-
-        self.panel = panel
+        self.popover = popover
         self.hosting = hosting
         contentObserver = model.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async { self?.resizeToFitContent() }
+            DispatchQueue.main.async { self?.resizePopover() }
         }
-        position(panel)
-        panel.makeKeyAndOrderFront(nil)
-        panel.invalidateShadow()
-        NSApp.activate(ignoringOtherApps: true)
-        startWatchingForDismissal()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     }
 
     func presentForPreview() {
-        openPanel()
-        stopWatchingForDismissal()
+        openPanel(isTransient: false)
     }
 
-    private static func roundedMask(radius: CGFloat) -> NSImage {
-        let side = radius * 2 + 1
-        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
-            NSColor.black.set()
-            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
-            return true
-        }
-        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
-        image.resizingMode = .stretch
-        return image
-    }
-
-    private func position(_ panel: NSPanel) {
-        guard let button = statusItem.button,
-            let buttonWindow = button.window
-        else { return }
-
-        let buttonFrame = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
-        let size = panel.frame.size
-        var origin = NSPoint(
-            x: buttonFrame.midX - size.width / 2,
-            y: buttonFrame.minY - size.height - Self.menuBarGap
-        )
-
-        if let screen = buttonWindow.screen ?? NSScreen.main {
-            let visible = screen.visibleFrame
-            origin.x = min(max(origin.x, visible.minX + 8), visible.maxX - size.width - 8)
-            origin.y = max(origin.y, visible.minY + 8)
-        }
-        panel.setFrameOrigin(origin)
-    }
-
-    private func resizeToFitContent() {
-        guard let panel, let hosting, panel.isVisible else { return }
-        let size = hosting.fittingSize
-        guard size.height > 1, size != panel.frame.size else { return }
-        var frame = panel.frame
-        frame.origin.y += frame.height - size.height
-        frame.size = size
-        panel.setFrame(frame, display: true, animate: false)
-        panel.invalidateShadow()
+    private func resizePopover() {
+        guard let popover, let hosting, popover.isShown else { return }
+        let size = hosting.view.fittingSize
+        guard size.width > 1, size.height > 1, size != popover.contentSize else { return }
+        popover.contentSize = size
     }
 
     func closePanel() {
-        stopWatchingForDismissal()
         contentObserver = nil
-        panel?.orderOut(nil)
-        panel = nil
+        popover?.close()
+        popover = nil
         hosting = nil
         refresh()
     }
 
-    private func startWatchingForDismissal() {
-        stopWatchingForDismissal()
-
-        dismissMonitor = NSEvent.addGlobalMonitorForEvents(
-            matching: [.leftMouseDown, .rightMouseDown]
-        ) { [weak self] _ in
-            self?.closePanel()
-        }
-
-        localDismissMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: [.leftMouseDown, .rightMouseDown]
-        ) { [weak self] event in
-            guard let self else { return event }
-            guard event.window !== panel,
-                event.window !== statusItem.button?.window
-            else { return event }
-            closePanel()
-            return event
-        }
-    }
-
-    private func stopWatchingForDismissal() {
-        if let dismissMonitor { NSEvent.removeMonitor(dismissMonitor) }
-        if let localDismissMonitor { NSEvent.removeMonitor(localDismissMonitor) }
-        dismissMonitor = nil
-        localDismissMonitor = nil
-    }
-
-    func windowDidResignKey(_ notification: Notification) {
-        guard (notification.object as? NSWindow) === panel else { return }
-        closePanel()
-    }
-
-    deinit {
-        if let dismissMonitor { NSEvent.removeMonitor(dismissMonitor) }
-        if let localDismissMonitor { NSEvent.removeMonitor(localDismissMonitor) }
+    func popoverDidClose(_ notification: Notification) {
+        guard (notification.object as? NSPopover) === popover else { return }
+        contentObserver = nil
+        popover = nil
+        hosting = nil
+        refresh()
     }
 }
