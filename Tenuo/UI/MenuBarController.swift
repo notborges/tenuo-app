@@ -3,11 +3,12 @@ import Combine
 import SwiftUI
 
 @MainActor
-final class MenuBarController: NSObject, NSPopoverDelegate {
+final class MenuBarController: NSObject, NSMenuDelegate {
     private let model: AppModel
     private let statusItem: NSStatusItem
-    private var popover: NSPopover?
-    private var hosting: NSHostingController<MenuPanelView>?
+    private let menu: NSMenu
+    private var menuItem: NSMenuItem?
+    private var hosting: NSHostingView<MenuPanelView>?
     private var contentObserver: AnyCancellable?
 
     var onOpenEditor: (() -> Void)?
@@ -16,13 +17,19 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     init(model: AppModel) {
         self.model = model
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        menu = NSMenu(title: "Tenuo")
         super.init()
 
+        menu.autoenablesItems = false
+        menu.showsStateColumn = false
+        menu.delegate = self
+        statusItem.menu = menu
+
         if let button = statusItem.button {
-            button.target = self
-            button.action = #selector(togglePanel)
             button.setAccessibilityLabel("Tenuo")
         }
+
+        installContent()
         refresh()
     }
 
@@ -47,67 +54,69 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             : "Tenuo needs Accessibility access"
     }
 
-    @objc private func togglePanel() {
-        if popover?.isShown == true {
-            closePanel()
-        } else {
-            openPanel()
+    private func installContent() {
+        let hosting = NSHostingView(rootView: makePanelView())
+        hosting.autoresizingMask = [.width, .height]
+        hosting.setFrameSize(hosting.fittingSize)
+
+        let item = NSMenuItem()
+        item.view = hosting
+        menu.addItem(item)
+
+        self.menuItem = item
+        self.hosting = hosting
+        contentObserver = model.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async { self?.updateContentSize() }
         }
     }
 
-    private func openPanel(isTransient: Bool = true) {
-        refresh()
-        guard let button = statusItem.button else { return }
-
-        let view = MenuPanelView(model: model, updates: model.updates) { [weak self] in
+    private func makePanelView() -> MenuPanelView {
+        MenuPanelView(model: model, updates: model.updates) { [weak self] in
             self?.closePanel()
             self?.onOpenEditor?()
         } onOpenPreferences: { [weak self] in
             self?.closePanel()
             self?.onOpenPreferences?()
         }
+    }
 
-        let hosting = NSHostingController(rootView: view)
-        let popover = NSPopover()
-        popover.behavior = isTransient ? .transient : .applicationDefined
-        popover.animates = false
-        popover.appearance = NSAppearance(named: .darkAqua)
-        popover.contentViewController = hosting
-        popover.contentSize = hosting.view.fittingSize
-        popover.delegate = self
+    private func updateContentSize() {
+        guard let hosting, let menuItem else { return }
+        hosting.layoutSubtreeIfNeeded()
 
-        self.popover = popover
-        self.hosting = hosting
-        contentObserver = model.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async { self?.resizePopover() }
-        }
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        let size = hosting.fittingSize
+        guard size.width > 1, size.height > 1, size != hosting.frame.size else { return }
+
+        hosting.setFrameSize(size)
+        menu.itemChanged(menuItem)
     }
 
     func presentForPreview() {
-        openPanel(isTransient: false)
-    }
+        refresh()
+        guard let button = statusItem.button else { return }
 
-    private func resizePopover() {
-        guard let popover, let hosting, popover.isShown else { return }
-        let size = hosting.view.fittingSize
-        guard size.width > 1, size.height > 1, size != popover.contentSize else { return }
-        popover.contentSize = size
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.menu.popUp(
+                positioning: nil,
+                at: NSPoint(x: button.bounds.midX, y: button.bounds.minY),
+                in: button)
+        }
     }
 
     func closePanel() {
-        contentObserver = nil
-        popover?.close()
-        popover = nil
-        hosting = nil
+        menu.cancelTrackingWithoutAnimation()
         refresh()
     }
 
-    func popoverDidClose(_ notification: Notification) {
-        guard (notification.object as? NSPopover) === popover else { return }
-        contentObserver = nil
-        popover = nil
-        hosting = nil
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu === self.menu else { return }
+        refresh()
+        updateContentSize()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard menu === self.menu else { return }
         refresh()
     }
 }
