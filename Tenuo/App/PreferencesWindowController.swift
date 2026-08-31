@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class SettingsWindowController {
+final class PreferencesWindowController {
     private var window: NSWindow?
     private let model: AppModel
 
@@ -17,7 +17,7 @@ final class SettingsWindowController {
         }
 
         let hosting = NSHostingController(
-            rootView: SettingsPane(model: model, updates: model.updates)
+            rootView: PreferencesView(model: model, updates: model.updates)
         )
         hosting.safeAreaRegions = []
         let created = NSWindow(contentViewController: hosting)
@@ -37,7 +37,7 @@ final class SettingsWindowController {
     }
 }
 
-private struct SettingsPane: View {
+private struct PreferencesView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var updates: UpdateController
 
@@ -91,12 +91,12 @@ private struct SettingsPane: View {
                     HStack(spacing: DS.Space.small) {
                         AppSlider(
                             value: Binding(
-                                get: { Double(model.layout.tapThresholdMilliseconds) },
-                                set: { model.layout.tapThresholdMilliseconds = Int($0) }
+                                get: { Double(model.profile.tapThresholdMilliseconds) },
+                                set: { model.profile.tapThresholdMilliseconds = Int($0) }
                             ),
                             range: 80...500, step: 10, label: "Tap threshold"
                         )
-                        Text("\(model.layout.tapThresholdMilliseconds) ms")
+                        Text("\(model.profile.tapThresholdMilliseconds) ms")
                             .font(DS.Typography.label.monospacedDigit())
                             .foregroundStyle(DS.Ink.secondary)
                             .frame(width: 46, alignment: .trailing)

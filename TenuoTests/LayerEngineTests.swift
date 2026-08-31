@@ -9,8 +9,8 @@ private struct Harness {
     private(set) var emitted: [SyntheticKey] = []
     private let capsCode = TriggerKey.capsLock.observedKeyCode!
 
-    init(layout: Layout = Presets.navigation, isEnabled: Bool = true) {
-        engine = LayerEngine(layout: layout, isEnabled: isEnabled)
+    init(profile: Profile = Presets.navigation, isEnabled: Bool = true) {
+        engine = LayerEngine(profile: profile, isEnabled: isEnabled)
     }
 
     mutating func send(_ event: InputEvent) -> Disposition {
@@ -92,7 +92,7 @@ final class LayerEngineTests: XCTestCase {
     }
 
     func testBaseMappingRemainsAvailableUnderAHeldLayer() {
-        let layout = Layout(
+        let layout = Profile(
             name: "Test",
             layers: [
                 Layer(
@@ -103,7 +103,7 @@ final class LayerEngineTests: XCTestCase {
                     trigger: LayerTrigger(key: .capsLock),
                     mappings: ["j": .key(KeyBinding(key: "downArrow"))]),
             ])
-        var harness = Harness(layout: layout)
+        var harness = Harness(profile: layout)
 
         XCTAssertEqual(rewrittenKey(harness.keyDown(KeyCode.a)), KeyCode.escape)
         harness.capsDown()
@@ -112,7 +112,7 @@ final class LayerEngineTests: XCTestCase {
     }
 
     func testMappedKeysKeepInputModifiersAndAddBindingModifiers() {
-        var harness = Harness(layout: Presets.vim)
+        var harness = Harness(profile: Presets.vim)
         harness.capsDown()
 
         let disposition = harness.keyDown(KeyCode.w, flags: [.shift])
@@ -122,7 +122,7 @@ final class LayerEngineTests: XCTestCase {
     }
 
     func testHoldModesDefineWhatHappensToUnmappedKeys() {
-        var injecting = Harness(layout: Presets.hyperOnly)
+        var injecting = Harness(profile: Presets.hyperOnly)
         injecting.capsDown()
         let injected = injecting.keyDown(KeyCode.t)
         XCTAssertEqual(rewrittenKey(injected), KeyCode.t)
@@ -132,26 +132,26 @@ final class LayerEngineTests: XCTestCase {
 
         var mapping = Presets.navigation
         mapping.layers[1].holdMode = .layer
-        var layerOnly = Harness(layout: mapping)
+        var layerOnly = Harness(profile: mapping)
         layerOnly.capsDown()
         XCTAssertEqual(layerOnly.keyDown(KeyCode.t), .passThrough)
     }
 
     func testModifierSpecificLayerRequiresTheCorrectSide() {
-        var left = Harness(layout: Presets.stacked)
+        var left = Harness(profile: Presets.stacked)
         left.capsDown(flags: leftShiftHeld)
         left.modifiers(leftShiftHeld)
         let leftDisposition = left.keyDown(KeyCode.h, flags: leftShiftHeld)
         XCTAssertEqual(rewrittenFlags(leftDisposition)?.contains(.shift), true)
 
-        var right = Harness(layout: Presets.stacked)
+        var right = Harness(profile: Presets.stacked)
         right.capsDown(flags: rightShiftHeld)
         right.modifiers(rightShiftHeld)
         XCTAssertEqual(rewrittenKey(right.keyDown(KeyCode.w, flags: rightShiftHeld)), KeyCode.w)
     }
 
     func testChangingLayersReleasesHeldOutput() {
-        var harness = Harness(layout: Presets.stacked)
+        var harness = Harness(profile: Presets.stacked)
         harness.capsDown()
         _ = harness.keyDown(KeyCode.h)
         harness.modifiers(leftShiftHeld)
@@ -163,7 +163,7 @@ final class LayerEngineTests: XCTestCase {
     }
 
     func testTransparentAndBlockedActionsHaveDifferentSemantics() {
-        let transparentLayout = Layout(
+        let transparentLayout = Profile(
             name: "Transparent",
             layers: [
                 Layer(name: "Base"),
@@ -177,12 +177,12 @@ final class LayerEngineTests: XCTestCase {
                     holdMode: .layer,
                     mappings: ["a": .transparent]),
             ])
-        var transparent = Harness(layout: transparentLayout)
+        var transparent = Harness(profile: transparentLayout)
         transparent.capsDown(flags: leftShiftHeld)
         transparent.modifiers(leftShiftHeld)
         XCTAssertEqual(transparent.keyDown(KeyCode.a, flags: leftShiftHeld), .passThrough)
 
-        let blockedLayout = Layout(
+        let blockedLayout = Profile(
             name: "Blocked",
             layers: [
                 Layer(name: "Base"),
@@ -192,7 +192,7 @@ final class LayerEngineTests: XCTestCase {
                     holdMode: .layer,
                     mappings: ["a": .blocked]),
             ])
-        var blocked = Harness(layout: blockedLayout)
+        var blocked = Harness(profile: blockedLayout)
         blocked.capsDown()
         XCTAssertEqual(blocked.keyDown(KeyCode.a), .suppress)
         XCTAssertEqual(blocked.keyUp(KeyCode.a), .suppress)

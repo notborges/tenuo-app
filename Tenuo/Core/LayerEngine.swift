@@ -76,25 +76,25 @@ struct LayerEngine {
 
     private(set) var activeLayerIndex: Int?
 
-    init(layout: Layout = Presets.default, isEnabled: Bool = true) {
+    init(profile: Profile = Presets.default, isEnabled: Bool = true) {
         self.isEnabled = isEnabled
         held.reserveCapacity(16)
-        apply(layout: layout)
+        apply(profile: profile)
     }
 
-    mutating func apply(layout: Layout) {
+    mutating func apply(profile: Profile) {
         tapThresholdNanoseconds =
-            UInt64(max(0, layout.tapThresholdMilliseconds)) * 1_000_000
+            UInt64(max(0, profile.tapThresholdMilliseconds)) * 1_000_000
 
         var keyOrder: [TriggerKey] = []
-        for layer in layout.layers {
+        for layer in profile.layers {
             guard let trigger = layer.trigger else { continue }
             if !keyOrder.contains(trigger.key) { keyOrder.append(trigger.key) }
         }
         triggers = keyOrder.map { TriggerRuntime(key: $0) }
 
         baseMask = 0
-        layers = layout.layers.enumerated().map { index, layer in
+        layers = profile.layers.enumerated().map { index, layer in
             var mappings: [UInt16: KeyAction] = [:]
             mappings.reserveCapacity(layer.mappings.count)
             for (name, action) in layer.mappings {
@@ -113,7 +113,7 @@ struct LayerEngine {
         }
 
         for (slot, runtime) in triggers.enumerated() {
-            let candidates = layout.layers
+            let candidates = profile.layers
                 .filter { $0.trigger?.key == runtime.key && $0.tapAction != nil }
                 .sorted { ($0.trigger?.specificity ?? 0) < ($1.trigger?.specificity ?? 0) }
             if let action = candidates.first?.tapAction, let code = action.keyCode {

@@ -8,7 +8,7 @@ struct MenuPanelView: View {
 
     private static let width: CGFloat = 460
 
-    private var featured: Layer? { model.layout.triggeredLayers.first }
+    private var featured: Layer? { model.profile.triggeredLayers.first }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -19,7 +19,7 @@ struct MenuPanelView: View {
                     separator
                     board(featured)
                 }
-                if !model.layout.triggeredLayers.isEmpty {
+                if !model.profile.triggeredLayers.isEmpty {
                     separator
                     layers
                 }
@@ -75,7 +75,7 @@ struct MenuPanelView: View {
     private var statusText: String {
         guard model.isTrusted else { return "Needs permission" }
         guard model.isEnabled else { return "Off" }
-        let count = model.layout.triggeredLayers.count
+        let count = model.profile.triggeredLayers.count
         return "On · \(count) layer\(count == 1 ? "" : "s")"
     }
 
@@ -102,7 +102,7 @@ struct MenuPanelView: View {
 
     private var layers: some View {
         VStack(spacing: 2) {
-            ForEach(model.layout.triggeredLayers) { layer in
+            ForEach(model.profile.triggeredLayers) { layer in
                 HStack(spacing: 8) {
                     ChordBadge(layer: layer)
                     Text(layer.name)

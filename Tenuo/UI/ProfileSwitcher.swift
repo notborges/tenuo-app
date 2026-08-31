@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ProfileSection: View {
     @ObservedObject var model: AppModel
-    @Binding var renaming: Layout?
-    @Binding var deleting: Layout?
+    @Binding var renaming: Profile?
+    @Binding var deleting: Profile?
 
     var body: some View {
         VStack(spacing: 1) {
@@ -32,7 +32,7 @@ struct ProfileSection: View {
     }
 
     @ViewBuilder
-    private func menu(for profile: Layout) -> some View {
+    private func menu(for profile: Profile) -> some View {
         if profile.id != model.activeProfileID {
             Button("Switch to This") { model.selectProfile(profile.id) }
             Divider()
@@ -49,7 +49,7 @@ struct ProfileSection: View {
 
 struct RenameProfileSheet: View {
     @ObservedObject var model: AppModel
-    let profile: Layout
+    let profile: Profile
     @Environment(\.dismiss) private var dismiss
     @State private var draft = ""
 

@@ -44,8 +44,8 @@ final class SettingsTests: XCTestCase {
 
     func testSelectingAndEditingAProfilePersists() {
         let settings = Settings(defaults: defaults)
-        let first = Layout(name: "A", layers: Presets.navigation.layers)
-        let second = Layout(name: "B", layers: Presets.vim.layers)
+        let first = Profile(name: "A", layers: Presets.navigation.layers)
+        let second = Profile(name: "B", layers: Presets.vim.layers)
         settings.profiles = [first, second]
         settings.activeProfileID = second.id
 
@@ -65,9 +65,12 @@ final class SettingsTests: XCTestCase {
 
         XCTAssertEqual(settings.profiles.count, before + 1)
         XCTAssertEqual(settings.activeProfileID, imported.id)
-        XCTAssertEqual(settings.activeProfile.layers, Presets.vim.layers)
+        XCTAssertEqual(
+            settings.activeProfile.layers.map(\.name), Presets.vim.layers.map(\.name))
+        XCTAssertNotEqual(
+            settings.activeProfile.layers.map(\.id), Presets.vim.layers.map(\.id))
 
-        let exported = try JSONDecoder().decode(Layout.self, from: settings.exportJSON())
+        let exported = try JSONDecoder().decode(Profile.self, from: settings.exportJSON())
         XCTAssertEqual(exported, settings.activeProfile)
     }
 
@@ -77,5 +80,27 @@ final class SettingsTests: XCTestCase {
 
         XCTAssertThrowsError(try settings.importJSON(Data("{}".utf8)))
         XCTAssertEqual(settings.profiles, before)
+    }
+
+    func testImportRejectsUnknownKeys() throws {
+        let settings = Settings(defaults: defaults)
+        var invalid = Presets.navigation
+        invalid.layers[1].mappings["notAKey"] = .key(KeyBinding(key: "escape"))
+
+        XCTAssertThrowsError(try settings.importJSON(Settings.encoder.encode(invalid))) {
+            XCTAssertEqual(
+                $0 as? ProfileError,
+                .unknownSourceKey(layer: "Navigation", key: "notAKey"))
+        }
+    }
+
+    func testImportRejectsProfilesWithoutExactlyOneBaseLayer() throws {
+        let settings = Settings(defaults: defaults)
+        var invalid = Presets.navigation
+        invalid.layers[1].trigger = nil
+
+        XCTAssertThrowsError(try settings.importJSON(Settings.encoder.encode(invalid))) {
+            XCTAssertEqual($0 as? ProfileError, .invalidBaseLayerCount(found: 2))
+        }
     }
 }

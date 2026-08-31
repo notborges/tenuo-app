@@ -1,33 +1,41 @@
 import Foundation
 
 enum KeyCode {
-    static let a: UInt16 = 0
-    static let s: UInt16 = 1
-    static let b: UInt16 = 11
-    static let d: UInt16 = 2
-    static let h: UInt16 = 4
-    static let j: UInt16 = 38
-    static let k: UInt16 = 40
-    static let l: UInt16 = 37
-    static let t: UInt16 = 17
-    static let w: UInt16 = 13
+    private static func catalogCode(_ name: String) -> UInt16 {
+        guard let code = KeyCatalog.code(for: name) else {
+            preconditionFailure("Missing key catalog entry: \(name)")
+        }
+        return code
+    }
 
-    static let leftArrow: UInt16 = 123
-    static let rightArrow: UInt16 = 124
-    static let downArrow: UInt16 = 125
-    static let upArrow: UInt16 = 126
+    static let a = catalogCode("a")
+    static let s = catalogCode("s")
+    static let b = catalogCode("b")
+    static let d = catalogCode("d")
+    static let h = catalogCode("h")
+    static let j = catalogCode("j")
+    static let k = catalogCode("k")
+    static let l = catalogCode("l")
+    static let t = catalogCode("t")
+    static let w = catalogCode("w")
 
-    static let escape: UInt16 = 53
-    static let `return`: UInt16 = 36
-    static let forwardDelete: UInt16 = 117
-    static let home: UInt16 = 115
-    static let end: UInt16 = 119
-    static let pageUp: UInt16 = 116
-    static let pageDown: UInt16 = 121
+    static let leftArrow = catalogCode("leftArrow")
+    static let rightArrow = catalogCode("rightArrow")
+    static let downArrow = catalogCode("downArrow")
+    static let upArrow = catalogCode("upArrow")
+
+    static let escape = catalogCode("escape")
+    static let `return` = catalogCode("return")
+    static let forwardDelete = catalogCode("forwardDelete")
+    static let home = catalogCode("home")
+    static let end = catalogCode("end")
+    static let pageUp = catalogCode("pageUp")
+    static let pageDown = catalogCode("pageDown")
 
     static let capsLock: UInt16 = 57
-    static let f18: UInt16 = 79
+    static let f18 = catalogCode("f18")
 
+    // These are physical trigger codes, not selectable mapping keys.
     static let leftShift: UInt16 = 56
     static let rightShift: UInt16 = 60
     static let leftControl: UInt16 = 59

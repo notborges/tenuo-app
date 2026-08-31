@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SettingsView: View {
+struct LayerEditorView: View {
     @ObservedObject var model: AppModel
     var onOpenSettings: () -> Void
 

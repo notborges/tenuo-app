@@ -50,23 +50,26 @@ final class Settings {
         }
     }
 
-    var profiles: [Layout] {
+    var profiles: [Profile] {
         get {
             guard let data = defaults.data(forKey: Key.profiles),
-                let decoded = try? JSONDecoder().decode([Layout].self, from: data),
-                !decoded.isEmpty
+                let decoded = try? JSONDecoder().decode([Profile].self, from: data),
+                !decoded.isEmpty,
+                decoded.allSatisfy({ (try? $0.validate()) != nil })
             else { return Presets.library }
             return decoded
         }
         set {
             let sanitised = newValue.isEmpty ? Presets.library : newValue
+            guard sanitised.allSatisfy({ (try? $0.validate()) != nil }) else { return }
             guard sanitised != profiles else { return }
             write(profiles: sanitised)
             onChange?()
         }
     }
 
-    private func write(profiles: [Layout]) {
+    private func write(profiles: [Profile]) {
+        guard profiles.allSatisfy({ (try? $0.validate()) != nil }) else { return }
         guard let data = try? Self.encoder.encode(profiles) else { return }
         defaults.set(data, forKey: Key.profiles)
     }
@@ -89,12 +92,13 @@ final class Settings {
         }
     }
 
-    var activeProfile: Layout {
+    var activeProfile: Profile {
         get {
             let all = profiles
             return all.first { $0.id == activeProfileID } ?? all[0]
         }
         set {
+            guard (try? newValue.validate()) != nil else { return }
             var all = profiles
             guard let index = all.firstIndex(where: { $0.id == newValue.id }) else { return }
             guard all[index] != newValue else { return }
@@ -115,12 +119,9 @@ final class Settings {
     }
 
     @discardableResult
-    func importJSON(_ data: Data) throws -> Layout {
-        let decoded = try JSONDecoder().decode(Layout.self, from: data)
-        let held = decoded.triggeredLayers.count
-        guard held <= Layout.maxTriggeredLayers else {
-            throw ProfileError.tooManyLayers(found: held)
-        }
+    func importJSON(_ data: Data) throws -> Profile {
+        let decoded = try JSONDecoder().decode(Profile.self, from: data)
+        try decoded.validate()
         let added = decoded.copy(named: uniqueName(decoded.name))
         profiles = profiles + [added]
         activeProfileID = added.id

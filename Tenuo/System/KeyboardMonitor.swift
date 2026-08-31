@@ -27,8 +27,8 @@ final class KeyboardMonitor {
         return Double(timebase.numer) / Double(timebase.denom)
     }()
 
-    init(layout: Layout, isEnabled: Bool) {
-        engine = LayerEngine(layout: layout, isEnabled: isEnabled)
+    init(profile: Profile, isEnabled: Bool) {
+        engine = LayerEngine(profile: profile, isEnabled: isEnabled)
     }
 
     @discardableResult
@@ -80,9 +80,9 @@ final class KeyboardMonitor {
         log.info("Event tap removed")
     }
 
-    func update(layout: Layout) {
+    func update(profile: Profile) {
         flushHeldKeys()
-        engine.apply(layout: layout)
+        engine.apply(profile: profile)
     }
 
     func update(isEnabled: Bool) {
@@ -92,7 +92,10 @@ final class KeyboardMonitor {
     }
 
     func flushHeldKeys() {
+        let hadActiveLayer = engine.activeLayerIndex != nil || lastActiveLayer != nil
         engine.reset { [weak self] key in self?.post(key) }
+        lastActiveLayer = nil
+        if hadActiveLayer { onActiveLayerChanged?(nil) }
     }
 
     private func process(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {

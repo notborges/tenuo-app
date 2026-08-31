@@ -6,7 +6,7 @@ behavior in the pull request description.
 Before opening a pull request:
 
 1. Run the unit tests.
-2. Run the project generator and include any intentional project-file changes.
+2. Run `xcrun swift-format lint --configuration .swift-format --recursive Tenuo TenuoTests`.
 3. Run `git diff --check`.
 4. Manually test changes that affect keyboard events, permissions, windows, or
    persistence. The relevant cases are listed in `MANUAL-TESTS.md`.

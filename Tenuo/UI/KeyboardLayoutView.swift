@@ -15,16 +15,16 @@ struct KeyboardLayoutView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let unit = proxy.size.width / KeyboardLayout.widthInUnits
-            let gap = unit * KeyboardLayout.gapRatio
+            let unit = proxy.size.width / KeyboardGeometry.widthInUnits
+            let gap = unit * KeyboardGeometry.gapRatio
 
             Deck(
-                padding: unit * KeyboardLayout.bezelRatio,
+                padding: unit * KeyboardGeometry.bezelRatio,
                 cornerRadius: unit * 0.42,
                 isElevated: width == nil
             ) {
                 VStack(alignment: .leading, spacing: gap) {
-                    ForEach(Array(KeyboardLayout.rows.enumerated()), id: \.offset) { _, row in
+                    ForEach(Array(KeyboardGeometry.rows.enumerated()), id: \.offset) { _, row in
                         HStack(spacing: gap) {
                             ForEach(Array(row.enumerated()), id: \.offset) { _, element in
                                 view(for: element, unit: unit, gap: gap)
@@ -34,13 +34,13 @@ struct KeyboardLayoutView: View {
                 }
             }
         }
-        .aspectRatio(KeyboardLayout.aspectRatio, contentMode: .fit)
+        .aspectRatio(KeyboardGeometry.aspectRatio, contentMode: .fit)
         .modifier(BoardSizing(width: width))
     }
 
     @ViewBuilder
     private func view(
-        for element: KeyboardLayout.Element,
+        for element: KeyboardGeometry.Element,
         unit: CGFloat,
         gap: CGFloat
     ) -> some View {
@@ -64,19 +64,19 @@ struct KeyboardLayoutView: View {
             HStack(spacing: gap) {
                 Color.clear.frame(width: unit, height: half)
                 keycap(
-                    for: KeyboardLayout.Key(name: "upArrow", label: "↑"),
+                    for: KeyboardGeometry.Key(name: "upArrow", label: "↑"),
                     width: unit, height: half, unit: unit)
                 Color.clear.frame(width: unit, height: half)
             }
             HStack(spacing: gap) {
                 keycap(
-                    for: KeyboardLayout.Key(name: "leftArrow", label: "←"),
+                    for: KeyboardGeometry.Key(name: "leftArrow", label: "←"),
                     width: unit, height: half, unit: unit)
                 keycap(
-                    for: KeyboardLayout.Key(name: "downArrow", label: "↓"),
+                    for: KeyboardGeometry.Key(name: "downArrow", label: "↓"),
                     width: unit, height: half, unit: unit)
                 keycap(
-                    for: KeyboardLayout.Key(name: "rightArrow", label: "→"),
+                    for: KeyboardGeometry.Key(name: "rightArrow", label: "→"),
                     width: unit, height: half, unit: unit)
             }
         }
@@ -84,7 +84,7 @@ struct KeyboardLayoutView: View {
     }
 
     private func keycap(
-        for key: KeyboardLayout.Key,
+        for key: KeyboardGeometry.Key,
         width: CGFloat,
         height: CGFloat,
         unit: CGFloat
@@ -137,7 +137,7 @@ struct KeyboardLayoutView: View {
     }
 
     private func secondaryLegend(
-        for key: KeyboardLayout.Key,
+        for key: KeyboardGeometry.Key,
         shown: KeyAction?
     ) -> (text: String?, symbol: String?, above: Bool, isMapping: Bool) {
         if let shown { return (shown.displayLabel, nil, false, true) }
@@ -147,7 +147,7 @@ struct KeyboardLayoutView: View {
         return (nil, nil, false, false)
     }
 
-    private func alignment(for position: KeyboardLayout.LegendPosition) -> HorizontalAlignment {
+    private func alignment(for position: KeyboardGeometry.LegendPosition) -> HorizontalAlignment {
         switch position {
         case .center: return .center
         case .leading: return .leading
@@ -156,7 +156,7 @@ struct KeyboardLayoutView: View {
     }
 
     private func tooltip(
-        for key: KeyboardLayout.Key,
+        for key: KeyboardGeometry.Key,
         action: KeyAction?,
         inherited: KeyAction?,
         isTrigger: Bool
@@ -173,9 +173,9 @@ private struct BoardSizing: ViewModifier {
 
     func body(content: Content) -> some View {
         if let width {
-            content.frame(width: width, height: width / KeyboardLayout.aspectRatio)
+            content.frame(width: width, height: width / KeyboardGeometry.aspectRatio)
         } else {
-            content.frame(maxWidth: KeyboardLayout.maxWidth)
+            content.frame(maxWidth: KeyboardGeometry.maxWidth)
         }
     }
 }

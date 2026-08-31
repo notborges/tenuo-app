@@ -194,7 +194,7 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
     var isBase: Bool { trigger == nil }
 }
 
-struct Layout: Codable, Equatable, Sendable, Identifiable {
+struct Profile: Codable, Equatable, Sendable, Identifiable {
     var id: UUID
     var name: String
     var layers: [Layer]
@@ -212,18 +212,66 @@ struct Layout: Codable, Equatable, Sendable, Identifiable {
         self.tapThresholdMilliseconds = tapThresholdMilliseconds
     }
 
-    func copy(named newName: String) -> Layout {
-        Layout(
-            id: UUID(), name: newName, layers: layers,
+    func copy(named newName: String) -> Profile {
+        Profile(
+            id: UUID(), name: newName,
+            layers: layers.map { layer in
+                var copy = layer
+                copy.id = UUID()
+                return copy
+            },
             tapThresholdMilliseconds: tapThresholdMilliseconds)
     }
 
     static let maxTriggeredLayers = 6
+    static let validTapThresholdMilliseconds = 80...500
 
     var baseLayer: Layer? { layers.first(where: \.isBase) }
     var triggeredLayers: [Layer] { layers.filter { !$0.isBase } }
 
     var canAddLayer: Bool { triggeredLayers.count < Self.maxTriggeredLayers }
+
+    func validate() throws {
+        let baseLayerCount = layers.filter(\.isBase).count
+        guard baseLayerCount == 1 else {
+            throw ProfileError.invalidBaseLayerCount(found: baseLayerCount)
+        }
+
+        let ids = layers.map(\.id)
+        guard Set(ids).count == ids.count else {
+            throw ProfileError.duplicateLayerIDs
+        }
+
+        let triggeredCount = triggeredLayers.count
+        guard triggeredCount <= Self.maxTriggeredLayers else {
+            throw ProfileError.tooManyLayers(found: triggeredCount)
+        }
+
+        guard Self.validTapThresholdMilliseconds.contains(tapThresholdMilliseconds) else {
+            throw ProfileError.invalidTapThreshold(milliseconds: tapThresholdMilliseconds)
+        }
+
+        for layer in layers {
+            if let trigger = layer.trigger, trigger.key.observedKeyCode == nil {
+                throw ProfileError.unknownTriggerKey(layer: layer.name)
+            }
+
+            if let tapAction = layer.tapAction, tapAction.keyCode == nil {
+                throw ProfileError.unknownDestinationKey(
+                    layer: layer.name, key: tapAction.key)
+            }
+
+            for (source, action) in layer.mappings {
+                guard KeyCatalog.code(for: source) != nil else {
+                    throw ProfileError.unknownSourceKey(layer: layer.name, key: source)
+                }
+                if let binding = action.binding, binding.keyCode == nil {
+                    throw ProfileError.unknownDestinationKey(
+                        layer: layer.name, key: binding.key)
+                }
+            }
+        }
+    }
 
     func conflicts() -> [(Layer, Layer)] {
         var found: [(Layer, Layer)] = []
@@ -240,14 +288,32 @@ struct Layout: Codable, Equatable, Sendable, Identifiable {
 
 enum ProfileError: LocalizedError, Equatable {
     case tooManyLayers(found: Int)
+    case invalidBaseLayerCount(found: Int)
+    case duplicateLayerIDs
+    case invalidTapThreshold(milliseconds: Int)
+    case unknownTriggerKey(layer: String)
+    case unknownSourceKey(layer: String, key: String)
+    case unknownDestinationKey(layer: String, key: String)
 
     var errorDescription: String? {
         switch self {
         case let .tooManyLayers(found):
             return """
                 That profile holds \(found) layers, and a profile may have at \
-                most \(Layout.maxTriggeredLayers).
+                most \(Profile.maxTriggeredLayers).
                 """
+        case let .invalidBaseLayerCount(found):
+            return "A profile must contain exactly one base layer, but this one has \(found)."
+        case .duplicateLayerIDs:
+            return "That profile contains duplicate layer identifiers."
+        case let .invalidTapThreshold(milliseconds):
+            return "The tap threshold \(milliseconds) ms is outside the supported range."
+        case let .unknownTriggerKey(layer):
+            return "Layer \"\(layer)\" uses an unknown trigger key."
+        case let .unknownSourceKey(layer, key):
+            return "Layer \"\(layer)\" maps an unknown source key \"\(key)\"."
+        case let .unknownDestinationKey(layer, key):
+            return "Layer \"\(layer)\" maps to an unknown destination key \"\(key)\"."
         }
     }
 
@@ -255,6 +321,9 @@ enum ProfileError: LocalizedError, Equatable {
         switch self {
         case .tooManyLayers:
             return "Split it into more than one profile, then import each."
+        case .invalidBaseLayerCount, .duplicateLayerIDs, .invalidTapThreshold,
+            .unknownTriggerKey, .unknownSourceKey, .unknownDestinationKey:
+            return "Export the profile again from a current version of Tenuo."
         }
     }
 }

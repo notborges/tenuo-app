@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-enum KeyboardLayout {
+enum KeyboardGeometry {
 
     enum LegendPosition { case center, leading, trailing }
 

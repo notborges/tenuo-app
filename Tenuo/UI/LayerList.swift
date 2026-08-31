@@ -4,8 +4,8 @@ struct LayerList: View {
     @ObservedObject var model: AppModel
     var onOpenSettings: () -> Void
     @State private var pendingRemoval: Layer?
-    @State private var renamingProfile: Layout?
-    @State private var deletingProfile: Layout?
+    @State private var renamingProfile: Profile?
+    @State private var deletingProfile: Profile?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -24,7 +24,8 @@ struct LayerList: View {
 
                     SectionHeader(
                         title: "Layers",
-                        detail: "\(model.layout.triggeredLayers.count)/\(Layout.maxTriggeredLayers)"
+                        detail:
+                            "\(model.profile.triggeredLayers.count)/\(Profile.maxTriggeredLayers)"
                     )
                     .padding(.top, DS.Space.large)
                     .padding(.bottom, 5)
@@ -142,7 +143,7 @@ struct LayerList: View {
                 title: "New Layer",
                 isEnabled: model.canAddLayer,
                 reason: """
-                    A profile holds up to \(Layout.maxTriggeredLayers) layers. \
+                    A profile holds up to \(Profile.maxTriggeredLayers) layers. \
                     Make another profile for more.
                     """,
                 action: model.addLayer
@@ -161,6 +162,6 @@ struct LayerList: View {
     }
 
     private func conflicts(_ layer: Layer) -> Bool {
-        model.layout.conflicts().contains { $0.0.id == layer.id || $0.1.id == layer.id }
+        model.profile.conflicts().contains { $0.0.id == layer.id || $0.1.id == layer.id }
     }
 }

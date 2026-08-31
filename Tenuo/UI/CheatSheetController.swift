@@ -109,7 +109,7 @@ struct CheatSheetView: View {
         if let index = activeLayerIndex, model.layers.indices.contains(index) {
             return model.layers[index]
         }
-        return model.layout.triggeredLayers.first
+        return model.profile.triggeredLayers.first
     }
 
     private var mappings: [String: KeyAction] { layer?.mappings ?? [:] }

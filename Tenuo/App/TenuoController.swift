@@ -27,7 +27,7 @@ final class TenuoController {
 
     init(settings: Settings = Settings()) {
         self.settings = settings
-        monitor = KeyboardMonitor(layout: settings.activeProfile, isEnabled: settings.isEnabled)
+        monitor = KeyboardMonitor(profile: settings.activeProfile, isEnabled: settings.isEnabled)
     }
 
     func start() {
@@ -61,7 +61,7 @@ final class TenuoController {
             onStateChanged?()
         }
 
-        if !activate() {
+        if settings.isEnabled, !activate() {
             onPermissionMissing?()
             startRetrying()
         }
@@ -125,7 +125,7 @@ final class TenuoController {
     }
 
     private func applySettings() {
-        monitor.update(layout: settings.activeProfile)
+        monitor.update(profile: settings.activeProfile)
         monitor.update(isEnabled: settings.isEnabled)
 
         if settings.isEnabled {
@@ -143,10 +143,6 @@ final class TenuoController {
 
     func toggleEnabled() {
         settings.isEnabled.toggle()
-    }
-
-    func apply(layout: Layout) {
-        settings.activeProfile = layout
     }
 
     func toggleLaunchAtLogin() {

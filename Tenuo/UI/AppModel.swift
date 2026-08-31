@@ -20,7 +20,7 @@ final class AppModel: ObservableObject {
         refresh()
     }
 
-    var layout: Layout {
+    var profile: Profile {
         get { controller.settings.activeProfile }
         set {
             controller.settings.activeProfile = newValue
@@ -28,21 +28,21 @@ final class AppModel: ObservableObject {
         }
     }
 
-    var layers: [Layer] { layout.layers }
+    var layers: [Layer] { profile.layers }
 
     var selectedIndex: Int {
-        layout.layers.firstIndex { $0.id == selectedLayerID } ?? 0
+        profile.layers.firstIndex { $0.id == selectedLayerID } ?? 0
     }
 
     var selectedLayer: Layer {
         get {
-            layout.layers.indices.contains(selectedIndex)
-                ? layout.layers[selectedIndex]
+            profile.layers.indices.contains(selectedIndex)
+                ? profile.layers[selectedIndex]
                 : Presets.default.layers[0]
         }
         set {
-            guard layout.layers.indices.contains(selectedIndex) else { return }
-            layout.layers[selectedIndex] = newValue
+            guard profile.layers.indices.contains(selectedIndex) else { return }
+            profile.layers[selectedIndex] = newValue
         }
     }
 
@@ -50,7 +50,7 @@ final class AppModel: ObservableObject {
 
     var inheritedMappings: [String: KeyAction] {
         var result: [String: KeyAction] = [:]
-        for layer in layout.layers.prefix(selectedIndex) {
+        for layer in profile.layers.prefix(selectedIndex) {
             for (key, action) in layer.mappings where action != .transparent {
                 result[key] = action
             }
@@ -65,54 +65,48 @@ final class AppModel: ObservableObject {
             .sorted { $0.source < $1.source }
     }
 
-    var canAddLayer: Bool { layout.canAddLayer }
+    var canAddLayer: Bool { profile.canAddLayer }
 
     func addLayer() {
         guard canAddLayer else { return }
-        var layer = Presets.newLayer(index: layout.layers.count)
-        var attempt = 0
-        while layout.triggeredLayers.contains(where: { $0.trigger == layer.trigger }), attempt < 8 {
-            attempt += 1
-            layer.trigger = LayerTrigger(
-                key: layer.trigger?.key ?? .capsLock,
-                modifiers: [
-                    ModifierRequirement.allCases[attempt % ModifierRequirement.allCases.count]
-                ]
-            )
-        }
-        layout.layers.append(layer)
+        var layer = Presets.newLayer(index: profile.layers.count)
+        guard let preferred = layer.trigger,
+            let trigger = uniqueTrigger(preferred: preferred)
+        else { return }
+        layer.trigger = trigger
+        profile.layers.append(layer)
         selectedLayerID = layer.id
     }
 
     func duplicateLayer(_ layer: Layer) {
         guard canAddLayer else { return }
-        var copy = Presets.newLayer(index: layout.layers.count)
+        var copy = layer
+        copy.id = UUID()
         copy.name = "\(layer.name) Copy"
-        copy.holdMode = layer.holdMode
-        copy.tapAction = layer.tapAction
-        copy.mappings = layer.mappings
-        layout.layers.append(copy)
+        guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
+        copy.trigger = trigger
+        profile.layers.append(copy)
         selectedLayerID = copy.id
     }
 
     func remove(_ layer: Layer) {
-        guard !layer.isBase, let index = layout.layers.firstIndex(where: { $0.id == layer.id })
+        guard !layer.isBase, let index = profile.layers.firstIndex(where: { $0.id == layer.id })
         else { return }
-        layout.layers.remove(at: index)
-        if selectedLayerID == layer.id { selectedLayerID = layout.layers.last?.id }
+        profile.layers.remove(at: index)
+        if selectedLayerID == layer.id { selectedLayerID = profile.layers.last?.id }
     }
 
     func removeSelectedLayer() {
-        guard layout.layers.indices.contains(selectedIndex),
-            !layout.layers[selectedIndex].isBase
+        guard profile.layers.indices.contains(selectedIndex),
+            !profile.layers[selectedIndex].isBase
         else { return }
-        let removed = layout.layers.remove(at: selectedIndex)
+        let removed = profile.layers.remove(at: selectedIndex)
         if selectedLayerID == removed.id {
-            selectedLayerID = layout.layers.last?.id
+            selectedLayerID = profile.layers.last?.id
         }
     }
 
-    var profiles: [Layout] { controller.settings.profiles }
+    var profiles: [Profile] { controller.settings.profiles }
 
     var activeProfileID: UUID { controller.settings.activeProfileID }
 
@@ -123,7 +117,7 @@ final class AppModel: ObservableObject {
         objectWillChange.send()
     }
 
-    func addProfile(from source: Layout, named name: String) {
+    func addProfile(from source: Profile, named name: String) {
         let created = source.copy(named: controller.settings.uniqueName(name))
         controller.settings.profiles = controller.settings.profiles + [created]
         controller.settings.activeProfileID = created.id
@@ -132,14 +126,14 @@ final class AppModel: ObservableObject {
     }
 
     func newProfile() {
-        addProfile(from: Layout(name: "", layers: [Presets.emptyBase()]), named: "New Profile")
+        addProfile(from: Profile(name: "", layers: [Presets.emptyBase()]), named: "New Profile")
     }
 
-    func duplicateProfile(_ profile: Layout) {
+    func duplicateProfile(_ profile: Profile) {
         addProfile(from: profile, named: "\(profile.name) Copy")
     }
 
-    func duplicateActiveProfile() { duplicateProfile(layout) }
+    func duplicateActiveProfile() { duplicateProfile(profile) }
 
     func renameProfile(_ id: UUID, to name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -161,7 +155,7 @@ final class AppModel: ObservableObject {
         objectWillChange.send()
     }
 
-    func exportProfile(_ profile: Layout) {
+    func exportProfile(_ profile: Profile) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(profile.name).json"
@@ -176,7 +170,7 @@ final class AppModel: ObservableObject {
     func exportProfileToPanel() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "\(layout.name).json"
+        panel.nameFieldStringValue = "\(profile.name).json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do { try controller.settings.exportJSON().write(to: url) } catch {
             errorMessage = error.localizedDescription
@@ -198,7 +192,18 @@ final class AppModel: ObservableObject {
     }
 
     private func selectInitialLayer() {
-        selectedLayerID = layout.triggeredLayers.first?.id ?? layout.layers.first?.id
+        selectedLayerID = profile.triggeredLayers.first?.id ?? profile.layers.first?.id
+    }
+
+    private func uniqueTrigger(preferred: LayerTrigger) -> LayerTrigger? {
+        let used = Set(profile.triggeredLayers.compactMap(\.trigger))
+        let key = preferred.key
+        let candidates =
+            [preferred]
+            + ModifierRequirement.allCases.map {
+                LayerTrigger(key: key, modifiers: [$0])
+            }
+        return candidates.first { !used.contains($0) }
     }
 
     var isEnabled: Bool {

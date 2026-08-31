@@ -46,11 +46,11 @@ Then set `CODE_SIGN_IDENTITY` and `DEVELOPMENT_TEAM` in the ignored file.
 ```text
 Tenuo/
   App/        Application lifecycle and windows
-  Core/       Layout models, presets, settings, and the layer engine
+  Core/       Profile models, presets, settings, and the layer engine
   System/     Event tap, Caps Lock remapping, permissions, and updates
   UI/         SwiftUI views and AppKit controllers
 TenuoTests/   Core behavior and persistence tests
-scripts/      Project generation and release tooling
+scripts/      Release tooling
 tools/icon/   Icon source and export tooling
 ```
 

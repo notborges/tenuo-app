@@ -1,6 +1,6 @@
 # Manual test checklist
 
-The unit tests cover the layout model, persistence, and layer engine. These
+The unit tests cover persistence and the layer engine. These
 checks require a real macOS session because they exercise Accessibility,
 CoreGraphics, `hidutil`, and application focus.
 

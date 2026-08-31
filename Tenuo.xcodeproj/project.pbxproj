@@ -11,12 +11,12 @@
 		TENUO0000000000000000003 /* MainMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000004 /* MainMenu.swift */; };
 		TENUO0000000000000000005 /* TenuoController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000006 /* TenuoController.swift */; };
 		TENUO0000000000000000007 /* PermissionWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000008 /* PermissionWindowController.swift */; };
-		TENUO0000000000000000009 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000A /* SettingsWindowController.swift */; };
+		TENUO0000000000000000009 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000A /* PreferencesWindowController.swift */; };
 		TENUO000000000000000000B /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000C /* KeyCodes.swift */; };
 		TENUO000000000000000000D /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
 		TENUO000000000000000000F /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
 		TENUO0000000000000000011 /* KeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000012 /* KeyBinding.swift */; };
-		TENUO0000000000000000013 /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Layout.swift */; };
+		TENUO0000000000000000013 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Profile.swift */; };
 		TENUO0000000000000000015 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
 		TENUO0000000000000000017 /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
 		TENUO0000000000000000019 /* KeyboardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001A /* KeyboardGeometry.swift */; };
@@ -33,7 +33,7 @@
 		TENUO000000000000000002F /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000030 /* AppModel.swift */; };
 		TENUO0000000000000000031 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000032 /* MenuBarController.swift */; };
 		TENUO0000000000000000033 /* MenuPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000034 /* MenuPanelView.swift */; };
-		TENUO0000000000000000035 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000036 /* SettingsView.swift */; };
+		TENUO0000000000000000035 /* LayerEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000036 /* LayerEditorView.swift */; };
 		TENUO0000000000000000037 /* LayersPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000038 /* LayersPage.swift */; };
 		TENUO0000000000000000039 /* SettingsControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000003A /* SettingsControls.swift */; };
 		TENUO000000000000000003B /* KeyboardLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000003C /* KeyboardLayoutView.swift */; };
@@ -46,10 +46,9 @@
 		TENUO0000000000000000048 /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
 		TENUO0000000000000000049 /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
 		TENUO000000000000000004A /* KeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000012 /* KeyBinding.swift */; };
-		TENUO000000000000000004B /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Layout.swift */; };
+		TENUO000000000000000004B /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Profile.swift */; };
 		TENUO000000000000000004C /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
 		TENUO000000000000000004D /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
-		TENUO000000000000000004E /* KeyboardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001A /* KeyboardGeometry.swift */; };
 		TENUO000000000000000004F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
 		TENUO0000000000000000050 /* Assets.car in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000051 /* Assets.car */; };
 		TENUO0000000000000000052 /* Tenuo.icns in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000053 /* Tenuo.icns */; };
@@ -65,12 +64,12 @@
 		TENUO0000000000000000004 /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000006 /* TenuoController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenuoController.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000008 /* PermissionWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionWindowController.swift; sourceTree = "<group>"; };
-		TENUO000000000000000000A /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		TENUO000000000000000000A /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		TENUO000000000000000000C /* KeyCodes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodes.swift; sourceTree = "<group>"; };
 		TENUO000000000000000000E /* TriggerKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerKey.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000010 /* KeyCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCatalog.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000012 /* KeyBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBinding.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000014 /* Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Layout.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000014 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000016 /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000018 /* LayerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngine.swift; sourceTree = "<group>"; };
 		TENUO000000000000000001A /* KeyboardGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardGeometry.swift; sourceTree = "<group>"; };
@@ -87,7 +86,7 @@
 		TENUO0000000000000000030 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000032 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000034 /* MenuPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuPanelView.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000036 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000036 /* LayerEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEditorView.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000038 /* LayersPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayersPage.swift; sourceTree = "<group>"; };
 		TENUO000000000000000003A /* SettingsControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsControls.swift; sourceTree = "<group>"; };
 		TENUO000000000000000003C /* KeyboardLayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardLayoutView.swift; sourceTree = "<group>"; };
@@ -135,7 +134,7 @@
 				TENUO0000000000000000004 /* MainMenu.swift */,
 				TENUO0000000000000000006 /* TenuoController.swift */,
 				TENUO0000000000000000008 /* PermissionWindowController.swift */,
-				TENUO000000000000000000A /* SettingsWindowController.swift */,
+				TENUO000000000000000000A /* PreferencesWindowController.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -147,10 +146,9 @@
 				TENUO000000000000000000E /* TriggerKey.swift */,
 				TENUO0000000000000000010 /* KeyCatalog.swift */,
 				TENUO0000000000000000012 /* KeyBinding.swift */,
-				TENUO0000000000000000014 /* Layout.swift */,
+				TENUO0000000000000000014 /* Profile.swift */,
 				TENUO0000000000000000016 /* Presets.swift */,
 				TENUO0000000000000000018 /* LayerEngine.swift */,
-				TENUO000000000000000001A /* KeyboardGeometry.swift */,
 				TENUO000000000000000001C /* Settings.swift */,
 			);
 			path = Core;
@@ -172,13 +170,14 @@
 		TENUO0000000000000000068 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				TENUO000000000000000001A /* KeyboardGeometry.swift */,
 				TENUO000000000000000002A /* DesignSystem.swift */,
 				TENUO000000000000000002C /* Controls.swift */,
 				TENUO000000000000000002E /* GlassStyle.swift */,
 				TENUO0000000000000000030 /* AppModel.swift */,
 				TENUO0000000000000000032 /* MenuBarController.swift */,
 				TENUO0000000000000000034 /* MenuPanelView.swift */,
-				TENUO0000000000000000036 /* SettingsView.swift */,
+				TENUO0000000000000000036 /* LayerEditorView.swift */,
 				TENUO0000000000000000038 /* LayersPage.swift */,
 				TENUO000000000000000003A /* SettingsControls.swift */,
 				TENUO000000000000000003C /* KeyboardLayoutView.swift */,
@@ -360,12 +359,12 @@
 				TENUO0000000000000000003 /* MainMenu.swift in Sources */,
 				TENUO0000000000000000005 /* TenuoController.swift in Sources */,
 				TENUO0000000000000000007 /* PermissionWindowController.swift in Sources */,
-				TENUO0000000000000000009 /* SettingsWindowController.swift in Sources */,
+				TENUO0000000000000000009 /* PreferencesWindowController.swift in Sources */,
 				TENUO000000000000000000B /* KeyCodes.swift in Sources */,
 				TENUO000000000000000000D /* TriggerKey.swift in Sources */,
 				TENUO000000000000000000F /* KeyCatalog.swift in Sources */,
 				TENUO0000000000000000011 /* KeyBinding.swift in Sources */,
-				TENUO0000000000000000013 /* Layout.swift in Sources */,
+				TENUO0000000000000000013 /* Profile.swift in Sources */,
 				TENUO0000000000000000015 /* Presets.swift in Sources */,
 				TENUO0000000000000000017 /* LayerEngine.swift in Sources */,
 				TENUO0000000000000000019 /* KeyboardGeometry.swift in Sources */,
@@ -382,7 +381,7 @@
 				TENUO000000000000000002F /* AppModel.swift in Sources */,
 				TENUO0000000000000000031 /* MenuBarController.swift in Sources */,
 				TENUO0000000000000000033 /* MenuPanelView.swift in Sources */,
-				TENUO0000000000000000035 /* SettingsView.swift in Sources */,
+				TENUO0000000000000000035 /* LayerEditorView.swift in Sources */,
 				TENUO0000000000000000037 /* LayersPage.swift in Sources */,
 				TENUO0000000000000000039 /* SettingsControls.swift in Sources */,
 				TENUO000000000000000003B /* KeyboardLayoutView.swift in Sources */,
@@ -402,10 +401,9 @@
 				TENUO0000000000000000048 /* TriggerKey.swift in Sources */,
 				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
 				TENUO000000000000000004A /* KeyBinding.swift in Sources */,
-				TENUO000000000000000004B /* Layout.swift in Sources */,
+				TENUO000000000000000004B /* Profile.swift in Sources */,
 				TENUO000000000000000004C /* Presets.swift in Sources */,
 				TENUO000000000000000004D /* LayerEngine.swift in Sources */,
-				TENUO000000000000000004E /* KeyboardGeometry.swift in Sources */,
 				TENUO000000000000000004F /* Settings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

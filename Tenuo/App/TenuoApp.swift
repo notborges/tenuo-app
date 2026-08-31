@@ -36,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var cheatSheet: CheatSheetController?
     private var editorWindow: NSWindow?
     private var onboarding: PermissionWindowController?
-    private lazy var preferences = SettingsWindowController(model: model)
+    private lazy var preferences = PreferencesWindowController(model: model)
 
     private static var isUIPreview: Bool {
         ProcessInfo.processInfo.arguments.contains("--ui-preview")
@@ -103,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         let hosting = NSHostingController(
-            rootView: SettingsView(model: model) { [weak self] in self?.preferences.show() }
+            rootView: LayerEditorView(model: model) { [weak self] in self?.preferences.show() }
         )
         hosting.safeAreaRegions = []
         let window = NSWindow(contentViewController: hosting)

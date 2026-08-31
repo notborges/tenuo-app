@@ -9,7 +9,7 @@ enum Presets {
         Layer(id: id(0), name: "Base", holdMode: .layer)
     }
 
-    static let navigation = Layout(
+    static let navigation = Profile(
         id: id(0x10), name: "Navigation",
         layers: [
             base(),
@@ -28,7 +28,7 @@ enum Presets {
             ),
         ])
 
-    static let vim = Layout(
+    static let vim = Profile(
         id: id(0x20), name: "Vim",
         layers: [
             base(),
@@ -56,7 +56,7 @@ enum Presets {
             ),
         ])
 
-    static let stacked = Layout(
+    static let stacked = Profile(
         id: id(0x30), name: "Stacked",
         layers: [
             base(),
@@ -89,7 +89,7 @@ enum Presets {
             ),
         ])
 
-    static let hyperOnly = Layout(
+    static let hyperOnly = Profile(
         id: id(0x40), name: "Hyper Only",
         layers: [
             base(),
@@ -102,11 +102,11 @@ enum Presets {
             ),
         ])
 
-    static let all: [Layout] = [navigation, vim, stacked, hyperOnly]
+    static let all: [Profile] = [navigation, vim, stacked, hyperOnly]
 
-    static let library: [Layout] = all
+    static let library: [Profile] = all
 
-    static let `default` = Layout(
+    static let `default` = Profile(
         id: id(0xD),
         name: "Default",
         layers: navigation.layers
