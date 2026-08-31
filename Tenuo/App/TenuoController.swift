@@ -3,7 +3,7 @@ import Foundation
 import os
 
 final class TenuoController {
-    private let log = Logger(subsystem: "com.tenuo.Tenuo", category: "controller")
+    private let log = Logger(subsystem: "app.tenuo", category: "controller")
 
     let settings: Settings
     let accessibility = AccessibilityManager()

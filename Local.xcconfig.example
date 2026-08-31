@@ -1,10 +1,10 @@
-// Copy this file to Local.xcconfig. The destination is gitignored.
+// Copy this file to Local.xcconfig and replace the values below.
+// Local.xcconfig is gitignored and must not be committed.
 //
-//     cp Local.xcconfig.example Local.xcconfig
+// Find installed identities with:
+//   security find-identity -v -p codesigning
 //
-// Replace the placeholders with values from your Apple Developer account.
-CODE_SIGN_IDENTITY = Developer ID Application: Your Name (ABCDE12345)
-DEVELOPMENT_TEAM = ABCDE12345
-
-// Optional Sparkle configuration for a distributor build.
-// TENUO_FEED_URL = https://example.com/appcast.xml
+// Use Apple Development for normal Xcode runs. The release script selects a
+// Developer ID Application identity when it archives the app.
+CODE_SIGN_IDENTITY = Apple Development
+DEVELOPMENT_TEAM = TEAMID

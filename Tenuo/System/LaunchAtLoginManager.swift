@@ -3,7 +3,7 @@ import ServiceManagement
 import os
 
 final class LaunchAtLoginManager {
-    private let log = Logger(subsystem: "com.tenuo.Tenuo", category: "login")
+    private let log = Logger(subsystem: "app.tenuo", category: "login")
     private let service = SMAppService.mainApp
 
     var isEnabled: Bool {

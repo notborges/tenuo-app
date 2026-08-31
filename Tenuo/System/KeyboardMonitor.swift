@@ -5,7 +5,7 @@ import os
 final class KeyboardMonitor {
     private static let syntheticMarker: Int64 = 0x4E56_5348  // "TENU"
 
-    private let log = Logger(subsystem: "com.tenuo.Tenuo", category: "tap")
+    private let log = Logger(subsystem: "app.tenuo", category: "tap")
 
     private var engine: LayerEngine
     private var tap: CFMachPort?
@@ -19,13 +19,6 @@ final class KeyboardMonitor {
     private var lastActiveLayer: Int?
 
     var isRunning: Bool { tap != nil }
-
-    private static let nanosecondsPerTick: Double = {
-        var timebase = mach_timebase_info_data_t()
-        mach_timebase_info(&timebase)
-        guard timebase.denom != 0 else { return 1 }
-        return Double(timebase.numer) / Double(timebase.denom)
-    }()
 
     init(profile: Profile, isEnabled: Bool) {
         engine = LayerEngine(profile: profile, isEnabled: isEnabled)
@@ -126,7 +119,7 @@ final class KeyboardMonitor {
             flags: EventFlags(rawValue: event.flags.rawValue),
             isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
             isSynthetic: event.getIntegerValueField(.eventSourceUserData) == Self.syntheticMarker,
-            timestamp: UInt64(Double(event.timestamp) * Self.nanosecondsPerTick)
+            timestamp: event.timestamp
         )
 
         let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })

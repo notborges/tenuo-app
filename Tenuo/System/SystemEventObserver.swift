@@ -5,7 +5,7 @@ import IOKit.hid
 import os
 
 final class SystemEventObserver {
-    private let log = Logger(subsystem: "com.tenuo.Tenuo", category: "system")
+    private let log = Logger(subsystem: "app.tenuo", category: "system")
 
     var onShouldResetState: (() -> Void)?
     var onShouldReapplyRemap: (() -> Void)?

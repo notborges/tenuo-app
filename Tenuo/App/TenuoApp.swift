@@ -27,7 +27,7 @@ extension NSWindow {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let controller = TenuoController(
         settings: AppDelegate.isUIPreview
-            ? Settings(defaults: UserDefaults(suiteName: "com.tenuo.uipreview")!)
+            ? Settings(defaults: UserDefaults(suiteName: "app.tenuo.uipreview")!)
             : Settings()
     )
     private lazy var model = AppModel(controller: controller)
@@ -76,16 +76,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         cheatSheet.isEnabled = controller.settings.showsCheatSheet
         self.cheatSheet = cheatSheet
 
-        let onboarding = PermissionWindowController(model: model) { [weak self] in
-            self?.controller.openAccessibilitySettings()
-        }
+        let onboarding = PermissionWindowController(
+            model: model,
+            onOpenSettings: { [weak self] in
+                self?.controller.openAccessibilitySettings()
+            },
+            onClose: { [weak self] in self?.onboardingDidClose() }
+        )
         self.onboarding = onboarding
 
         controller.onStateChanged = { [weak self, weak menuBar, weak cheatSheet] in
             menuBar?.refresh()
             if let self { cheatSheet?.isEnabled = controller.settings.showsCheatSheet }
         }
-        controller.onPermissionMissing = { [weak onboarding] in onboarding?.show() }
+        controller.onPermissionMissing = { [weak self] in self?.showOnboarding() }
         controller.onPermissionGranted = { [weak onboarding] in onboarding?.dismiss() }
         controller.onActiveLayerChanged = { [weak cheatSheet] index in
             cheatSheet?.setActiveLayer(index)
@@ -122,6 +126,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         editorWindow = window
     }
 
+    private func showOnboarding() {
+        NSApp.setActivationPolicy(.regular)
+        onboarding?.show()
+    }
+
+    private func onboardingDidClose() {
+        guard editorWindow?.isVisible != true else { return }
+        NSApp.setActivationPolicy(.accessory)
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard (notification.object as? NSWindow) === editorWindow else { return }
         guard !Self.isUIPreview else { return }
@@ -129,7 +143,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { showEditor() }
+        if !hasVisibleWindows {
+            if controller.isTrusted {
+                showEditor()
+            } else {
+                showOnboarding()
+            }
+        }
         return true
     }
 

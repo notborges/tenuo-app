@@ -1,4 +1,10 @@
-// Defaults that allow a clean checkout to build without a signing identity.
+// A clean checkout builds without a signing identity. Copy
+// Local.xcconfig.example to Local.xcconfig for a stable local signature.
+// Local.xcconfig is ignored, so personal signing details stay off GitHub.
+
+// Ad-hoc signing works everywhere, but its code hash changes after a rebuild.
+// macOS will therefore ask for Accessibility access again. A real signing
+// identity in Local.xcconfig makes that permission persist.
 CODE_SIGN_IDENTITY = -
 CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM =

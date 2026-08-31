@@ -66,7 +66,6 @@ enum DS {
     }
 
     enum Space {
-        static let hair: CGFloat = 2
         static let tight: CGFloat = 6
         static let small: CGFloat = 10
         static let medium: CGFloat = 16

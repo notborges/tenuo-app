@@ -11,9 +11,9 @@ final class CapsLockRemapper {
     private static let sourceKey = "HIDKeyboardModifierMappingSrc"
     private static let destinationKey = "HIDKeyboardModifierMappingDst"
 
-    private let log = Logger(subsystem: "com.tenuo.Tenuo", category: "remap")
+    private let log = Logger(subsystem: "app.tenuo", category: "remap")
 
-    private let queue = DispatchQueue(label: "com.tenuo.remap", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "app.tenuo.remap", qos: .userInitiated)
     private var applied = false
     private var originalMappings: [[String: Any]]?
 

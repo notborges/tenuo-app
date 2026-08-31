@@ -41,7 +41,7 @@ final class UpdateController: NSObject, ObservableObject {
     }
 
     private let log = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "app.tenuo.Tenuo",
+        subsystem: Bundle.main.bundleIdentifier ?? "app.tenuo",
         category: "updates")
     private var updater: SPUUpdater?
 

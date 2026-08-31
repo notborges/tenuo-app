@@ -39,8 +39,6 @@ struct AppSlider: View {
     var step: Double
     var label: String
 
-    @State private var isDragging = false
-
     private var fraction: CGFloat {
         let span = range.upperBound - range.lowerBound
         guard span > 0 else { return 0 }
@@ -65,7 +63,6 @@ struct AppSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { commit(at: $0.location.x, width: width) }
-                    .onEnded { _ in isDragging = false }
             )
         }
         .frame(height: 20)
@@ -82,7 +79,6 @@ struct AppSlider: View {
     }
 
     private func commit(at x: CGFloat, width: CGFloat) {
-        isDragging = true
         guard width > 0 else { return }
         let span = range.upperBound - range.lowerBound
         set(range.lowerBound + Double(min(max(x / width, 0), 1)) * span)

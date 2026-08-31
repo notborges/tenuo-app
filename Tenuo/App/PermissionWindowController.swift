@@ -2,14 +2,21 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class PermissionWindowController {
+final class PermissionWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let model: AppModel
     private let onOpenSettings: () -> Void
+    private let onClose: () -> Void
 
-    init(model: AppModel, onOpenSettings: @escaping () -> Void) {
+    init(
+        model: AppModel,
+        onOpenSettings: @escaping () -> Void,
+        onClose: @escaping () -> Void
+    ) {
         self.model = model
         self.onOpenSettings = onOpenSettings
+        self.onClose = onClose
+        super.init()
     }
 
     func show() {
@@ -31,6 +38,7 @@ final class PermissionWindowController {
         newWindow.isReleasedWhenClosed = false
         newWindow.backgroundColor = NSColor(DS.Surface.window)
         newWindow.isRestorable = false
+        newWindow.delegate = self
         hosting.view.layoutSubtreeIfNeeded()
         newWindow.setContentSize(hosting.view.fittingSize)
         newWindow.center()
@@ -41,6 +49,12 @@ final class PermissionWindowController {
     func dismiss() {
         window?.close()
         window = nil
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard (notification.object as? NSWindow) === window else { return }
+        window = nil
+        onClose()
     }
 }
 
@@ -67,13 +81,13 @@ private struct PermissionView: View {
                 .frame(width: 56, height: 56)
                 .padding(.bottom, DS.Space.small)
 
-            Text("Use Caps Lock as a second layer.")
+            Text("Use a layer key for more shortcuts.")
                 .font(DS.Typography.display)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, DS.Space.tight)
 
             Text(
-                "Hold Caps Lock, then press H, J, K, or L to move around. Tap Caps Lock for Escape."
+                "Hold the layer key, then press one of the highlighted keys. Caps Lock is the default and sends Escape when tapped; you can choose a different layer key in Settings."
             )
             .font(DS.Typography.body)
             .foregroundStyle(DS.Ink.secondary)
