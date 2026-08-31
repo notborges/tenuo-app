@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "TENUO0000000000000000072"
+               BlueprintIdentifier = "TENUO0000000000000000070"
                BuildableName = "Tenuo.app"
                BlueprintName = "Tenuo"
                ReferencedContainer = "container:Tenuo.xcodeproj">
@@ -28,7 +28,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "TENUO0000000000000000075"
+               BlueprintIdentifier = "TENUO0000000000000000073"
                BuildableName = "TenuoTests.xctest"
                BlueprintName = "TenuoTests"
                ReferencedContainer = "container:Tenuo.xcodeproj">
@@ -46,7 +46,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "TENUO0000000000000000075"
+               BlueprintIdentifier = "TENUO0000000000000000073"
                BuildableName = "TenuoTests.xctest"
                BlueprintName = "TenuoTests"
                ReferencedContainer = "container:Tenuo.xcodeproj">
@@ -68,7 +68,7 @@
          runnableDebuggingMode = "0">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "TENUO0000000000000000072"
+               BlueprintIdentifier = "TENUO0000000000000000070"
                BuildableName = "Tenuo.app"
                BlueprintName = "Tenuo"
                ReferencedContainer = "container:Tenuo.xcodeproj">
@@ -85,7 +85,7 @@
          runnableDebuggingMode = "0">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "TENUO0000000000000000072"
+               BlueprintIdentifier = "TENUO0000000000000000070"
                BuildableName = "Tenuo.app"
                BlueprintName = "Tenuo"
                ReferencedContainer = "container:Tenuo.xcodeproj">

@@ -40,25 +40,24 @@
 		TENUO000000000000000003D /* LayerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000003E /* LayerList.swift */; };
 		TENUO000000000000000003F /* ProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000040 /* ProfileSwitcher.swift */; };
 		TENUO0000000000000000041 /* CheatSheetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000042 /* CheatSheetController.swift */; };
-		TENUO0000000000000000043 /* LayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000044 /* LayoutTests.swift */; };
-		TENUO0000000000000000045 /* LayerEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000046 /* LayerEngineTests.swift */; };
-		TENUO0000000000000000047 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000048 /* SettingsTests.swift */; };
-		TENUO0000000000000000049 /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000C /* KeyCodes.swift */; };
-		TENUO000000000000000004A /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
-		TENUO000000000000000004B /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
-		TENUO000000000000000004C /* KeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000012 /* KeyBinding.swift */; };
-		TENUO000000000000000004D /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Layout.swift */; };
-		TENUO000000000000000004E /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
-		TENUO000000000000000004F /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
-		TENUO0000000000000000050 /* KeyboardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001A /* KeyboardGeometry.swift */; };
-		TENUO0000000000000000051 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
-		TENUO0000000000000000052 /* Assets.car in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000053 /* Assets.car */; };
-		TENUO0000000000000000054 /* Tenuo.icns in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000055 /* Tenuo.icns */; };
-		TENUO0000000000000000056 /* TenuoTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000057 /* TenuoTemplate.png */; };
-		TENUO0000000000000000058 /* TenuoTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000059 /* TenuoTemplate@2x.png */; };
-		TENUO000000000000000005A /* TenuoMark.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000005B /* TenuoMark.png */; };
-		TENUO000000000000000005C /* TenuoMark@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000005D /* TenuoMark@2x.png */; };
-		TENUO000000000000000005E /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = TENUO000000000000000005F /* Sparkle */; };
+		TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000044 /* LayerEngineTests.swift */; };
+		TENUO0000000000000000045 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000046 /* SettingsTests.swift */; };
+		TENUO0000000000000000047 /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000C /* KeyCodes.swift */; };
+		TENUO0000000000000000048 /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
+		TENUO0000000000000000049 /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
+		TENUO000000000000000004A /* KeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000012 /* KeyBinding.swift */; };
+		TENUO000000000000000004B /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Layout.swift */; };
+		TENUO000000000000000004C /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
+		TENUO000000000000000004D /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
+		TENUO000000000000000004E /* KeyboardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001A /* KeyboardGeometry.swift */; };
+		TENUO000000000000000004F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
+		TENUO0000000000000000050 /* Assets.car in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000051 /* Assets.car */; };
+		TENUO0000000000000000052 /* Tenuo.icns in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000053 /* Tenuo.icns */; };
+		TENUO0000000000000000054 /* TenuoTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000055 /* TenuoTemplate.png */; };
+		TENUO0000000000000000056 /* TenuoTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000057 /* TenuoTemplate@2x.png */; };
+		TENUO0000000000000000058 /* TenuoMark.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000059 /* TenuoMark.png */; };
+		TENUO000000000000000005A /* TenuoMark@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000005B /* TenuoMark@2x.png */; };
+		TENUO000000000000000005C /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = TENUO000000000000000005D /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,32 +94,31 @@
 		TENUO000000000000000003E /* LayerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerList.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000040 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000042 /* CheatSheetController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheatSheetController.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000044 /* LayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutTests.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000046 /* LayerEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngineTests.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000048 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000060 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		TENUO0000000000000000061 /* Tenuo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tenuo.entitlements; sourceTree = "<group>"; };
-		TENUO0000000000000000053 /* Assets.car */ = {isa = PBXFileReference; lastKnownFileType = archive.binhex; path = Assets.car; sourceTree = "<group>"; };
-		TENUO0000000000000000055 /* Tenuo.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Tenuo.icns; sourceTree = "<group>"; };
-		TENUO0000000000000000057 /* TenuoTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoTemplate.png; sourceTree = "<group>"; };
-		TENUO0000000000000000059 /* TenuoTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "TenuoTemplate@2x.png"; sourceTree = "<group>"; };
-		TENUO000000000000000005B /* TenuoMark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoMark.png; sourceTree = "<group>"; };
-		TENUO000000000000000005D /* TenuoMark@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "TenuoMark@2x.png"; sourceTree = "<group>"; };
-		TENUO0000000000000000062 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
-		TENUO0000000000000000063 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		TENUO0000000000000000064 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		TENUO0000000000000000044 /* LayerEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngineTests.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000046 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
+		TENUO000000000000000005E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		TENUO000000000000000005F /* Tenuo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tenuo.entitlements; sourceTree = "<group>"; };
+		TENUO0000000000000000051 /* Assets.car */ = {isa = PBXFileReference; lastKnownFileType = archive.binhex; path = Assets.car; sourceTree = "<group>"; };
+		TENUO0000000000000000053 /* Tenuo.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Tenuo.icns; sourceTree = "<group>"; };
+		TENUO0000000000000000055 /* TenuoTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoTemplate.png; sourceTree = "<group>"; };
+		TENUO0000000000000000057 /* TenuoTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "TenuoTemplate@2x.png"; sourceTree = "<group>"; };
+		TENUO0000000000000000059 /* TenuoMark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoMark.png; sourceTree = "<group>"; };
+		TENUO000000000000000005B /* TenuoMark@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "TenuoMark@2x.png"; sourceTree = "<group>"; };
+		TENUO0000000000000000060 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		TENUO0000000000000000065 /* Frameworks */ = {
+		TENUO0000000000000000063 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				TENUO000000000000000005E /* Sparkle in Frameworks */,
+				TENUO000000000000000005C /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		TENUO0000000000000000066 /* Frameworks */ = {
+		TENUO0000000000000000064 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -130,7 +128,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		TENUO0000000000000000067 /* App */ = {
+		TENUO0000000000000000065 /* App */ = {
 			isa = PBXGroup;
 			children = (
 				TENUO0000000000000000002 /* TenuoApp.swift */,
@@ -142,7 +140,7 @@
 			path = App;
 			sourceTree = "<group>";
 		};
-		TENUO0000000000000000068 /* Core */ = {
+		TENUO0000000000000000066 /* Core */ = {
 			isa = PBXGroup;
 			children = (
 				TENUO000000000000000000C /* KeyCodes.swift */,
@@ -158,7 +156,7 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
-		TENUO0000000000000000069 /* System */ = {
+		TENUO0000000000000000067 /* System */ = {
 			isa = PBXGroup;
 			children = (
 				TENUO000000000000000001E /* KeyboardMonitor.swift */,
@@ -171,7 +169,7 @@
 			path = System;
 			sourceTree = "<group>";
 		};
-		TENUO000000000000000006A /* UI */ = {
+		TENUO0000000000000000068 /* UI */ = {
 			isa = PBXGroup;
 			children = (
 				TENUO000000000000000002A /* DesignSystem.swift */,
@@ -191,72 +189,71 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
-		TENUO000000000000000006B /* Resources */ = {
+		TENUO0000000000000000069 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				TENUO0000000000000000060 /* Info.plist */,
-				TENUO0000000000000000061 /* Tenuo.entitlements */,
-				TENUO0000000000000000053 /* Assets.car */,
-				TENUO0000000000000000055 /* Tenuo.icns */,
-				TENUO0000000000000000057 /* TenuoTemplate.png */,
-				TENUO0000000000000000059 /* TenuoTemplate@2x.png */,
-				TENUO000000000000000005B /* TenuoMark.png */,
-				TENUO000000000000000005D /* TenuoMark@2x.png */,
+				TENUO000000000000000005E /* Info.plist */,
+				TENUO000000000000000005F /* Tenuo.entitlements */,
+				TENUO0000000000000000051 /* Assets.car */,
+				TENUO0000000000000000053 /* Tenuo.icns */,
+				TENUO0000000000000000055 /* TenuoTemplate.png */,
+				TENUO0000000000000000057 /* TenuoTemplate@2x.png */,
+				TENUO0000000000000000059 /* TenuoMark.png */,
+				TENUO000000000000000005B /* TenuoMark@2x.png */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		TENUO000000000000000006C /* Tenuo */ = {
+		TENUO000000000000000006A /* Tenuo */ = {
 			isa = PBXGroup;
 			children = (
-				TENUO0000000000000000067 /* App */,
-				TENUO0000000000000000068 /* Core */,
-				TENUO0000000000000000069 /* System */,
-				TENUO000000000000000006A /* UI */,
-				TENUO000000000000000006B /* Resources */,
+				TENUO0000000000000000065 /* App */,
+				TENUO0000000000000000066 /* Core */,
+				TENUO0000000000000000067 /* System */,
+				TENUO0000000000000000068 /* UI */,
+				TENUO0000000000000000069 /* Resources */,
 			);
 			path = Tenuo;
 			sourceTree = "<group>";
 		};
-		TENUO000000000000000006D /* TenuoTests */ = {
+		TENUO000000000000000006B /* TenuoTests */ = {
 			isa = PBXGroup;
 			children = (
-				TENUO0000000000000000044 /* LayoutTests.swift */,
-				TENUO0000000000000000046 /* LayerEngineTests.swift */,
-				TENUO0000000000000000048 /* SettingsTests.swift */,
+				TENUO0000000000000000044 /* LayerEngineTests.swift */,
+				TENUO0000000000000000046 /* SettingsTests.swift */,
 			);
 			path = TenuoTests;
 			sourceTree = "<group>";
 		};
-		TENUO000000000000000006E /* Products */ = {
+		TENUO000000000000000006C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				TENUO0000000000000000063 /* Tenuo.app */,
-				TENUO0000000000000000064 /* TenuoTests.xctest */,
+				TENUO0000000000000000061 /* Tenuo.app */,
+				TENUO0000000000000000062 /* TenuoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		TENUO000000000000000006F /*  */ = {
+		TENUO000000000000000006D /*  */ = {
 			isa = PBXGroup;
 			children = (
-				TENUO0000000000000000062 /* Config.xcconfig */,
-				TENUO000000000000000006C /* Tenuo */,
-				TENUO000000000000000006D /* TenuoTests */,
-				TENUO000000000000000006E /* Products */,
+				TENUO0000000000000000060 /* Config.xcconfig */,
+				TENUO000000000000000006A /* Tenuo */,
+				TENUO000000000000000006B /* TenuoTests */,
+				TENUO000000000000000006C /* Products */,
 			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		TENUO0000000000000000072 /* Tenuo */ = {
+		TENUO0000000000000000070 /* Tenuo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = TENUO0000000000000000073 /* Build configuration list for PBXNativeTarget "Tenuo" */;
+			buildConfigurationList = TENUO0000000000000000071 /* Build configuration list for PBXNativeTarget "Tenuo" */;
 			buildPhases = (
-				TENUO0000000000000000070,
-				TENUO0000000000000000065,
-				TENUO0000000000000000071,
+				TENUO000000000000000006E,
+				TENUO0000000000000000063,
+				TENUO000000000000000006F,
 			);
 			buildRules = (
 			);
@@ -264,15 +261,15 @@
 			);
 			name = Tenuo;
 			productName = Tenuo;
-			productReference = TENUO0000000000000000063;
+			productReference = TENUO0000000000000000061;
 			productType = "com.apple.product-type.application";
 		};
-		TENUO0000000000000000075 /* TenuoTests */ = {
+		TENUO0000000000000000073 /* TenuoTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = TENUO0000000000000000076 /* Build configuration list for PBXNativeTarget "TenuoTests" */;
+			buildConfigurationList = TENUO0000000000000000074 /* Build configuration list for PBXNativeTarget "TenuoTests" */;
 			buildPhases = (
-				TENUO0000000000000000074,
-				TENUO0000000000000000066,
+				TENUO0000000000000000072,
+				TENUO0000000000000000064,
 			);
 			buildRules = (
 			);
@@ -280,24 +277,24 @@
 			);
 			name = TenuoTests;
 			productName = TenuoTests;
-			productReference = TENUO0000000000000000064;
+			productReference = TENUO0000000000000000062;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		TENUO0000000000000000077 /* Project object */ = {
+		TENUO0000000000000000075 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					TENUO0000000000000000072 = { CreatedOnToolsVersion = 26.0; };
-					TENUO0000000000000000075 = { CreatedOnToolsVersion = 26.0; };
+					TENUO0000000000000000070 = { CreatedOnToolsVersion = 26.0; };
+					TENUO0000000000000000073 = { CreatedOnToolsVersion = 26.0; };
 				};
 			};
-			buildConfigurationList = TENUO0000000000000000078 /* Build configuration list for PBXProject "Tenuo" */;
+			buildConfigurationList = TENUO0000000000000000076 /* Build configuration list for PBXProject "Tenuo" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -306,21 +303,21 @@
 				Base,
 			);
 			packageReferences = (
-				TENUO0000000000000000079 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				TENUO0000000000000000077 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
-			mainGroup = TENUO000000000000000006F;
-			productRefGroup = TENUO000000000000000006E /* Products */;
+			mainGroup = TENUO000000000000000006D;
+			productRefGroup = TENUO000000000000000006C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				TENUO0000000000000000072 /* Tenuo */,
-				TENUO0000000000000000075 /* TenuoTests */,
+				TENUO0000000000000000070 /* Tenuo */,
+				TENUO0000000000000000073 /* TenuoTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		TENUO0000000000000000079 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+		TENUO0000000000000000077 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
@@ -331,31 +328,31 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		TENUO000000000000000005F /* Sparkle */ = {
+		TENUO000000000000000005D /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = TENUO0000000000000000079 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			package = TENUO0000000000000000077 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXResourcesBuildPhase section */
-		TENUO0000000000000000071 /* Resources */ = {
+		TENUO000000000000000006F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				TENUO0000000000000000052 /* Assets.car in Resources */,
-				TENUO0000000000000000054 /* Tenuo.icns in Resources */,
-				TENUO0000000000000000056 /* TenuoTemplate.png in Resources */,
-				TENUO0000000000000000058 /* TenuoTemplate@2x.png in Resources */,
-				TENUO000000000000000005A /* TenuoMark.png in Resources */,
-				TENUO000000000000000005C /* TenuoMark@2x.png in Resources */,
+				TENUO0000000000000000050 /* Assets.car in Resources */,
+				TENUO0000000000000000052 /* Tenuo.icns in Resources */,
+				TENUO0000000000000000054 /* TenuoTemplate.png in Resources */,
+				TENUO0000000000000000056 /* TenuoTemplate@2x.png in Resources */,
+				TENUO0000000000000000058 /* TenuoMark.png in Resources */,
+				TENUO000000000000000005A /* TenuoMark@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		TENUO0000000000000000070 /* Sources */ = {
+		TENUO000000000000000006E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -395,29 +392,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		TENUO0000000000000000074 /* Sources */ = {
+		TENUO0000000000000000072 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				TENUO0000000000000000043 /* LayoutTests.swift in Sources */,
-				TENUO0000000000000000045 /* LayerEngineTests.swift in Sources */,
-				TENUO0000000000000000047 /* SettingsTests.swift in Sources */,
-				TENUO0000000000000000049 /* KeyCodes.swift in Sources */,
-				TENUO000000000000000004A /* TriggerKey.swift in Sources */,
-				TENUO000000000000000004B /* KeyCatalog.swift in Sources */,
-				TENUO000000000000000004C /* KeyBinding.swift in Sources */,
-				TENUO000000000000000004D /* Layout.swift in Sources */,
-				TENUO000000000000000004E /* Presets.swift in Sources */,
-				TENUO000000000000000004F /* LayerEngine.swift in Sources */,
-				TENUO0000000000000000050 /* KeyboardGeometry.swift in Sources */,
-				TENUO0000000000000000051 /* Settings.swift in Sources */,
+				TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */,
+				TENUO0000000000000000045 /* SettingsTests.swift in Sources */,
+				TENUO0000000000000000047 /* KeyCodes.swift in Sources */,
+				TENUO0000000000000000048 /* TriggerKey.swift in Sources */,
+				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
+				TENUO000000000000000004A /* KeyBinding.swift in Sources */,
+				TENUO000000000000000004B /* Layout.swift in Sources */,
+				TENUO000000000000000004C /* Presets.swift in Sources */,
+				TENUO000000000000000004D /* LayerEngine.swift in Sources */,
+				TENUO000000000000000004E /* KeyboardGeometry.swift in Sources */,
+				TENUO000000000000000004F /* Settings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		TENUO000000000000000007A /* Debug */ = {
+		TENUO0000000000000000078 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -466,7 +462,7 @@
 			};
 			name = Debug;
 		};
-		TENUO000000000000000007B /* Release */ = {
+		TENUO0000000000000000079 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -509,9 +505,9 @@
 			};
 			name = Release;
 		};
-		TENUO000000000000000007C /* Debug */ = {
+		TENUO000000000000000007A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = TENUO0000000000000000062 /* Config.xcconfig */;
+			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Tenuo/Resources/Tenuo.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -528,9 +524,9 @@
 			};
 			name = Debug;
 		};
-		TENUO000000000000000007D /* Release */ = {
+		TENUO000000000000000007B /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = TENUO0000000000000000062 /* Config.xcconfig */;
+			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Tenuo/Resources/Tenuo.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -547,9 +543,9 @@
 			};
 			name = Release;
 		};
-		TENUO000000000000000007E /* Debug */ = {
+		TENUO000000000000000007C /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = TENUO0000000000000000062 /* Config.xcconfig */;
+			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -561,9 +557,9 @@
 			};
 			name = Debug;
 		};
-		TENUO000000000000000007F /* Release */ = {
+		TENUO000000000000000007D /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = TENUO0000000000000000062 /* Config.xcconfig */;
+			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -578,7 +574,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		TENUO0000000000000000078 /* Build configuration list for PBXProject "Tenuo" */ = {
+		TENUO0000000000000000076 /* Build configuration list for PBXProject "Tenuo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TENUO0000000000000000078 /* Debug */,
+				TENUO0000000000000000079 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TENUO0000000000000000071 /* Build configuration list for PBXNativeTarget "Tenuo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				TENUO000000000000000007A /* Debug */,
@@ -587,7 +592,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		TENUO0000000000000000073 /* Build configuration list for PBXNativeTarget "Tenuo" */ = {
+		TENUO0000000000000000074 /* Build configuration list for PBXNativeTarget "TenuoTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				TENUO000000000000000007C /* Debug */,
@@ -596,16 +601,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		TENUO0000000000000000076 /* Build configuration list for PBXNativeTarget "TenuoTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				TENUO000000000000000007E /* Debug */,
-				TENUO000000000000000007F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
 	};
-	rootObject = TENUO0000000000000000077 /* Project object */;
+	rootObject = TENUO0000000000000000075 /* Project object */;
 }

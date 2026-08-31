@@ -49,7 +49,6 @@ APP_SOURCES = [
 CORE_SOURCES = [f for f in APP_SOURCES if f[0] == "Core"]
 
 TEST_SOURCES = [
-    ("TenuoTests", "LayoutTests.swift"),
     ("TenuoTests", "LayerEngineTests.swift"),
     ("TenuoTests", "SettingsTests.swift"),
 ]

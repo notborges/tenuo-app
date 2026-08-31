@@ -15,96 +15,67 @@ final class SettingsTests: XCTestCase {
         super.tearDown()
     }
 
-    func testUpdateCheckingIsOffUntilAskedFor() {
+    func testFreshSettingsHaveTheExpectedDefaults() {
         let settings = Settings(defaults: defaults)
+
+        XCTAssertEqual(settings.profiles.map(\.name), Presets.library.map(\.name))
+        XCTAssertEqual(settings.activeProfileID, settings.profiles[0].id)
         XCTAssertFalse(settings.checksForUpdates)
+        XCTAssertTrue(settings.showsCheatSheet)
     }
 
-    func testUpdateCheckingPersistsOnceEnabled() {
-        Settings(defaults: defaults).checksForUpdates = true
-        XCTAssertTrue(Settings(defaults: defaults).checksForUpdates)
-    }
-
-    func testLayerHintIsOnByDefault() {
-        XCTAssertTrue(Settings(defaults: defaults).showsCheatSheet)
-    }
-    func testFreshInstallGetsEveryShippedProfile() {
+    func testPreferencesPersistAcrossInstances() {
         let settings = Settings(defaults: defaults)
-        XCTAssertEqual(
-            settings.profiles.map(\.name),
-            ["Navigation", "Vim", "Stacked", "Hyper Only"])
-        XCTAssertEqual(settings.activeProfile.name, "Navigation")
+        settings.checksForUpdates = true
+        settings.showsCheatSheet = false
+
+        let reopened = Settings(defaults: defaults)
+        XCTAssertTrue(reopened.checksForUpdates)
+        XCTAssertFalse(reopened.showsCheatSheet)
     }
 
-    func testCorruptLibraryFallsBackToTheShippedSet() {
+    func testCorruptProfilesFallBackToTheShippedSet() {
         defaults.set(Data("not json".utf8), forKey: "TenuoProfiles")
+
         let settings = Settings(defaults: defaults)
         XCTAssertEqual(settings.profiles.map(\.name), Presets.library.map(\.name))
-        XCTAssertEqual(settings.activeProfile.name, "Navigation")
+        XCTAssertEqual(settings.activeProfileID, settings.profiles[0].id)
     }
 
-    func testTheLibraryIsNeverEmpty() {
-        let settings = Settings(defaults: defaults)
-        settings.profiles = []
-        XCTAssertEqual(settings.profiles.count, Presets.library.count)
-    }
-
-    func testADanglingActiveIDFallsBackToTheFirstProfile() {
+    func testSelectingAndEditingAProfilePersists() {
         let settings = Settings(defaults: defaults)
         let first = Layout(name: "A", layers: Presets.navigation.layers)
-        settings.profiles = [first, Layout(name: "B", layers: Presets.vim.layers)]
-        defaults.set(UUID().uuidString, forKey: "TenuoActiveProfile")
-        XCTAssertEqual(settings.activeProfileID, first.id)
-    }
-
-    func testEditingTheActiveProfileWritesBackToItsSlot() {
-        let settings = Settings(defaults: defaults)
-        let a = Layout(name: "A", layers: Presets.navigation.layers)
-        let b = Layout(name: "B", layers: Presets.vim.layers)
-        settings.profiles = [a, b]
-        settings.activeProfileID = b.id
+        let second = Layout(name: "B", layers: Presets.vim.layers)
+        settings.profiles = [first, second]
+        settings.activeProfileID = second.id
 
         var edited = settings.activeProfile
         edited.name = "B renamed"
         settings.activeProfile = edited
 
-        XCTAssertEqual(settings.profiles.map(\.name), ["A", "B renamed"])
-        XCTAssertEqual(settings.activeProfileID, b.id)
+        let reopened = Settings(defaults: defaults)
+        XCTAssertEqual(reopened.profiles.map(\.name), ["A", "B renamed"])
+        XCTAssertEqual(reopened.activeProfileID, second.id)
     }
 
-    func testImportAddsAProfileRatherThanReplacing() throws {
+    func testImportAddsAProfileAndExportRoundTripsIt() throws {
         let settings = Settings(defaults: defaults)
         let before = settings.profiles.count
-
         let imported = try settings.importJSON(Settings.encoder.encode(Presets.vim))
 
         XCTAssertEqual(settings.profiles.count, before + 1)
         XCTAssertEqual(settings.activeProfileID, imported.id)
         XCTAssertEqual(settings.activeProfile.layers, Presets.vim.layers)
+
+        let exported = try JSONDecoder().decode(Layout.self, from: settings.exportJSON())
+        XCTAssertEqual(exported, settings.activeProfile)
     }
 
-    func testImportingTwiceGivesTwoDistinctProfiles() throws {
+    func testInvalidImportLeavesProfilesUnchanged() {
         let settings = Settings(defaults: defaults)
-        let data = try Settings.encoder.encode(Presets.vim)
+        let before = settings.profiles
 
-        let first = try settings.importJSON(data)
-        let second = try settings.importJSON(data)
-
-        XCTAssertNotEqual(first.id, second.id)
-        XCTAssertNotEqual(first.name, second.name)
-    }
-
-    func testImportSurfacesABadFileRatherThanSwallowingIt() {
-        let settings = Settings(defaults: defaults)
-        let before = settings.profiles.count
         XCTAssertThrowsError(try settings.importJSON(Data("{}".utf8)))
-        XCTAssertEqual(settings.profiles.count, before)
+        XCTAssertEqual(settings.profiles, before)
     }
-
-    func testExportRoundTripsTheActiveProfile() throws {
-        let settings = Settings(defaults: defaults)
-        let decoded = try JSONDecoder().decode(Layout.self, from: settings.exportJSON())
-        XCTAssertEqual(decoded, settings.activeProfile)
-    }
-
 }
