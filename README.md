@@ -101,7 +101,7 @@ Tenuo/
   System/     Event tap, key remapping, permissions, and updates
   UI/         SwiftUI views and AppKit controllers
 TenuoTests/   Core behavior and persistence tests
-scripts/      Release tooling
+scripts/      Development helpers
 tools/icon/   Icon source and export tooling
 ```
 

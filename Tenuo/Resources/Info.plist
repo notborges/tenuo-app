@@ -34,6 +34,8 @@
 	<true/>
 	<key>SUFeedURL</key>
 	<string>$(TENUO_FEED_URL)</string>
+	<key>SUPublicEDKey</key>
+	<string>$(TENUO_SPARKLE_PUBLIC_KEY)</string>
 	<key>SUEnableAutomaticChecks</key>
 	<false/>
 	<key>SUAutomaticallyUpdate</key>

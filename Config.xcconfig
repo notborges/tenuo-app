@@ -10,8 +10,9 @@ CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM =
 PROVISIONING_PROFILE_SPECIFIER =
 
-// Leave empty for source builds. Set this in Local.xcconfig for a distributed
-// build that uses Sparkle updates.
+// Leave these empty for source builds. The release script supplies the
+// official update channel values for distributed builds.
 TENUO_FEED_URL =
+TENUO_SPARKLE_PUBLIC_KEY =
 
 #include? "Local.xcconfig"
