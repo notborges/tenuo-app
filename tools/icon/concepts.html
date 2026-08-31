@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tenuo icon concepts</title>
+<style>
+/*
+ * Candidate foreground artwork for the app icon. Render one by loading this
+ * file with a fragment: concepts.html#sa-stack.
+ *
+ * ---------------------------------------------------------------------------
+ * Why keycaps, and why dark
+ * ---------------------------------------------------------------------------
+ * The apps Tenuo sits beside. Hyper, Raycast, BetterTouchTool, Superkey,
+ * Rectangle, Karabiner: all put a lit object on a dark field, usually the very
+ * thing the app acts on. Hyper's icon is a single silver keycap. None of them
+ * ship a flat symbol on a bright colour.
+ *
+ * These are keycaps, stacked, because what Tenuo adds to a key is layers ,
+ * the one thing Hyper's single cap cannot say.
+ *
+ * ---------------------------------------------------------------------------
+ * Profiles
+ * ---------------------------------------------------------------------------
+ * A Mac chiclet is nearly flat, so almost all of its form has to be implied by
+ * lighting. A mechanical cap has actual sculpture, which is far more to work
+ * with at icon sizes:
+ *
+ *   Mac chiclet   flat top, ~1mm of travel, no visible walls head-on
+ *   Cherry        ~9.4mm, sculpted, *cylindrical* dish: scooped front to back
+ *   OEM           ~11.9mm, sculpted, taller walls than Cherry
+ *   SA            tall, *spherical* dish: scooped in both directions, the
+ *                 vintage typewriter look, and the most sculptural of the set
+ *
+ * A cylindrical dish is a scoop along one axis, so its highlight is a band. A
+ * spherical dish is scooped in both, so its highlight is a ring: that is the
+ * difference between the Cherry and SA faces below, and it is the whole reason
+ * SA reads as an object rather than a tile.
+ *
+ * The canvas is 1024x1024 and must be rendered at exactly 1024 pixels: layer
+ * images are measured in points, so a 2x snapshot is read as a 2048pt layer and
+ * overflows the icon.
+ */
+html, body { margin: 0; padding: 0; width: 1024px; height: 1024px; background: transparent; }
+.canvas { position: relative; width: 1024px; height: 1024px; }
+.concept { display: none; }
+.concept:target { display: block; }
+
+/* ===========================================================================
+ * A keycap.
+ *
+ * Two parts: the walls, and the top face sitting on them, narrower so the cap
+ * tapers upward the way a moulded cap does. The face overlaps the walls rather
+ * than being inset inside them: an inset face with a rim around it reads as a
+ * bezel, which is what made an earlier attempt look like a button.
+ * ======================================================================== */
+/*
+ * The wall is extruded with stacked solid box-shadows, which is the technique
+ * `keyboard-css` uses (github.com/shhdharmen/keyboard-css, MIT). Each shadow is
+ * the same rounded rectangle offset a little further down in a slightly darker
+ * colour, so the wall follows the face's `border-radius` exactly and the whole
+ * cap is one shape.
+ *
+ * Earlier attempts drew the wall as a second element underneath the face and
+ * tried to make two rectangles look like one tapered object. They never did ,
+ * the result read as a small box balanced on a bigger one.
+ *
+ * The profile is then just how deep that extrusion goes: a chiclet barely has a
+ * wall, Cherry has a low one, SA a tall one.
+ */
+.cap {
+    position: absolute;
+    border-radius: var(--radius, 17%);
+    background:
+        var(--dish),
+        linear-gradient(172deg,
+            var(--face-hi, #ffffff) 0%,
+            var(--face-mid, #f1f3f6) 54%,
+            var(--face-lo, #dde0e6) 100%);
+    border: 2px solid var(--edge, rgba(255, 255, 255, 0.55));
+    box-shadow: var(--wall), var(--cast);
+}
+
+/* The rim light: the standard way to make a surface read as raised. */
+.cap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.40) 0%,
+        rgba(255, 255, 255, 0.08) 30%,
+        rgba(255, 255, 255, 0) 58%);
+    pointer-events: none;
+}
+
+/*
+ * The dishes. A cylindrical scoop leaves a band of light across the cap; a
+ * spherical scoop leaves a ring, darker in the middle where the surface falls
+ * away from the viewer.
+ */
+.cap.cylindrical { --dish: radial-gradient(140% 62% at 50% 118%,
+        rgba(120, 128, 145, 0.30) 0%, rgba(120, 128, 145, 0) 62%); }
+.cap.spherical  { --dish: radial-gradient(72% 78% at 50% 62%,
+        rgba(118, 126, 144, 0.34) 0%, rgba(118, 126, 144, 0.10) 46%,
+        rgba(255, 255, 255, 0.25) 88%); }
+.cap.flat       { --dish: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 40%); }
+
+/* Profiles ---------------------------------------------------------------- */
+
+/*
+ * Profiles, expressed as extrusion depth. Each step is a solid copy of the cap
+ * offset further down and shaded darker, so the wall falls away from the light.
+ */
+
+/*
+ * One wall definition, stepped as fractions of `--d`, the extrusion depth.
+ *
+ * Depth was a fixed pixel value before, which meant a small cap behind a large
+ * one had a wall of exactly the same height: wrong, and visible as soon as the
+ * caps were scaled up. `--d` is now set per cap in proportion to its width, so
+ * the whole stack keeps one perspective.
+ */
+.cap {
+    --wall:
+        0 calc(var(--d) * 0.15) 0 var(--w1, #e2e5ea),
+        0 calc(var(--d) * 0.30) 0 var(--w2, #d3d7de),
+        0 calc(var(--d) * 0.44) 0 var(--w3, #c3c8d1),
+        0 calc(var(--d) * 0.58) 0 var(--w4, #b5bac5),
+        0 calc(var(--d) * 0.72) 0 var(--w5, #a6acb8),
+        0 calc(var(--d) * 0.86) 0 var(--w6, #9aa1ae),
+        0 var(--d) 0 var(--w7, #8d94a2);
+}
+
+/* Profiles set the depth as a fraction of the cap's width, from the published
+   heights: a chiclet has about a millimetre of travel, Cherry is 9.4mm, and SA
+   is the tall one. */
+.cap.mac    { --radius: 19%; }   /* --d ≈ 3.5% of width */
+.cap.cherry { --radius: 17%; }   /* --d ≈ 8%   of width */
+.cap.sa     { --radius: 16%; }   /* --d ≈ 13.5% of width */
+
+/* The cast shadow, separate from the extrusion so depth and lift are tuned
+   independently. Offset down-right, matching the light coming from up-left. */
+.cap {
+    --cast:
+        6px 20px 26px rgba(0, 0, 0, calc(0.46 * var(--lift, 1))),
+        10px 44px 76px rgba(0, 0, 0, calc(0.40 * var(--lift, 1)));
+}
+
+/* Caps behind the front one: nearly black, so the front cap looks lit rather
+   than painted. Grey plates compete with it and flatten the whole image. */
+.cap.behind {
+    --face-hi: #565d6b; --face-mid: #454b57; --face-lo: #333842;
+    --edge: rgba(255, 255, 255, 0.14);
+    --w1: #3c414c; --w2: #363b45; --w3: #30343d; --w4: #2a2e36;
+    --w5: #24272e; --w6: #1e2127; --w7: #191c21;
+    --lift: 0.85;
+}
+.cap.behind.far {
+    --face-hi: #434955; --face-mid: #363b45; --face-lo: #282c34;
+    --w1: #2f333c; --w2: #2a2e36; --w3: #252930; --w4: #20232a;
+    --w5: #1c1f25; --w6: #171a1f; --w7: #13161a;
+    --lift: 0.7;
+}
+.cap.tinted {
+    --face-hi: #5476dc; --face-mid: #4360c4; --face-lo: #33489e;
+    --edge: rgba(255, 255, 255, 0.18);
+    --w1: #33499c; --w2: #2e4290; --w3: #293b83; --w4: #243476;
+    --w5: #1f2d69; --w6: #1a265c; --w7: #16204f;
+}
+.cap.tinted.far {
+    --face-hi: #3d5cb4; --face-mid: #304897; --face-lo: #253878;
+    --w1: #263775; --w2: #22326a; --w3: #1e2c5e; --w4: #1a2653;
+    --w5: #162047; --w6: #121a3c; --w7: #0f1631;
+}
+
+/* ===========================================================================
+ * Compositions
+ * ======================================================================== */
+
+/*
+ * A 1u cap occupies a square. The *element* does not.
+ *
+ * The element is the top face, and the wall is a box-shadow extrusion drawn
+ * below it, outside the element's box. So a square element plus a 54px wall is
+ * a silhouette 54px taller than it is wide, which is what made these read as
+ * portrait rectangles.
+ *
+ * Seen from above, a top face is foreshortened: shorter than it is wide. So
+ * `height = width − wall`, and face plus wall comes out square. Every cap below
+ * follows that, which is why the heights look odd next to the widths and are
+ * correct on screen.
+ */
+
+/*
+ * The subject fills roughly two thirds of the canvas.
+ *
+ * An earlier pass had the stack spanning 47% of the width, which left the icon
+ * looking like a small object dropped on a large field. Hyper's subject fills
+ * far more than that. Each cap's `--d` is its width times the profile's depth
+ * ratio, so scaling the composition keeps the perspective consistent.
+ */
+
+/* One SA cap. 620 wide, --d 84, so the face is 536 and the whole cap 620. */
+#sa-single .front { left: 202px; top: 202px; width: 620px; height: 536px; --d: 84px; }
+
+/* SA, stacked and fanned up to the right. */
+#sa-stack .far   { left: 375px; top: 141px; width: 460px; height: 398px; --d: 62px; }
+#sa-stack .mid   { left: 285px; top: 239px; width: 500px; height: 432px; --d: 68px; }
+#sa-stack .front { left: 189px; top: 343px; width: 540px; height: 467px; --d: 73px; }
+
+#sa-tinted .far   { left: 375px; top: 141px; width: 460px; height: 398px; --d: 62px; }
+#sa-tinted .mid   { left: 285px; top: 239px; width: 500px; height: 432px; --d: 68px; }
+#sa-tinted .front { left: 189px; top: 343px; width: 540px; height: 467px; --d: 73px; }
+
+/* Cherry: a shallower wall, so the faces are taller for the same footprint. */
+#cherry-stack .far   { left: 375px; top: 158px; width: 460px; height: 423px; --d: 37px; }
+#cherry-stack .mid   { left: 285px; top: 254px; width: 500px; height: 460px; --d: 40px; }
+#cherry-stack .front { left: 189px; top: 356px; width: 540px; height: 497px; --d: 43px; }
+
+/* Mac chiclet: nearly flat, so the face is nearly the whole square. */
+#mac-stack .far   { left: 375px; top: 168px; width: 460px; height: 444px; --d: 16px; }
+#mac-stack .mid   { left: 285px; top: 262px; width: 500px; height: 482px; --d: 18px; }
+#mac-stack .front { left: 189px; top: 362px; width: 540px; height: 521px; --d: 19px; }
+
+/* ===========================================================================
+ * Exports
+ * ======================================================================== */
+
+/*
+ * The chosen mark, framed tight to the canvas.
+ *
+ * The app icon needs margin because macOS masks it into the squircle. A
+ * standalone PNG: on a web page, in a README: wants none, so this is the same
+ * composition scaled to fill, centred on its own bounding box rather than on
+ * the caps' geometry.
+ */
+/*
+ * Scaled from the app-icon composition by 1.272 and re-centred on its own
+ * bounding box, which runs 189..835 across and 141..883 down, *including* the
+ * extruded walls. Leaving the walls out of that box is what made a first
+ * attempt run off the bottom and the right.
+ */
+#caps .far   { left: 338px; top:  40px; width: 585px; height: 506px; --d: 79px; }
+#caps .mid   { left: 223px; top: 165px; width: 636px; height: 550px; --d: 86px; }
+#caps .front { left: 101px; top: 297px; width: 687px; height: 594px; --d: 93px; }
+
+/*
+ * A menu bar template: flat, single-colour, with transparent gaps.
+ *
+ * Menu bar icons are templates: macOS throws away the colour and uses only the
+ * alpha, so it can invert them for dark menu bars and dim them when inactive.
+ * None of the modelling above survives that, so this is a silhouette.
+ *
+ * Two caps, not three. At 16pt each gap is a single pixel; a third cap turns
+ * the whole thing into a grey smudge.
+ */
+/*
+ * The menu bar mark.
+ *
+ * ---------------------------------------------------------------------------
+ * Why a template, and why three caps
+ * ---------------------------------------------------------------------------
+ * macOS wants a template image up here: it keeps only the alpha and recolours
+ * it, so the mark inverts for a light menu bar, dims correctly and highlights
+ * when the item is pressed. Anything else is a colour sticker in a monotone
+ * row. So there is no shading available at all: the whole idea has to be
+ * carried by silhouette.
+ *
+ * That is what the two-cap version got wrong. Flat and monotone, it read as two
+ * squares; the *layers*: the one thing this app adds to a key: were nowhere.
+ * Three caps do say it, but only if the eye can separate them, and with no
+ * shading the only separator left is absence. So each cap behind is knocked out
+ * by the shape of the one in front of it, grown by the gap width. The gaps are
+ * holes rather than painted lines, which is the only kind of gap that survives
+ * being reduced to an alpha channel.
+ *
+ * ---------------------------------------------------------------------------
+ * Geometry: the icon's own stack
+ * ---------------------------------------------------------------------------
+ * Three equal caps stepped by a constant read as three squares, because nothing
+ * about them says which is nearer. The icon does not do that, its caps *grow*
+ * toward the front (460, 500, 540) on a shortening step, which is the
+ * perspective that makes them recede. This uses exactly those positions and
+ * sizes, so the menu bar mark and the app icon are the same composition rather
+ * than two drawings of a similar idea.
+ *
+ * Corners are 22% rather than the icon's 17%: at eighteen pixels a 17% radius
+ * anti-aliases away to a square corner.
+ *
+ * Bounding box 646x742 from (189, 141). The transform lifts it to 88% of the
+ * 1024 canvas: 901/742 = 1.2143, because rendered straight the art filled
+ * only 62% and the status item looked shrunken beside its neighbours.
+ */
+#menubar {
+    transform: translate(119.8px, 61.5px) scale(1.2143) translate(-189px, -141px);
+    transform-origin: 0 0;
+}
+
+#menubar .cap {
+    background: #000;
+    border: none;
+    box-shadow: none;
+    border-radius: 22%;
+}
+#menubar .cap::before { display: none; }
+
+#menubar .front { left: 189px; top: 343px; width: 540px; height: 540px; }
+#menubar .mid   { left: 285px; top: 239px; width: 500px; height: 500px; }
+#menubar .far   { left: 375px; top: 141px; width: 460px; height: 460px; }
+
+/*
+ * Each cap behind is knocked out by the one in front of it, grown by a 26px
+ * gap. The caps differ in size, so the two masks differ; each is written in its
+ * own cap's coordinate space.
+ *
+ * The far cap needs no separate knockout for the front one: the front cap lies
+ * entirely inside the region the mid knockout already removes.
+ */
+#menubar .mid {
+    -webkit-mask-image:
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><rect width="500" height="500" rx="110" fill="%23fff"/></svg>'),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><rect x="-122" y="78" width="592" height="592" rx="145" fill="%23fff"/></svg>');
+    -webkit-mask-size: 500px 500px, 500px 500px;
+    -webkit-mask-repeat: no-repeat, no-repeat;
+    -webkit-mask-composite: xor;
+}
+
+#menubar .far {
+    -webkit-mask-image:
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 460"><rect width="460" height="460" rx="101" fill="%23fff"/></svg>'),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 460"><rect x="-116" y="72" width="552" height="552" rx="136" fill="%23fff"/></svg>');
+    -webkit-mask-size: 460px 460px, 460px 460px;
+    -webkit-mask-repeat: no-repeat, no-repeat;
+    -webkit-mask-composite: xor;
+}
+</style>
+</head>
+<body>
+<div class="canvas">
+
+    <div class="concept" id="sa-single">
+        <div class="cap sa spherical front"></div>
+    </div>
+
+    <div class="concept" id="sa-stack">
+        <div class="cap sa spherical behind far"></div>
+        <div class="cap sa spherical behind mid"></div>
+        <div class="cap sa spherical front"></div>
+    </div>
+
+    <div class="concept" id="sa-tinted">
+        <div class="cap sa spherical behind tinted far"></div>
+        <div class="cap sa spherical behind tinted mid"></div>
+        <div class="cap sa spherical front"></div>
+    </div>
+
+    <div class="concept" id="cherry-stack">
+        <div class="cap cherry cylindrical behind far"></div>
+        <div class="cap cherry cylindrical behind mid"></div>
+        <div class="cap cherry cylindrical front"></div>
+    </div>
+
+    <div class="concept" id="mac-stack">
+        <div class="cap mac flat behind far"></div>
+        <div class="cap mac flat behind mid"></div>
+        <div class="cap mac flat front"></div>
+    </div>
+
+    <!-- Exports -->
+    <div class="concept" id="caps">
+        <div class="cap sa spherical behind far"></div>
+        <div class="cap sa spherical behind mid"></div>
+        <div class="cap sa spherical front"></div>
+    </div>
+
+    <div class="concept" id="menubar">
+        <div class="cap far"></div>
+        <div class="cap mid"></div>
+        <div class="cap front"></div>
+    </div>
+
+</div>
+</body>
+</html>

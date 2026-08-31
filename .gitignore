@@ -1,0 +1,24 @@
+# Build output
+build/
+DerivedData/
+dist/
+*.xcarchive
+
+# Xcode state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# macOS
+.DS_Store
+
+# Signing and credentials
+*.p12
+*.cer
+*.certSigningRequest
+*.provisionprofile
+.env
+Local.xcconfig
+
+# Generated icon previews
+tools/icon/preview/

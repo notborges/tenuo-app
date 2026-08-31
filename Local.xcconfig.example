@@ -1,0 +1,10 @@
+// Copy this file to Local.xcconfig. The destination is gitignored.
+//
+//     cp Local.xcconfig.example Local.xcconfig
+//
+// Replace the placeholders with values from your Apple Developer account.
+CODE_SIGN_IDENTITY = Developer ID Application: Your Name (ABCDE12345)
+DEVELOPMENT_TEAM = ABCDE12345
+
+// Optional Sparkle configuration for a distributor build.
+// TENUO_FEED_URL = https://example.com/appcast.xml

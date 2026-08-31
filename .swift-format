@@ -1,0 +1,14 @@
+{
+  "indentation": {
+    "spaces": 4
+  },
+  "lineLength": 100,
+  "maximumBlankLines": 1,
+  "rules": {
+    "FileScopedDeclarationPrivacy": true,
+    "OrderedImports": true,
+    "NoBlockComments": true,
+    "NoEmptyLinesOpeningClosingBraces": false,
+    "UseSynthesizedInitializer": true
+  }
+}

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test
+        run: |
+          xcodebuild \
+            -project Tenuo.xcodeproj \
+            -scheme Tenuo \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build test
+
+      - name: Check generated project
+        run: |
+          python3 scripts/generate_project.py
+          git diff --exit-code -- Tenuo.xcodeproj
+
+      - name: Check style
+        run: |
+          ./scripts/check-style.sh
+          xcrun swift-format lint \
+            --configuration .swift-format \
+            --recursive Tenuo TenuoTests
