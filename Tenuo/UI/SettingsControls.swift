@@ -1,9 +1,9 @@
 import SwiftUI
 
 enum Inspector {
-    static let controlWidth: CGFloat = 132
-    static let rowInset: CGFloat = 11
-    static let rowHeight: CGFloat = 34
+    static let controlWidth: CGFloat = 148
+    static let rowInset: CGFloat = 12
+    static let rowHeight: CGFloat = 38
 }
 
 struct InspectorCard<Content: View>: View {
@@ -54,7 +54,7 @@ struct InspectorRow<Control: View>: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 control
-                    .controlSize(.small)
+                    .controlSize(.regular)
                     .labelsHidden()
                     .frame(width: Inspector.controlWidth, alignment: .trailing)
             }
@@ -106,11 +106,11 @@ struct InspectorWideRow<Content: View>: View {
                 Text(label)
                     .font(DS.Typography.body)
                     .foregroundStyle(DS.Ink.primary)
-                content.controlSize(.small)
+                content.controlSize(.regular)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Inspector.rowInset)
-            .padding(.vertical, 9)
+            .padding(.vertical, 10)
 
             if divider {
                 Divider().opacity(0.35).padding(.leading, Inspector.rowInset)
@@ -134,7 +134,7 @@ struct InspectorDestructiveButton: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(isHovering ? DS.Signal.destructive : DS.Ink.secondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 28)
+                .frame(height: DS.Metrics.controlHeight)
                 .background {
                     RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
                         .fill(isHovering ? DS.Signal.destructive.opacity(0.12) : DS.Surface.raised)
@@ -211,7 +211,7 @@ struct KeyChooser: View {
                     .font(DS.Typography.body)
             }
             .padding(.horizontal, 8)
-            .frame(height: 26)
+            .frame(height: DS.Metrics.controlHeight)
             .background {
                 RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
                     .fill(DS.Surface.raised)
@@ -290,11 +290,11 @@ struct PopupFieldLabel: View {
                 .truncationMode(.middle)
             Spacer(minLength: 2)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: DS.Icon.tiny))
+                .font(.system(size: DS.Icon.small, weight: .medium))
                 .foregroundStyle(DS.Ink.tertiary)
         }
         .padding(.horizontal, 7)
-        .frame(height: 22)
+        .frame(height: DS.Metrics.controlHeight)
         .background {
             RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
                 .fill(DS.Surface.raised)

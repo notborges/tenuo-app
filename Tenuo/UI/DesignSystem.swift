@@ -73,21 +73,22 @@ enum DS {
     }
 
     enum Metrics {
-        static let row: CGFloat = 26
+        static let row: CGFloat = 30
         static let sidebarWidth: CGFloat = 244
-        static let inspectorWidth: CGFloat = 320
+        static let inspectorWidth: CGFloat = 344
         static let header: CGFloat = 44
         static let titlebar: CGFloat = 28
+        static let controlHeight: CGFloat = 30
     }
 
     enum Typography {
         static let display = Font.system(size: 17, weight: .semibold)
-        static let title = Font.system(size: 13, weight: .semibold)
-        static let body = Font.system(size: 12, weight: .regular)
-        static let label = Font.system(size: 11, weight: .medium)
-        static let caption = Font.system(size: 10, weight: .semibold)
-        static let footnote = Font.system(size: 10, weight: .regular)
-        static let mono = Font.system(size: 10).monospacedDigit()
+        static let title = Font.system(size: 14, weight: .semibold)
+        static let body = Font.system(size: 13, weight: .regular)
+        static let label = Font.system(size: 12, weight: .medium)
+        static let caption = Font.system(size: 11, weight: .semibold)
+        static let footnote = Font.system(size: 11, weight: .regular)
+        static let mono = Font.system(size: 11).monospacedDigit()
     }
 
     enum Icon {

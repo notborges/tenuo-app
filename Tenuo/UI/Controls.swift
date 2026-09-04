@@ -5,8 +5,8 @@ struct AppSwitch: View {
     var label: String
     var isEnabled: Bool = true
 
-    private static let size = CGSize(width: 30, height: 18)
-    private static let knob: CGFloat = 14
+    private static let size = CGSize(width: 32, height: 20)
+    private static let knob: CGFloat = 16
 
     var body: some View {
         Button {
@@ -315,7 +315,7 @@ struct PrimaryButton: View {
                 .font(DS.Typography.body.weight(.medium))
                 .foregroundStyle(DS.Selection.solidInk)
                 .padding(.horizontal, 14)
-                .frame(height: 28)
+                .frame(height: DS.Metrics.controlHeight)
                 .background {
                     RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
                         .fill(DS.Selection.solid.opacity(isHovering ? 1 : 0.92))
@@ -338,7 +338,7 @@ struct QuietButton: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Ink.primary)
                 .padding(.horizontal, 12)
-                .frame(height: 26)
+                .frame(height: DS.Metrics.controlHeight)
                 .background {
                     RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
                         .fill(isHovering ? DS.Surface.raisedHover : DS.Surface.raised)
