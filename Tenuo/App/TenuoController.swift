@@ -7,6 +7,7 @@ final class TenuoController {
 
     let preferences: AppPreferences
     let profileStore: ProfileStore
+    let actionAvailability: any ActionAvailability
     let accessibility = AccessibilityManager()
     let launchAtLogin = LaunchAtLoginManager()
 
@@ -36,16 +37,19 @@ final class TenuoController {
     init(
         preferences: AppPreferences = AppPreferences(),
         profileStore: ProfileStore? = nil,
-        profileSelection: ProfileSelectionSource? = nil
+        profileSelection: ProfileSelectionSource? = nil,
+        actionAvailability: any ActionAvailability = DefaultActionAvailability.current
     ) {
         self.preferences = preferences
+        self.actionAvailability = actionAvailability
         let store = profileStore ?? UserDefaultsProfileStore()
         self.profileStore = store
         let selection = profileSelection ?? ManualProfileSelectionSource(store: store)
         self.profileSelection = selection
         monitor = KeyboardMonitor(
             profile: selection.current.profile,
-            isEnabled: preferences.isEnabled)
+            isEnabled: preferences.isEnabled,
+            actionAvailability: actionAvailability)
     }
 
     func start() {

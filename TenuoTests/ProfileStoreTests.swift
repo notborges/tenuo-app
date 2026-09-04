@@ -69,7 +69,7 @@ final class ProfileStoreTests: XCTestCase {
     func testImportRejectsUnknownKeys() throws {
         let store = UserDefaultsProfileStore(defaults: defaults)
         var invalid = Presets.navigation
-        invalid.layers[1].mappings["notAKey"] = .key(KeyBinding(key: "escape"))
+        invalid.layers[1].mappings["notAKey"] = .action(.sendKey(KeyBinding(key: "escape")))
 
         XCTAssertThrowsError(
             try store.importProfile(ProfileDocument.encoder.encode(invalid))
@@ -117,9 +117,6 @@ final class ProfileStoreTests: XCTestCase {
         let decoded = try JSONDecoder().decode(ProfileStoreSnapshot.self, from: data)
 
         XCTAssertEqual(decoded, snapshot)
-        XCTAssertTrue(decoded.profiles.allSatisfy { profile in
-            profile.layers.allSatisfy { $0.activationMode == .hold }
-        })
 
         let profileData = try ProfileDocument.encoder.encode(Presets.navigation)
         let profileObject = try XCTUnwrap(
@@ -128,18 +125,16 @@ final class ProfileStoreTests: XCTestCase {
         let layer = try XCTUnwrap(layers[1])
         XCTAssertEqual(layer["holdMode"] as? String, "injectAndLayer")
         XCTAssertNil(layer["outputMode"])
+        XCTAssertEqual(
+            (layer["tapAction"] as? [String: Any])?["key"] as? String,
+            "escape")
         XCTAssertNil(layer["activationMode"])
     }
 
-    func testUnknownActivationModeIsRejected() throws {
+    func testLegacyTapActionDecodesAsSendKeyAction() throws {
         let profileData = try ProfileDocument.encoder.encode(Presets.navigation)
-        var profileObject = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: profileData) as? [String: Any])
-        var layers = try XCTUnwrap(profileObject["layers"] as? [[String: Any]])
-        layers[1]["activationMode"] = "toggle"
-        profileObject["layers"] = layers
-        let invalidData = try JSONSerialization.data(withJSONObject: profileObject)
+        let decoded = try JSONDecoder().decode(Profile.self, from: profileData)
 
-        XCTAssertThrowsError(try JSONDecoder().decode(Profile.self, from: invalidData))
+        XCTAssertEqual(decoded.layers[1].tapAction, .sendKey(KeyBinding(key: "escape")))
     }
 }

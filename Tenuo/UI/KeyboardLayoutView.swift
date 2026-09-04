@@ -2,8 +2,8 @@ import SwiftUI
 
 struct KeyboardLayoutView: View {
 
-    let mappings: [String: KeyAction]
-    var inherited: [String: KeyAction] = [:]
+    let mappings: [String: LayerMapping]
+    var inherited: [String: LayerMapping] = [:]
     var selected: String?
     var triggerName: String = ""
     var triggerKey: TriggerKey?
@@ -138,7 +138,7 @@ struct KeyboardLayoutView: View {
 
     private func secondaryLegend(
         for key: KeyboardGeometry.Key,
-        shown: KeyAction?
+        shown: LayerMapping?
     ) -> (text: String?, symbol: String?, above: Bool, isMapping: Bool) {
         if let shown { return (shown.displayLabel, nil, false, true) }
         if let glyph = key.glyph { return (nil, glyph, true, false) }
@@ -157,8 +157,8 @@ struct KeyboardLayoutView: View {
 
     private func tooltip(
         for key: KeyboardGeometry.Key,
-        action: KeyAction?,
-        inherited: KeyAction?,
+        action: LayerMapping?,
+        inherited: LayerMapping?,
         isTrigger: Bool
     ) -> String? {
         if isTrigger { return "\(triggerName) activates this layer" }

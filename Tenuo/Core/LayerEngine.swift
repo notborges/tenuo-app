@@ -36,35 +36,57 @@ struct SyntheticKey: Equatable {
 }
 
 private struct LayerActivationState {
-    let mode: LayerActivationMode
-    private(set) var isActive: Bool
+    private(set) var isHeld: Bool
+    private(set) var isToggled: Bool
+    private(set) var isOneShotArmed: Bool
 
-    init(mode: LayerActivationMode, isActive: Bool = false) {
-        self.mode = mode
-        self.isActive = isActive
+    init(isBaseLayer: Bool = false) {
+        isHeld = isBaseLayer
+        isToggled = false
+        isOneShotArmed = false
     }
 
-    mutating func update(isTriggered: Bool) {
-        switch mode {
-        case .hold:
-            isActive = isTriggered
-        }
+    var isActive: Bool { isHeld || isToggled || isOneShotArmed }
+
+    mutating func setHeld(_ value: Bool) {
+        isHeld = value
+    }
+
+    mutating func toggle() {
+        isToggled.toggle()
+    }
+
+    mutating func armOneShot() {
+        isOneShotArmed = true
+    }
+
+    mutating func consumeOneShot() {
+        isOneShotArmed = false
     }
 
     mutating func reset(isBaseLayer: Bool) {
-        isActive = isBaseLayer
+        isHeld = isBaseLayer
+        isToggled = false
+        isOneShotArmed = false
     }
 }
 
 struct LayerEngine {
 
     private struct CompiledLayer {
+        var id: UUID
         var trigger: LayerTrigger?
         var outputMode: LayerOutputMode
         var activation: LayerActivationState
-        var mappings: [UInt16: KeyAction]
+        var tapAction: Action?
+        var mappings: [UInt16: LayerMapping]
         var consumedFlags: EventFlags
         var triggerSlot: Int
+    }
+
+    private struct TapCandidate {
+        var action: Action
+        var layerIndex: Int
     }
 
     private struct TriggerRuntime {
@@ -72,7 +94,7 @@ struct LayerEngine {
         var isDown = false
         var downTimestamp: UInt64 = 0
         var wasUsed = false
-        var tapAction: (keyCode: UInt16, flags: EventFlags)?
+        var tapCandidate: TapCandidate?
     }
 
     private var layers: [CompiledLayer] = []
@@ -92,12 +114,19 @@ struct LayerEngine {
 
     private var tapThresholdNanoseconds: UInt64 = 200_000_000
 
+    private let actionAvailability: any ActionAvailability
+
     var isEnabled: Bool
 
     private(set) var activeLayerIndex: Int?
 
-    init(profile: Profile = Presets.default, isEnabled: Bool = true) {
+    init(
+        profile: Profile = Presets.default,
+        isEnabled: Bool = true,
+        actionAvailability: any ActionAvailability = DefaultActionAvailability.current
+    ) {
         self.isEnabled = isEnabled
+        self.actionAvailability = actionAvailability
         held.reserveCapacity(16)
         apply(profile: profile)
     }
@@ -115,33 +144,26 @@ struct LayerEngine {
 
         baseMask = 0
         layers = profile.layers.enumerated().map { index, layer in
-            var mappings: [UInt16: KeyAction] = [:]
+            var mappings: [UInt16: LayerMapping] = [:]
             mappings.reserveCapacity(layer.mappings.count)
             for (name, action) in layer.mappings {
                 guard let code = KeyCatalog.code(for: name) else { continue }
-                if case let .key(binding) = action, binding.keyCode == nil { continue }
+                if case let .action(.sendKey(binding)) = action, binding.keyCode == nil {
+                    continue
+                }
                 mappings[code] = action
             }
             if layer.trigger == nil { baseMask |= UInt32(1) << UInt32(index) }
             return CompiledLayer(
+                id: layer.id,
                 trigger: layer.trigger,
                 outputMode: layer.trigger == nil ? .layer : layer.outputMode,
-                activation: LayerActivationState(
-                    mode: layer.activationMode,
-                    isActive: layer.trigger == nil),
+                activation: LayerActivationState(isBaseLayer: layer.trigger == nil),
+                tapAction: layer.tapAction,
                 mappings: mappings,
                 consumedFlags: layer.trigger?.consumedFlags ?? [],
                 triggerSlot: layer.trigger.flatMap { keyOrder.firstIndex(of: $0.key) } ?? -1
             )
-        }
-
-        for (slot, runtime) in triggers.enumerated() {
-            let candidates = profile.layers
-                .filter { $0.trigger?.key == runtime.key && $0.tapAction != nil }
-                .sorted { ($0.trigger?.specificity ?? 0) < ($1.trigger?.specificity ?? 0) }
-            if let action = candidates.first?.tapAction, let code = action.keyCode {
-                triggers[slot].tapAction = (code, action.flags)
-            }
         }
 
         held.removeAll(keepingCapacity: true)
@@ -195,14 +217,22 @@ struct LayerEngine {
             : event.kind == .keyDown
 
         if isDown {
-            if !runtime.isDown || !event.isRepeat {
+            if !runtime.isDown {
                 triggers[slot].isDown = true
                 triggers[slot].downTimestamp = event.timestamp
                 triggers[slot].wasUsed = false
+                triggers[slot].tapCandidate = tapCandidate(for: slot, flags: event.flags)
             }
         } else if runtime.isDown {
             triggers[slot].isDown = false
-            fireTapIfEarned(slot: slot, releasedAt: event.timestamp, emit: emit)
+            let candidate = runtime.tapCandidate
+            triggers[slot].tapCandidate = nil
+            fireTapIfEarned(
+                candidate: candidate,
+                wasUsed: runtime.wasUsed,
+                downTimestamp: runtime.downTimestamp,
+                releasedAt: event.timestamp,
+                emit: emit)
         }
 
         recomputeActiveLayers(flags: event.flags, emit: emit)
@@ -211,18 +241,67 @@ struct LayerEngine {
     }
 
     @inline(__always)
+    private func tapCandidate(for slot: Int, flags: EventFlags) -> TapCandidate? {
+        let candidates = layers.indices.compactMap { index -> TapCandidate? in
+            guard let trigger = layers[index].trigger,
+                trigger.key == triggers[slot].key,
+                trigger.matches(flags: flags),
+                let action = layers[index].tapAction
+            else { return nil }
+            return TapCandidate(action: action, layerIndex: index)
+        }
+
+        return candidates.sorted { lhs, rhs in
+            let lhsSpecificity = layers[lhs.layerIndex].trigger?.specificity ?? 0
+            let rhsSpecificity = layers[rhs.layerIndex].trigger?.specificity ?? 0
+            if lhsSpecificity != rhsSpecificity { return lhsSpecificity > rhsSpecificity }
+            return lhs.layerIndex > rhs.layerIndex
+        }.first
+    }
+
+    @inline(__always)
     private mutating func fireTapIfEarned(
-        slot: Int,
+        candidate: TapCandidate?,
+        wasUsed: Bool,
+        downTimestamp: UInt64,
         releasedAt timestamp: UInt64,
         emit: (SyntheticKey) -> Void
     ) {
-        let runtime = triggers[slot]
-        guard let action = runtime.tapAction, !runtime.wasUsed else { return }
-        guard timestamp >= runtime.downTimestamp else { return }
-        guard timestamp - runtime.downTimestamp <= tapThresholdNanoseconds else { return }
+        guard let candidate, !wasUsed else { return }
+        guard timestamp >= downTimestamp else { return }
+        guard timestamp - downTimestamp <= tapThresholdNanoseconds else { return }
+        perform(candidate.action, from: candidate.layerIndex, emit: emit)
+    }
 
-        emit(SyntheticKey(keyCode: action.keyCode, flags: action.flags, isKeyDown: true))
-        emit(SyntheticKey(keyCode: action.keyCode, flags: action.flags, isKeyDown: false))
+    @inline(__always)
+    private mutating func perform(
+        _ action: Action,
+        from sourceLayerIndex: Int,
+        emit: (SyntheticKey) -> Void
+    ) {
+        guard actionAvailability.canUse(action.kind) else { return }
+
+        switch action {
+        case let .sendKey(binding):
+            guard let keyCode = binding.keyCode else { return }
+            emit(SyntheticKey(keyCode: keyCode, flags: binding.flags, isKeyDown: true))
+            emit(SyntheticKey(keyCode: keyCode, flags: binding.flags, isKeyDown: false))
+        case let .toggleLayer(target):
+            guard let index = layerIndex(for: target, from: sourceLayerIndex) else { return }
+            layers[index].activation.toggle()
+        case let .oneShotLayer(target):
+            guard let index = layerIndex(for: target, from: sourceLayerIndex) else { return }
+            layers[index].activation.armOneShot()
+        }
+    }
+
+    private func layerIndex(for target: LayerTarget, from sourceLayerIndex: Int) -> Int? {
+        switch target {
+        case .current:
+            return sourceLayerIndex
+        case let .layer(id):
+            return layers.firstIndex { $0.id == id }
+        }
     }
 
     @inline(__always)
@@ -254,9 +333,11 @@ struct LayerEngine {
 
         var mask = baseMask
         for index in layers.indices {
-            guard layers[index].trigger != nil else { continue }
-            layers[index].activation.update(isTriggered: eligible[index])
+            if layers[index].trigger != nil {
+                layers[index].activation.setHeld(eligible[index])
+            }
             guard layers[index].activation.isActive else { continue }
+            guard layers[index].trigger != nil else { continue }
             mask |= UInt32(1) << UInt32(index)
             highest = max(highest ?? index, index)
         }
@@ -271,11 +352,11 @@ struct LayerEngine {
     @inline(__always)
     private mutating func handleKey(
         _ event: InputEvent,
-        emit _: (SyntheticKey) -> Void
+        emit: (SyntheticKey) -> Void
     ) -> Disposition {
         switch event.kind {
         case .keyDown:
-            return handleKeyDown(event)
+            return handleKeyDown(event, emit: emit)
         case .keyUp:
             return handleKeyUp(event)
         case .flagsChanged:
@@ -284,10 +365,14 @@ struct LayerEngine {
     }
 
     @inline(__always)
-    private mutating func handleKeyDown(_ event: InputEvent) -> Disposition {
+    private mutating func handleKeyDown(
+        _ event: InputEvent,
+        emit: (SyntheticKey) -> Void
+    ) -> Disposition {
         if !event.isRepeat { discardStrandedEntry(for: event.keyCode) }
 
         guard activeMask != 0 else { return .passThrough }
+        let hasArmedOneShots = layers.contains { $0.activation.isOneShotArmed }
 
         var index = layers.count - 1
         while index >= 0 {
@@ -301,32 +386,91 @@ struct LayerEngine {
 
             markUsed()
             switch action {
-            case let .key(binding):
-                guard let output = binding.keyCode else { return .passThrough }
-                let flags = outputFlags(
-                    from: event.flags,
-                    adding: binding.flags,
-                    consumedBy: layer.consumedFlags)
-                remember(source: event.keyCode, output: output, flags: flags)
-                return .rewrite(keyCode: output, flags: flags)
+            case let .action(action):
+                if event.isRepeat, action.kind != .sendKey {
+                    return finishKeyDown(
+                        .suppress, hasArmedOneShots: hasArmedOneShots,
+                        flags: event.flags, emit: emit)
+                }
+                guard actionAvailability.canUse(action.kind) else {
+                    remember(
+                        source: event.keyCode, output: event.keyCode, flags: [],
+                        awaitingSourceRelease: true)
+                    return finishKeyDown(
+                        .suppress, hasArmedOneShots: hasArmedOneShots,
+                        flags: event.flags, emit: emit)
+                }
+
+                switch action {
+                case let .sendKey(binding):
+                    guard let output = binding.keyCode else {
+                        return finishKeyDown(
+                            .passThrough, hasArmedOneShots: hasArmedOneShots,
+                            flags: event.flags, emit: emit)
+                    }
+                    let flags = outputFlags(
+                        from: event.flags,
+                        adding: binding.flags,
+                        consumedBy: layer.consumedFlags)
+                    remember(source: event.keyCode, output: output, flags: flags)
+                    return finishKeyDown(
+                        .rewrite(keyCode: output, flags: flags),
+                        hasArmedOneShots: hasArmedOneShots,
+                        flags: event.flags,
+                        emit: emit)
+                case .toggleLayer, .oneShotLayer:
+                    perform(action, from: index, emit: emit)
+                    remember(
+                        source: event.keyCode, output: event.keyCode, flags: [],
+                        awaitingSourceRelease: true)
+                    recomputeActiveLayers(flags: event.flags, emit: emit)
+                    return finishKeyDown(
+                        .suppress, hasArmedOneShots: hasArmedOneShots,
+                        flags: event.flags, emit: emit)
+                }
             case .blocked:
                 remember(
                     source: event.keyCode, output: event.keyCode, flags: [],
                     awaitingSourceRelease: true)
-                return .suppress
+                return finishKeyDown(
+                    .suppress, hasArmedOneShots: hasArmedOneShots,
+                    flags: event.flags, emit: emit)
             case .transparent:
                 continue
             }
         }
 
-        guard let injecting = highestInjectingLayer() else { return .passThrough }
+        guard let injecting = highestInjectingLayer() else {
+            return finishKeyDown(
+                .passThrough, hasArmedOneShots: hasArmedOneShots,
+                flags: event.flags, emit: emit)
+        }
         markUsed()
         let flags = outputFlags(
             from: event.flags,
             adding: Modifier.hyperFlags,
             consumedBy: layers[injecting].consumedFlags)
         remember(source: event.keyCode, output: event.keyCode, flags: flags)
-        return .rewrite(keyCode: event.keyCode, flags: flags)
+        return finishKeyDown(
+            .rewrite(keyCode: event.keyCode, flags: flags),
+            hasArmedOneShots: hasArmedOneShots,
+            flags: event.flags,
+            emit: emit)
+    }
+
+    @inline(__always)
+    private mutating func finishKeyDown(
+        _ disposition: Disposition,
+        hasArmedOneShots: Bool,
+        flags: EventFlags,
+        emit: (SyntheticKey) -> Void
+    ) -> Disposition {
+        guard hasArmedOneShots else { return disposition }
+        for index in layers.indices where layers[index].activation.isOneShotArmed {
+            layers[index].activation.consumeOneShot()
+        }
+        recomputeActiveLayers(flags: flags, emit: emit)
+        return disposition
     }
 
     @inline(__always)

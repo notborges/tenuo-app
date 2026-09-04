@@ -97,11 +97,11 @@ final class LayerEngineTests: XCTestCase {
             layers: [
                 Layer(
                     name: "Base",
-                    mappings: ["a": .key(KeyBinding(key: "escape"))]),
+                    mappings: ["a": .action(.sendKey(KeyBinding(key: "escape")))]),
                 Layer(
                     name: "Navigation",
                     trigger: LayerTrigger(key: .capsLock),
-                    mappings: ["j": .key(KeyBinding(key: "downArrow"))]),
+                    mappings: ["j": .action(.sendKey(KeyBinding(key: "downArrow")))]),
             ])
         var harness = Harness(profile: layout)
 
@@ -170,7 +170,7 @@ final class LayerEngineTests: XCTestCase {
                 Layer(
                     name: "Navigation",
                     trigger: LayerTrigger(key: .capsLock),
-                    mappings: ["a": .key(KeyBinding(key: "home"))]),
+                    mappings: ["a": .action(.sendKey(KeyBinding(key: "home")))]),
                 Layer(
                     name: "Override",
                     trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
@@ -208,6 +208,106 @@ final class LayerEngineTests: XCTestCase {
         hold.capsDown(at: 0)
         hold.capsUp(at: 500 * milliseconds)
         XCTAssertTrue(hold.emitted.isEmpty)
+    }
+
+    func testModifierSpecificTapActionWinsAtTriggerDown() {
+        let layout = Profile(
+            name: "Tap actions",
+            layers: [
+                Layer(name: "Base"),
+                Layer(
+                    name: "General",
+                    trigger: LayerTrigger(key: .capsLock),
+                    tapAction: .sendKey(KeyBinding(key: "escape"))),
+                Layer(
+                    name: "Shift",
+                    trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
+                    tapAction: .sendKey(KeyBinding(key: "tab"))),
+            ])
+        var harness = Harness(profile: layout)
+
+        harness.capsDown(at: 0, flags: leftShiftHeld)
+        XCTAssertEqual(
+            harness.capsUp(at: 50 * milliseconds, flags: leftShiftHeld),
+            .suppress)
+        let tabCode = KeyCatalog.code(for: "tab")!
+        XCTAssertEqual(harness.emitted.map(\.keyCode), [tabCode, tabCode])
+    }
+
+    func testToggleTapKeepsLayerActiveUntilToggledAgain() {
+        let layout = Profile(
+            name: "Toggle",
+            layers: [
+                Layer(name: "Base"),
+                Layer(
+                    name: "Navigation",
+                    trigger: LayerTrigger(key: .capsLock),
+                    outputMode: .layer,
+                    tapAction: .toggleLayer(.current),
+                    mappings: ["h": .action(.sendKey(KeyBinding(key: "leftArrow")))]),
+            ])
+        var harness = Harness(profile: layout)
+
+        harness.capsDown(at: 0)
+        harness.capsUp(at: 50 * milliseconds)
+        XCTAssertTrue(harness.engine.isLayerActive)
+        XCTAssertEqual(rewrittenKey(harness.keyDown(KeyCode.h)), KeyCode.leftArrow)
+        _ = harness.keyUp(KeyCode.h)
+
+        harness.capsDown(at: 100 * milliseconds)
+        harness.capsUp(at: 150 * milliseconds)
+        XCTAssertFalse(harness.engine.isLayerActive)
+        XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
+    }
+
+    func testOneShotTapAppliesToOneOrdinaryKeypress() {
+        let layout = Profile(
+            name: "One-shot",
+            layers: [
+                Layer(name: "Base"),
+                Layer(
+                    name: "Navigation",
+                    trigger: LayerTrigger(key: .capsLock),
+                    outputMode: .layer,
+                    tapAction: .oneShotLayer(.current),
+                    mappings: ["h": .action(.sendKey(KeyBinding(key: "leftArrow")))]),
+            ])
+        var harness = Harness(profile: layout)
+
+        harness.capsDown(at: 0)
+        harness.capsUp(at: 50 * milliseconds)
+        XCTAssertTrue(harness.engine.isLayerActive)
+        harness.modifiers(leftShiftHeld)
+        let disposition = harness.keyDown(KeyCode.h, flags: leftShiftHeld)
+        XCTAssertEqual(rewrittenKey(disposition), KeyCode.leftArrow)
+        XCTAssertTrue(rewrittenFlags(disposition)?.contains(.shift) == true)
+        _ = harness.keyUp(KeyCode.h)
+        harness.modifiers([])
+        XCTAssertFalse(harness.engine.isLayerActive)
+        XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
+    }
+
+    func testResetClearsPersistentTapActionState() {
+        let layout = Profile(
+            name: "Reset",
+            layers: [
+                Layer(name: "Base"),
+                Layer(
+                    name: "Navigation",
+                    trigger: LayerTrigger(key: .capsLock),
+                    outputMode: .layer,
+                    tapAction: .toggleLayer(.current),
+                    mappings: ["h": .action(.sendKey(KeyBinding(key: "leftArrow")))]),
+            ])
+        var harness = Harness(profile: layout)
+
+        harness.capsDown(at: 0)
+        harness.capsUp(at: 50 * milliseconds)
+        XCTAssertTrue(harness.engine.isLayerActive)
+        harness.reset()
+
+        XCTAssertFalse(harness.engine.isLayerActive)
+        XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
     }
 
     func testUsingALayerSuppressesTheTap() {

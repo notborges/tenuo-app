@@ -48,10 +48,10 @@ final class AppModel: ObservableObject {
         }
     }
 
-    var selectedMappings: [String: KeyAction] { selectedLayer.mappings }
+    var selectedMappings: [String: LayerMapping] { selectedLayer.mappings }
 
-    var inheritedMappings: [String: KeyAction] {
-        var result: [String: KeyAction] = [:]
+    var inheritedMappings: [String: LayerMapping] {
+        var result: [String: LayerMapping] = [:]
         for layer in profile.layers.prefix(selectedIndex) {
             for (key, action) in layer.mappings where action != .transparent {
                 result[key] = action
@@ -61,13 +61,17 @@ final class AppModel: ObservableObject {
         return result
     }
 
-    var sortedMappings: [(source: String, action: KeyAction)] {
+    var sortedMappings: [(source: String, action: LayerMapping)] {
         selectedMappings
             .map { (source: $0.key, action: $0.value) }
             .sorted { $0.source < $1.source }
     }
 
     var canAddLayer: Bool { profile.canAddLayer }
+
+    func canUse(_ kind: ActionKind) -> Bool {
+        controller.actionAvailability.canUse(kind)
+    }
 
     func addLayer() {
         guard canAddLayer else { return }
@@ -83,8 +87,12 @@ final class AppModel: ObservableObject {
     func duplicateLayer(_ layer: Layer) {
         guard canAddLayer else { return }
         var copy = layer
+        let originalID = copy.id
         copy.id = UUID()
         copy.name = "Copy of \(layer.name)"
+        let copiedLayerIDs = [originalID: copy.id]
+        copy.tapAction = copy.tapAction?.remappingLayerIDs(copiedLayerIDs)
+        copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) }
         guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
         copy.trigger = trigger
         profile.layers.append(copy)

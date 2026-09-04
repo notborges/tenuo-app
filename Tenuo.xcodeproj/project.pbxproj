@@ -68,6 +68,8 @@
 		TENUO0000000000000000094 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008D /* ProfileStore.swift */; };
 		TENUO0000000000000000095 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008E /* AppPreferences.swift */; };
 		TENUO0000000000000000096 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
+		TENUO0000000000000000097 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000099 /* Actions.swift */; };
+		TENUO0000000000000000098 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000099 /* Actions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -119,6 +121,7 @@
 		TENUO000000000000000008D /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
 		TENUO000000000000000008E /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
 		TENUO000000000000000008F /* ProfileSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelection.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000099 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000090 /* AppPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000091 /* ProfileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStoreTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000092 /* ProfileSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionTests.swift; sourceTree = "<group>"; };
@@ -165,6 +168,7 @@
 				TENUO000000000000000000E /* TriggerKey.swift */,
 				TENUO0000000000000000010 /* KeyCatalog.swift */,
 				TENUO0000000000000000012 /* KeyBinding.swift */,
+				TENUO0000000000000000099 /* Actions.swift */,
 				TENUO0000000000000000014 /* Profile.swift */,
 				TENUO0000000000000000016 /* Presets.swift */,
 				TENUO0000000000000000018 /* LayerEngine.swift */,
@@ -390,6 +394,7 @@
 				TENUO000000000000000000D /* TriggerKey.swift in Sources */,
 				TENUO000000000000000000F /* KeyCatalog.swift in Sources */,
 				TENUO0000000000000000011 /* KeyBinding.swift in Sources */,
+				TENUO0000000000000000097 /* Actions.swift in Sources */,
 				TENUO0000000000000000013 /* Profile.swift in Sources */,
 				TENUO0000000000000000015 /* Presets.swift in Sources */,
 				TENUO0000000000000000017 /* LayerEngine.swift in Sources */,
@@ -434,6 +439,7 @@
 				TENUO0000000000000000048 /* TriggerKey.swift in Sources */,
 				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
 				TENUO000000000000000004A /* KeyBinding.swift in Sources */,
+				TENUO0000000000000000098 /* Actions.swift in Sources */,
 				TENUO000000000000000004B /* Profile.swift in Sources */,
 				TENUO000000000000000004C /* Presets.swift in Sources */,
 				TENUO000000000000000004D /* LayerEngine.swift in Sources */,

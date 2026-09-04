@@ -20,8 +20,15 @@ final class KeyboardMonitor {
 
     var isRunning: Bool { tap != nil }
 
-    init(profile: Profile, isEnabled: Bool) {
-        engine = LayerEngine(profile: profile, isEnabled: isEnabled)
+    init(
+        profile: Profile,
+        isEnabled: Bool,
+        actionAvailability: any ActionAvailability = DefaultActionAvailability.current
+    ) {
+        engine = LayerEngine(
+            profile: profile,
+            isEnabled: isEnabled,
+            actionAvailability: actionAvailability)
     }
 
     @discardableResult

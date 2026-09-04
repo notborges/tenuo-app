@@ -120,82 +120,32 @@ struct LayerTrigger: Codable, Equatable, Hashable, Sendable {
     }
 }
 
-enum KeyAction: Codable, Equatable, Hashable, Sendable {
-    case key(KeyBinding)
-    case transparent
-    case blocked
-
-    enum CodingKeys: String, CodingKey { case type, binding }
-
-    init(from decoder: Decoder) throws {
-        if let binding = try? KeyBinding(from: decoder) {
-            self = .key(binding)
-            return
-        }
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        switch try container.decode(String.self, forKey: .type) {
-        case "transparent": self = .transparent
-        case "blocked": self = .blocked
-        default: self = .key(try container.decode(KeyBinding.self, forKey: .binding))
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        switch self {
-        case let .key(binding):
-            try binding.encode(to: encoder)
-        case .transparent:
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode("transparent", forKey: .type)
-        case .blocked:
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode("blocked", forKey: .type)
-        }
-    }
-
-    var binding: KeyBinding? {
-        if case let .key(binding) = self { return binding }
-        return nil
-    }
-
-    var displayLabel: String {
-        switch self {
-        case let .key(binding): return binding.displayLabel
-        case .transparent: return "▽"
-        case .blocked: return "✕"
-        }
-    }
-}
-
 struct Layer: Codable, Equatable, Identifiable, Sendable {
     var id: UUID
     var name: String
     var trigger: LayerTrigger?
     var outputMode: LayerOutputMode
-    var activationMode: LayerActivationMode
-    var tapAction: KeyBinding?
-    var mappings: [String: KeyAction]
+    var tapAction: Action?
+    var mappings: [String: LayerMapping]
 
     init(
         id: UUID = UUID(),
         name: String,
         trigger: LayerTrigger? = nil,
         outputMode: LayerOutputMode = .injectAndLayer,
-        activationMode: LayerActivationMode = .hold,
-        tapAction: KeyBinding? = nil,
-        mappings: [String: KeyAction] = [:]
+        tapAction: Action? = nil,
+        mappings: [String: LayerMapping] = [:]
     ) {
         self.id = id
         self.name = name
         self.trigger = trigger
         self.outputMode = outputMode
-        self.activationMode = activationMode
         self.tapAction = tapAction
         self.mappings = mappings
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, trigger, holdMode, activationMode, tapAction, mappings
+        case id, name, trigger, holdMode, tapAction, mappings
     }
 
     init(from decoder: Decoder) throws {
@@ -206,12 +156,9 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         outputMode =
             try container.decodeIfPresent(LayerOutputMode.self, forKey: .holdMode)
             ?? .injectAndLayer
-        activationMode =
-            try container.decodeIfPresent(LayerActivationMode.self, forKey: .activationMode)
-            ?? .hold
-        tapAction = try container.decodeIfPresent(KeyBinding.self, forKey: .tapAction)
+        tapAction = try container.decodeIfPresent(Action.self, forKey: .tapAction)
         mappings =
-            try container.decodeIfPresent([String: KeyAction].self, forKey: .mappings) ?? [:]
+            try container.decodeIfPresent([String: LayerMapping].self, forKey: .mappings) ?? [:]
     }
 
     func encode(to encoder: Encoder) throws {
@@ -220,9 +167,6 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         try container.encode(name, forKey: .name)
         try container.encodeIfPresent(trigger, forKey: .trigger)
         try container.encode(outputMode, forKey: .holdMode)
-        if activationMode != .hold {
-            try container.encode(activationMode, forKey: .activationMode)
-        }
         try container.encodeIfPresent(tapAction, forKey: .tapAction)
         try container.encode(mappings, forKey: .mappings)
     }
@@ -249,11 +193,16 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
     }
 
     func copy(named newName: String) -> Profile {
-        Profile(
+        var newIDs: [UUID: UUID] = [:]
+        for layer in layers { newIDs[layer.id] = UUID() }
+
+        return Profile(
             id: UUID(), name: newName,
             layers: layers.map { layer in
                 var copy = layer
-                copy.id = UUID()
+                copy.id = newIDs[layer.id]!
+                copy.tapAction = copy.tapAction?.remappingLayerIDs(newIDs)
+                copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(newIDs) }
                 return copy
             },
             tapThresholdMilliseconds: tapThresholdMilliseconds)
@@ -292,10 +241,7 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
                 throw ProfileError.unknownTriggerKey(layer: layer.name)
             }
 
-            if let tapAction = layer.tapAction, tapAction.keyCode == nil {
-                throw ProfileError.unknownDestinationKey(
-                    layer: layer.name, key: tapAction.key)
-            }
+            try validate(layer.tapAction, in: layer)
 
             for (source, action) in layer.mappings {
                 guard KeyCatalog.code(for: source) != nil else {
@@ -305,8 +251,29 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
                     throw ProfileError.unknownDestinationKey(
                         layer: layer.name, key: binding.key)
                 }
+                try validate(action.action, in: layer)
             }
         }
+    }
+
+    private func validate(_ action: Action?, in layer: Layer) throws {
+        guard let action else { return }
+        switch action {
+        case let .sendKey(binding):
+            guard binding.keyCode != nil else {
+                throw ProfileError.unknownDestinationKey(
+                    layer: layer.name, key: binding.key)
+            }
+        case let .toggleLayer(target), let .oneShotLayer(target):
+            guard target == .current || targetLayerExists(target) else {
+                throw ProfileError.invalidActionTarget(layer: layer.name)
+            }
+        }
+    }
+
+    private func targetLayerExists(_ target: LayerTarget) -> Bool {
+        guard case let .layer(id) = target else { return true }
+        return layers.contains { $0.id == id }
     }
 
     func conflicts() -> [(Layer, Layer)] {
@@ -330,6 +297,7 @@ enum ProfileError: LocalizedError, Equatable {
     case unknownTriggerKey(layer: String)
     case unknownSourceKey(layer: String, key: String)
     case unknownDestinationKey(layer: String, key: String)
+    case invalidActionTarget(layer: String)
 
     var errorDescription: String? {
         switch self {
@@ -350,6 +318,8 @@ enum ProfileError: LocalizedError, Equatable {
             return "Layer “\(layer)” uses an unsupported source key: \(key)."
         case let .unknownDestinationKey(layer, key):
             return "Layer “\(layer)” uses an unsupported destination key: \(key)."
+        case let .invalidActionTarget(layer):
+            return "Layer “\(layer)” refers to a layer that does not exist."
         }
     }
 
@@ -358,7 +328,8 @@ enum ProfileError: LocalizedError, Equatable {
         case .tooManyLayers:
             return "Remove a layer or split this setup into more than one profile."
         case .invalidBaseLayerCount, .duplicateLayerIDs, .invalidTapThreshold,
-            .unknownTriggerKey, .unknownSourceKey, .unknownDestinationKey:
+            .unknownTriggerKey, .unknownSourceKey, .unknownDestinationKey,
+            .invalidActionTarget:
             return "Use a profile exported by Tenuo, or fix the unsupported value and try again."
         }
     }

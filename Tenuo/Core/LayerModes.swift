@@ -1,9 +1,5 @@
 import Foundation
 
-enum LayerActivationMode: String, Codable, CaseIterable, Sendable {
-    case hold
-}
-
 enum LayerOutputMode: String, Codable, CaseIterable, Hashable, Sendable {
     case inject
     case layer

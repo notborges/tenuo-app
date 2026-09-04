@@ -93,7 +93,14 @@ struct LayersPage: View {
         }
         var parts = ["Hold \(trigger.displayLabel)"]
         if let tap = layer.tapAction {
-            parts.append("tap for \(tap.displayLabel)")
+            switch tap {
+            case let .sendKey(binding):
+                parts.append("tap sends \(binding.displayLabel)")
+            case .toggleLayer:
+                parts.append("tap toggles this layer")
+            case .oneShotLayer:
+                parts.append("tap uses this layer once")
+            }
         }
         switch layer.outputMode {
         case .inject: parts.append("all held keys send Hyper")
@@ -149,7 +156,7 @@ struct LayersPage: View {
         return "\(count) key\(count == 1 ? "" : "s")"
     }
 
-    static func caption(for action: KeyAction) -> String {
+    static func caption(for action: LayerMapping) -> String {
         guard let binding = action.binding else { return action.displayLabel }
         let symbols = Modifier.allCases
             .filter { binding.modifiers.contains($0) }
@@ -316,7 +323,7 @@ private struct KeyInspector: View {
 
     @State private var modifiers: Set<Modifier> = []
 
-    private var current: KeyAction? { model.selectedLayer.mappings[source] }
+    private var current: LayerMapping? { model.selectedLayer.mappings[source] }
     private var ordered: [Modifier] { Modifier.allCases.filter { modifiers.contains($0) } }
 
     var body: some View {
@@ -346,7 +353,7 @@ private struct KeyInspector: View {
                     get: { current?.binding?.key ?? "" },
                     set: {
                         model.selectedLayer.mappings[source] =
-                            .key(KeyBinding(key: $0, modifiers: ordered))
+                            .action(.sendKey(KeyBinding(key: $0, modifiers: ordered)))
                     }
                 ),
                 columns: 5,
@@ -361,7 +368,42 @@ private struct KeyInspector: View {
 
     private func reassignIfMapped() {
         guard let key = current?.binding?.key else { return }
-        model.selectedLayer.mappings[source] = .key(KeyBinding(key: key, modifiers: ordered))
+        model.selectedLayer.mappings[source] =
+            .action(.sendKey(KeyBinding(key: key, modifiers: ordered)))
+    }
+}
+
+private enum TapActionChoice: String, CaseIterable, Hashable {
+    case none
+    case sendKey
+    case toggleLayer
+    case oneShotLayer
+
+    var title: String {
+        switch self {
+        case .none: return "Do nothing"
+        case .sendKey: return "Send a key or shortcut"
+        case .toggleLayer: return "Toggle this layer · Pro"
+        case .oneShotLayer: return "Use this layer once · Pro"
+        }
+    }
+
+    var kind: ActionKind? {
+        switch self {
+        case .none: return nil
+        case .sendKey: return .sendKey
+        case .toggleLayer: return .toggleLayer
+        case .oneShotLayer: return .oneShotLayer
+        }
+    }
+
+    init(action: Action?) {
+        switch action {
+        case nil: self = .none
+        case .sendKey: self = .sendKey
+        case .toggleLayer: self = .toggleLayer
+        case .oneShotLayer: self = .oneShotLayer
+        }
     }
 }
 
@@ -374,7 +416,11 @@ private struct LayerInspector: View {
             set: { model.selectedLayer.trigger = $0 })
     }
 
-    private var sendsKeyOnTap: Bool { model.selectedLayer.tapAction != nil }
+    private var tapChoice: TapActionChoice {
+        TapActionChoice(action: model.selectedLayer.tapAction)
+    }
+
+    private var hasTapDetails: Bool { model.selectedLayer.tapAction != nil }
 
     var body: some View {
         if model.selectedLayer.isBase {
@@ -413,36 +459,91 @@ private struct LayerInspector: View {
                         }
                     }
 
-                    InspectorRow(label: "On tap", divider: sendsKeyOnTap) {
+                    InspectorRow(label: "On tap", divider: !hasTapDetails) {
                         Picker(
                             "",
                             selection: Binding(
-                                get: { sendsKeyOnTap },
-                                set: {
-                                    model.selectedLayer.tapAction =
-                                        $0 ? KeyBinding(key: "escape") : nil
-                                }
+                                get: { tapChoice },
+                                set: { setTapAction($0) }
                             )
                         ) {
-                            Text("Do nothing").tag(false)
-                            Text("Send a key").tag(true)
+                            ForEach(TapActionChoice.allCases, id: \.self) { choice in
+                                Text(choice.title)
+                                    .tag(choice)
+                                    .disabled(choice.kind.map { !model.canUse($0) } ?? false)
+                            }
                         }
                     }
 
                     if let tap = model.selectedLayer.tapAction {
-                        InspectorRow(label: "Sends", divider: false) {
-                            CompactKeyField(
-                                selection: Binding(
-                                    get: { tap.key },
-                                    set: {
-                                        model.selectedLayer.tapAction =
-                                            KeyBinding(key: $0, modifiers: tap.modifiers)
-                                    }
-                                ))
+                        switch tap {
+                        case let .sendKey(binding):
+                            InspectorRow(label: "Sends", divider: false) {
+                                CompactKeyField(
+                                    selection: Binding(
+                                        get: { binding.key },
+                                        set: {
+                                            model.selectedLayer.tapAction = .sendKey(
+                                                KeyBinding(key: $0, modifiers: binding.modifiers))
+                                        }
+                                    ))
+                            }
+                        case .toggleLayer:
+                            targetRow(divider: false)
+                        case .oneShotLayer:
+                            targetRow(divider: false)
                         }
                     }
                 }
             }
+        }
+    }
+
+    private func setTapAction(_ choice: TapActionChoice) {
+        guard choice.kind.map({ model.canUse($0) }) ?? true else { return }
+
+        let current = model.selectedLayer.tapAction
+        switch choice {
+        case .none:
+            model.selectedLayer.tapAction = nil
+        case .sendKey:
+            model.selectedLayer.tapAction = .sendKey(
+                current?.binding ?? KeyBinding(key: "escape"))
+        case .toggleLayer:
+            model.selectedLayer.tapAction = .toggleLayer(current?.target ?? .current)
+        case .oneShotLayer:
+            model.selectedLayer.tapAction = .oneShotLayer(current?.target ?? .current)
+        }
+    }
+
+    @ViewBuilder
+    private func targetRow(divider: Bool) -> some View {
+        InspectorRow(label: "Layer", divider: divider) {
+            Picker(
+                "",
+                selection: Binding(
+                    get: { model.selectedLayer.tapAction?.target ?? .current },
+                    set: { updateTarget($0) }
+                )
+            ) {
+                Text("This layer").tag(LayerTarget.current)
+                ForEach(model.layers.filter { !$0.isBase }, id: \.id) { layer in
+                    Text(layer.name.isEmpty ? "Unnamed layer" : layer.name)
+                        .tag(LayerTarget.layer(layer.id))
+                }
+            }
+        }
+    }
+
+    private func updateTarget(_ target: LayerTarget) {
+        guard let action = model.selectedLayer.tapAction else { return }
+        switch action {
+        case .sendKey:
+            break
+        case .toggleLayer:
+            model.selectedLayer.tapAction = .toggleLayer(target)
+        case .oneShotLayer:
+            model.selectedLayer.tapAction = .oneShotLayer(target)
         }
     }
 

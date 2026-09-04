@@ -18,12 +18,12 @@ enum Presets {
                 name: "Navigation",
                 trigger: LayerTrigger(key: .capsLock),
                 outputMode: .injectAndLayer,
-                tapAction: KeyBinding(key: "escape"),
+                tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow")),
-                    "j": .key(KeyBinding(key: "downArrow")),
-                    "k": .key(KeyBinding(key: "upArrow")),
-                    "l": .key(KeyBinding(key: "rightArrow")),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow"))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow"))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow"))),
                 ]
             ),
         ])
@@ -37,21 +37,21 @@ enum Presets {
                 name: "Motion",
                 trigger: LayerTrigger(key: .capsLock),
                 outputMode: .injectAndLayer,
-                tapAction: KeyBinding(key: "escape"),
+                tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow")),
-                    "j": .key(KeyBinding(key: "downArrow")),
-                    "k": .key(KeyBinding(key: "upArrow")),
-                    "l": .key(KeyBinding(key: "rightArrow")),
-                    "b": .key(KeyBinding(key: "leftArrow", modifiers: [.option])),
-                    "w": .key(KeyBinding(key: "rightArrow", modifiers: [.option])),
-                    "a": .key(KeyBinding(key: "leftArrow", modifiers: [.command])),
-                    "e": .key(KeyBinding(key: "rightArrow", modifiers: [.command])),
-                    "g": .key(KeyBinding(key: "upArrow", modifiers: [.command])),
-                    "n": .key(KeyBinding(key: "downArrow", modifiers: [.command])),
-                    "u": .key(KeyBinding(key: "pageUp")),
-                    "d": .key(KeyBinding(key: "pageDown")),
-                    "x": .key(KeyBinding(key: "forwardDelete")),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow"))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow"))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow"))),
+                    "b": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.option]))),
+                    "w": .action(.sendKey(KeyBinding(key: "rightArrow", modifiers: [.option]))),
+                    "a": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.command]))),
+                    "e": .action(.sendKey(KeyBinding(key: "rightArrow", modifiers: [.command]))),
+                    "g": .action(.sendKey(KeyBinding(key: "upArrow", modifiers: [.command]))),
+                    "n": .action(.sendKey(KeyBinding(key: "downArrow", modifiers: [.command]))),
+                    "u": .action(.sendKey(KeyBinding(key: "pageUp"))),
+                    "d": .action(.sendKey(KeyBinding(key: "pageDown"))),
+                    "x": .action(.sendKey(KeyBinding(key: "forwardDelete"))),
                 ]
             ),
         ])
@@ -65,12 +65,12 @@ enum Presets {
                 name: "Move",
                 trigger: LayerTrigger(key: .capsLock),
                 outputMode: .injectAndLayer,
-                tapAction: KeyBinding(key: "escape"),
+                tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow")),
-                    "j": .key(KeyBinding(key: "downArrow")),
-                    "k": .key(KeyBinding(key: "upArrow")),
-                    "l": .key(KeyBinding(key: "rightArrow")),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow"))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow"))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow"))),
                 ]
             ),
             Layer(
@@ -79,12 +79,14 @@ enum Presets {
                 trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
                 outputMode: .layer,
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow", modifiers: [.shift])),
-                    "j": .key(KeyBinding(key: "downArrow", modifiers: [.shift])),
-                    "k": .key(KeyBinding(key: "upArrow", modifiers: [.shift])),
-                    "l": .key(KeyBinding(key: "rightArrow", modifiers: [.shift])),
-                    "w": .key(KeyBinding(key: "rightArrow", modifiers: [.shift, .option])),
-                    "b": .key(KeyBinding(key: "leftArrow", modifiers: [.shift, .option])),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.shift]))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow", modifiers: [.shift]))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow", modifiers: [.shift]))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow", modifiers: [.shift]))),
+                    "w": .action(
+                        .sendKey(KeyBinding(key: "rightArrow", modifiers: [.shift, .option]))),
+                    "b": .action(
+                        .sendKey(KeyBinding(key: "leftArrow", modifiers: [.shift, .option]))),
                 ]
             ),
         ])
@@ -98,7 +100,7 @@ enum Presets {
                 name: "Hyper",
                 trigger: LayerTrigger(key: .capsLock),
                 outputMode: .inject,
-                tapAction: KeyBinding(key: "escape")
+                tapAction: .sendKey(KeyBinding(key: "escape"))
             ),
         ])
 

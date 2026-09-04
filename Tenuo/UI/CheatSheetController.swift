@@ -112,7 +112,7 @@ struct CheatSheetView: View {
         return model.profile.triggeredLayers.first
     }
 
-    private var mappings: [String: KeyAction] { layer?.mappings ?? [:] }
+    private var mappings: [String: LayerMapping] { layer?.mappings ?? [:] }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.small) {
