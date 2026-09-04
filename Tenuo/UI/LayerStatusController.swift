@@ -119,11 +119,11 @@ final class LayerStatusController {
     private func position(_ panel: NSPanel) {
         guard let screen = NSScreen.main else { return }
         let frame = screen.visibleFrame
-        let margin: CGFloat = 24
+        let margin = DS.Space.medium
         panel.setFrameOrigin(
             NSPoint(
                 x: frame.midX - panel.frame.width / 2,
-                y: frame.minY + margin))
+                y: frame.maxY - panel.frame.height - margin))
     }
 
     private func hide() {

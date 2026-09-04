@@ -378,8 +378,8 @@ private enum TapActionChoice: String, CaseIterable, Hashable {
         switch self {
         case .none: return "Do nothing"
         case .sendKey: return "Send key"
-        case .toggleLayer: return "Toggle layer · Pro"
-        case .oneShotLayer: return "One-shot · Pro"
+        case .toggleLayer: return "Toggle layer"
+        case .oneShotLayer: return "One-shot layer"
         }
     }
 
@@ -413,6 +413,13 @@ private struct LayerInspector: View {
 
     private var tapChoice: TapActionChoice {
         TapActionChoice(action: model.selectedLayer.tapAction)
+    }
+
+    private var availableTapChoices: [TapActionChoice] {
+        TapActionChoice.allCases.filter { choice in
+            guard let kind = choice.kind else { return true }
+            return model.canUse(kind)
+        }
     }
 
     private var hasTapDetails: Bool { model.selectedLayer.tapAction?.binding != nil }
@@ -474,10 +481,8 @@ private struct LayerInspector: View {
                                 set: { setTapAction($0) }
                             )
                         ) {
-                            ForEach(TapActionChoice.allCases, id: \.self) { choice in
-                                Text(choice.title)
-                                    .tag(choice)
-                                    .disabled(choice.kind.map { !model.canUse($0) } ?? false)
+                            ForEach(availableTapChoices, id: \.self) { choice in
+                                Text(choice.title).tag(choice)
                             }
                         }
                     }
