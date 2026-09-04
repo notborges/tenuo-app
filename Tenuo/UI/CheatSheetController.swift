@@ -123,7 +123,7 @@ struct CheatSheetView: View {
                 Text(layer?.name ?? "")
                     .font(DS.Typography.title)
                 Spacer(minLength: DS.Space.medium)
-                Text(layer?.holdMode.displayName ?? "")
+                Text(layer?.outputMode.displayName ?? "")
                     .font(DS.Typography.label)
                     .foregroundStyle(DS.Ink.tertiary)
             }
@@ -136,7 +136,7 @@ struct CheatSheetView: View {
             )
 
             if let layer {
-                Text(layer.holdMode.summary)
+                Text(layer.outputMode.summary)
                     .font(DS.Typography.body)
                     .foregroundStyle(DS.Ink.secondary)
             }

@@ -6,7 +6,7 @@ enum Presets {
     }
 
     private static func base() -> Layer {
-        Layer(id: id(0), name: "Base", holdMode: .layer)
+        Layer(id: id(0), name: "Base", outputMode: .layer)
     }
 
     static let navigation = Profile(
@@ -17,7 +17,7 @@ enum Presets {
                 id: id(1),
                 name: "Navigation",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .injectAndLayer,
+                outputMode: .injectAndLayer,
                 tapAction: KeyBinding(key: "escape"),
                 mappings: [
                     "h": .key(KeyBinding(key: "leftArrow")),
@@ -36,7 +36,7 @@ enum Presets {
                 id: id(1),
                 name: "Motion",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .injectAndLayer,
+                outputMode: .injectAndLayer,
                 tapAction: KeyBinding(key: "escape"),
                 mappings: [
                     "h": .key(KeyBinding(key: "leftArrow")),
@@ -64,7 +64,7 @@ enum Presets {
                 id: id(1),
                 name: "Move",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .injectAndLayer,
+                outputMode: .injectAndLayer,
                 tapAction: KeyBinding(key: "escape"),
                 mappings: [
                     "h": .key(KeyBinding(key: "leftArrow")),
@@ -77,7 +77,7 @@ enum Presets {
                 id: id(2),
                 name: "Select",
                 trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
-                holdMode: .layer,
+                outputMode: .layer,
                 mappings: [
                     "h": .key(KeyBinding(key: "leftArrow", modifiers: [.shift])),
                     "j": .key(KeyBinding(key: "downArrow", modifiers: [.shift])),
@@ -97,7 +97,7 @@ enum Presets {
                 id: id(1),
                 name: "Hyper",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .inject,
+                outputMode: .inject,
                 tapAction: KeyBinding(key: "escape")
             ),
         ])
@@ -113,13 +113,13 @@ enum Presets {
     )
 
     static func emptyBase() -> Layer {
-        Layer(name: "Base", holdMode: .layer)
+        Layer(name: "Base", outputMode: .layer)
     }
 
     static func newLayer(index: Int) -> Layer {
         Layer(
             name: "Layer \(index)",
             trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
-            holdMode: .layer)
+            outputMode: .layer)
     }
 }

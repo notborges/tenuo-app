@@ -25,11 +25,14 @@ extension NSWindow {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    private let controller = TenuoController(
-        settings: AppDelegate.isUIPreview
-            ? Settings(defaults: UserDefaults(suiteName: "app.tenuo.uipreview")!)
-            : Settings()
-    )
+    private static let previewDefaults = UserDefaults(suiteName: "app.tenuo.uipreview")!
+
+    private let controller: TenuoController = {
+        guard isUIPreview else { return TenuoController() }
+        return TenuoController(
+            preferences: AppPreferences(defaults: previewDefaults),
+            profileStore: UserDefaultsProfileStore(defaults: previewDefaults))
+    }()
     private lazy var model = AppModel(controller: controller)
 
     private var menuBar: MenuBarController?
@@ -73,7 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         self.menuBar = menuBar
 
         let cheatSheet = CheatSheetController(model: model)
-        cheatSheet.isEnabled = controller.settings.showsCheatSheet
+        cheatSheet.isEnabled = controller.preferences.showsCheatSheet
         self.cheatSheet = cheatSheet
 
         let onboarding = PermissionWindowController(
@@ -87,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         controller.onStateChanged = { [weak self, weak menuBar, weak cheatSheet] in
             menuBar?.refresh()
-            if let self { cheatSheet?.isEnabled = controller.settings.showsCheatSheet }
+            if let self { cheatSheet?.isEnabled = controller.preferences.showsCheatSheet }
         }
         controller.onPermissionMissing = { [weak self] in self?.showOnboarding() }
         controller.onPermissionGranted = { [weak onboarding] in onboarding?.dismiss() }

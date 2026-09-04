@@ -95,7 +95,7 @@ struct LayersPage: View {
         if let tap = layer.tapAction {
             parts.append("tap for \(tap.displayLabel)")
         }
-        switch layer.holdMode {
+        switch layer.outputMode {
         case .inject: parts.append("all held keys send Hyper")
         case .layer: parts.append("unmapped keys pass through")
         case .injectAndLayer: parts.append("unmapped keys send Hyper")
@@ -397,17 +397,17 @@ private struct LayerInspector: View {
 
                 InspectorCard(
                     title: "Behavior",
-                    footer: model.selectedLayer.holdMode.summary
+                    footer: model.selectedLayer.outputMode.summary
                 ) {
                     InspectorRow(label: "Unmapped keys") {
                         Picker(
                             "",
                             selection: Binding(
-                                get: { model.selectedLayer.holdMode },
-                                set: { model.selectedLayer.holdMode = $0 }
+                                get: { model.selectedLayer.outputMode },
+                                set: { model.selectedLayer.outputMode = $0 }
                             )
                         ) {
-                            ForEach(HoldMode.allCases, id: \.self) {
+                            ForEach(LayerOutputMode.allCases, id: \.self) {
                                 Text($0.displayName).tag($0)
                             }
                         }

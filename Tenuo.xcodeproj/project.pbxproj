@@ -20,7 +20,6 @@
 		TENUO0000000000000000015 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
 		TENUO0000000000000000017 /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
 		TENUO0000000000000000019 /* KeyboardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001A /* KeyboardGeometry.swift */; };
-		TENUO000000000000000001B /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
 		TENUO000000000000000001D /* KeyboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001E /* KeyboardMonitor.swift */; };
 		TENUO000000000000000001F /* CapsLockRemapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000020 /* CapsLockRemapper.swift */; };
 		TENUO0000000000000000021 /* AccessibilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000022 /* AccessibilityManager.swift */; };
@@ -41,7 +40,6 @@
 		TENUO000000000000000003F /* ProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000040 /* ProfileSwitcher.swift */; };
 		TENUO0000000000000000041 /* CheatSheetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000042 /* CheatSheetController.swift */; };
 		TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000044 /* LayerEngineTests.swift */; };
-		TENUO0000000000000000045 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000046 /* SettingsTests.swift */; };
 		TENUO0000000000000000047 /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000C /* KeyCodes.swift */; };
 		TENUO0000000000000000048 /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
 		TENUO0000000000000000049 /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
@@ -49,7 +47,6 @@
 		TENUO000000000000000004B /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Profile.swift */; };
 		TENUO000000000000000004C /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
 		TENUO000000000000000004D /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
-		TENUO000000000000000004F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
 		TENUO0000000000000000050 /* Assets.car in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000051 /* Assets.car */; };
 		TENUO0000000000000000052 /* Tenuo.icns in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000053 /* Tenuo.icns */; };
 		TENUO0000000000000000054 /* TenuoTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000055 /* TenuoTemplate.png */; };
@@ -60,6 +57,17 @@
 		TENUO0000000000000000080 /* HIDMappingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000081 /* HIDMappingParser.swift */; };
 		TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000081 /* HIDMappingParser.swift */; };
 		TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000084 /* CapsLockRemapperTests.swift */; };
+		TENUO0000000000000000085 /* LayerModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008C /* LayerModes.swift */; };
+		TENUO0000000000000000086 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008D /* ProfileStore.swift */; };
+		TENUO0000000000000000087 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008E /* AppPreferences.swift */; };
+		TENUO0000000000000000088 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
+		TENUO0000000000000000089 /* AppPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000090 /* AppPreferencesTests.swift */; };
+		TENUO000000000000000008A /* ProfileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000091 /* ProfileStoreTests.swift */; };
+		TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000092 /* ProfileSelectionTests.swift */; };
+		TENUO0000000000000000093 /* LayerModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008C /* LayerModes.swift */; };
+		TENUO0000000000000000094 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008D /* ProfileStore.swift */; };
+		TENUO0000000000000000095 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008E /* AppPreferences.swift */; };
+		TENUO0000000000000000096 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -76,7 +84,6 @@
 		TENUO0000000000000000016 /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000018 /* LayerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngine.swift; sourceTree = "<group>"; };
 		TENUO000000000000000001A /* KeyboardGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardGeometry.swift; sourceTree = "<group>"; };
-		TENUO000000000000000001C /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		TENUO000000000000000001E /* KeyboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardMonitor.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000020 /* CapsLockRemapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockRemapper.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000022 /* AccessibilityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityManager.swift; sourceTree = "<group>"; };
@@ -97,7 +104,6 @@
 		TENUO0000000000000000040 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000042 /* CheatSheetController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheatSheetController.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000044 /* LayerEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngineTests.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000046 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		TENUO000000000000000005E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		TENUO000000000000000005F /* Tenuo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tenuo.entitlements; sourceTree = "<group>"; };
 		TENUO0000000000000000051 /* Assets.car */ = {isa = PBXFileReference; lastKnownFileType = archive.binhex; path = Assets.car; sourceTree = "<group>"; };
@@ -109,6 +115,13 @@
 		TENUO0000000000000000060 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		TENUO0000000000000000081 /* HIDMappingParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDMappingParser.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000084 /* CapsLockRemapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockRemapperTests.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008C /* LayerModes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerModes.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008D /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008E /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008F /* ProfileSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelection.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000090 /* AppPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesTests.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000091 /* ProfileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStoreTests.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000092 /* ProfileSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -155,7 +168,10 @@
 				TENUO0000000000000000014 /* Profile.swift */,
 				TENUO0000000000000000016 /* Presets.swift */,
 				TENUO0000000000000000018 /* LayerEngine.swift */,
-				TENUO000000000000000001C /* Settings.swift */,
+				TENUO000000000000000008C /* LayerModes.swift */,
+				TENUO000000000000000008D /* ProfileStore.swift */,
+				TENUO000000000000000008E /* AppPreferences.swift */,
+				TENUO000000000000000008F /* ProfileSelection.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -226,7 +242,9 @@
 			children = (
 				TENUO0000000000000000084 /* CapsLockRemapperTests.swift */,
 				TENUO0000000000000000044 /* LayerEngineTests.swift */,
-				TENUO0000000000000000046 /* SettingsTests.swift */,
+				TENUO0000000000000000090 /* AppPreferencesTests.swift */,
+				TENUO0000000000000000091 /* ProfileStoreTests.swift */,
+				TENUO0000000000000000092 /* ProfileSelectionTests.swift */,
 			);
 			path = TenuoTests;
 			sourceTree = "<group>";
@@ -376,7 +394,10 @@
 				TENUO0000000000000000015 /* Presets.swift in Sources */,
 				TENUO0000000000000000017 /* LayerEngine.swift in Sources */,
 				TENUO0000000000000000019 /* KeyboardGeometry.swift in Sources */,
-				TENUO000000000000000001B /* Settings.swift in Sources */,
+				TENUO0000000000000000085 /* LayerModes.swift in Sources */,
+				TENUO0000000000000000086 /* ProfileStore.swift in Sources */,
+				TENUO0000000000000000087 /* AppPreferences.swift in Sources */,
+				TENUO0000000000000000088 /* ProfileSelection.swift in Sources */,
 				TENUO000000000000000001D /* KeyboardMonitor.swift in Sources */,
 				TENUO000000000000000001F /* CapsLockRemapper.swift in Sources */,
 				TENUO0000000000000000021 /* AccessibilityManager.swift in Sources */,
@@ -406,7 +427,9 @@
 				TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */,
 				TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */,
 				TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */,
-				TENUO0000000000000000045 /* SettingsTests.swift in Sources */,
+				TENUO0000000000000000089 /* AppPreferencesTests.swift in Sources */,
+				TENUO000000000000000008A /* ProfileStoreTests.swift in Sources */,
+				TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */,
 				TENUO0000000000000000047 /* KeyCodes.swift in Sources */,
 				TENUO0000000000000000048 /* TriggerKey.swift in Sources */,
 				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
@@ -414,7 +437,10 @@
 				TENUO000000000000000004B /* Profile.swift in Sources */,
 				TENUO000000000000000004C /* Presets.swift in Sources */,
 				TENUO000000000000000004D /* LayerEngine.swift in Sources */,
-				TENUO000000000000000004F /* Settings.swift in Sources */,
+				TENUO0000000000000000093 /* LayerModes.swift in Sources */,
+				TENUO0000000000000000094 /* ProfileStore.swift in Sources */,
+				TENUO0000000000000000095 /* AppPreferences.swift in Sources */,
+				TENUO0000000000000000096 /* ProfileSelection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

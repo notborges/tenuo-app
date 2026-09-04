@@ -171,7 +171,8 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
     var id: UUID
     var name: String
     var trigger: LayerTrigger?
-    var holdMode: HoldMode
+    var outputMode: LayerOutputMode
+    var activationMode: LayerActivationMode
     var tapAction: KeyBinding?
     var mappings: [String: KeyAction]
 
@@ -179,16 +180,51 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         id: UUID = UUID(),
         name: String,
         trigger: LayerTrigger? = nil,
-        holdMode: HoldMode = .injectAndLayer,
+        outputMode: LayerOutputMode = .injectAndLayer,
+        activationMode: LayerActivationMode = .hold,
         tapAction: KeyBinding? = nil,
         mappings: [String: KeyAction] = [:]
     ) {
         self.id = id
         self.name = name
         self.trigger = trigger
-        self.holdMode = holdMode
+        self.outputMode = outputMode
+        self.activationMode = activationMode
         self.tapAction = tapAction
         self.mappings = mappings
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, trigger, holdMode, activationMode, tapAction, mappings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        trigger = try container.decodeIfPresent(LayerTrigger.self, forKey: .trigger)
+        outputMode =
+            try container.decodeIfPresent(LayerOutputMode.self, forKey: .holdMode)
+            ?? .injectAndLayer
+        activationMode =
+            try container.decodeIfPresent(LayerActivationMode.self, forKey: .activationMode)
+            ?? .hold
+        tapAction = try container.decodeIfPresent(KeyBinding.self, forKey: .tapAction)
+        mappings =
+            try container.decodeIfPresent([String: KeyAction].self, forKey: .mappings) ?? [:]
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(trigger, forKey: .trigger)
+        try container.encode(outputMode, forKey: .holdMode)
+        if activationMode != .hold {
+            try container.encode(activationMode, forKey: .activationMode)
+        }
+        try container.encodeIfPresent(tapAction, forKey: .tapAction)
+        try container.encode(mappings, forKey: .mappings)
     }
 
     var isBase: Bool { trigger == nil }

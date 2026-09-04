@@ -76,6 +76,7 @@ final class KeyboardMonitor {
     func update(profile: Profile) {
         flushHeldKeys()
         engine.apply(profile: profile)
+        publishActiveLayerIfNeeded()
     }
 
     func update(isEnabled: Bool) {
@@ -123,12 +124,7 @@ final class KeyboardMonitor {
         )
 
         let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
-
-        let active = engine.activeLayerIndex
-        if active != lastActiveLayer {
-            lastActiveLayer = active
-            onActiveLayerChanged?(active)
-        }
+        publishActiveLayerIfNeeded()
 
         switch disposition {
         case .passThrough:
@@ -154,6 +150,13 @@ final class KeyboardMonitor {
         event.flags = CGEventFlags(rawValue: key.flags.rawValue)
         event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
         event.post(tap: .cgSessionEventTap)
+    }
+
+    private func publishActiveLayerIfNeeded() {
+        let active = engine.activeLayerIndex
+        guard active != lastActiveLayer else { return }
+        lastActiveLayer = active
+        onActiveLayerChanged?(active)
     }
 
     deinit {

@@ -121,7 +121,7 @@ final class LayerEngineTests: XCTestCase {
         XCTAssertEqual(rewrittenFlags(disposition)?.contains(.option), true)
     }
 
-    func testHoldModesDefineWhatHappensToUnmappedKeys() {
+    func testOutputModesDefineWhatHappensToUnmappedKeys() {
         var injecting = Harness(profile: Presets.hyperOnly)
         injecting.capsDown()
         let injected = injecting.keyDown(KeyCode.t)
@@ -131,7 +131,7 @@ final class LayerEngineTests: XCTestCase {
         }
 
         var mapping = Presets.navigation
-        mapping.layers[1].holdMode = .layer
+        mapping.layers[1].outputMode = .layer
         var layerOnly = Harness(profile: mapping)
         layerOnly.capsDown()
         XCTAssertEqual(layerOnly.keyDown(KeyCode.t), .passThrough)
@@ -174,7 +174,7 @@ final class LayerEngineTests: XCTestCase {
                 Layer(
                     name: "Override",
                     trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
-                    holdMode: .layer,
+                    outputMode: .layer,
                     mappings: ["a": .transparent]),
             ])
         var transparent = Harness(profile: transparentLayout)
@@ -189,7 +189,7 @@ final class LayerEngineTests: XCTestCase {
                 Layer(
                     name: "Navigation",
                     trigger: LayerTrigger(key: .capsLock),
-                    holdMode: .layer,
+                    outputMode: .layer,
                     mappings: ["a": .blocked]),
             ])
         var blocked = Harness(profile: blockedLayout)

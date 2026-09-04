@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 final class AppModel: ObservableObject {
     private let controller: TenuoController
+    private var profileStore: ProfileStore { controller.profileStore }
 
     @Published private(set) var isTrusted: Bool = false
     @Published private(set) var isActive: Bool = false
@@ -14,16 +15,17 @@ final class AppModel: ObservableObject {
 
     init(controller: TenuoController) {
         self.controller = controller
+        let store = controller.profileStore
         selectedLayerID =
-            controller.settings.activeProfile.triggeredLayers.first?.id
-            ?? controller.settings.activeProfile.layers.first?.id
+            store.manualProfile.triggeredLayers.first?.id
+            ?? store.manualProfile.layers.first?.id
         refresh()
     }
 
     var profile: Profile {
-        get { controller.settings.activeProfile }
+        get { profileStore.manualProfile }
         set {
-            controller.settings.activeProfile = newValue
+            guard profileStore.updateProfile(newValue) else { return }
             objectWillChange.send()
         }
     }
@@ -106,21 +108,21 @@ final class AppModel: ObservableObject {
         }
     }
 
-    var profiles: [Profile] { controller.settings.profiles }
+    var profiles: [Profile] { profileStore.profiles }
 
-    var activeProfileID: UUID { controller.settings.activeProfileID }
+    var activeProfileID: UUID { profileStore.manualProfileID }
 
     func selectProfile(_ id: UUID) {
-        guard id != controller.settings.activeProfileID else { return }
-        controller.settings.activeProfileID = id
+        guard profileStore.selectManualProfile(id) else { return }
         selectInitialLayer()
         objectWillChange.send()
     }
 
     func addProfile(from source: Profile, named name: String) {
-        let created = source.copy(named: controller.settings.uniqueName(name))
-        controller.settings.profiles = controller.settings.profiles + [created]
-        controller.settings.activeProfileID = created.id
+        let created = source.copy(named: profileStore.uniqueName(name))
+        guard profileStore.replaceProfiles(profiles + [created], selecting: created.id) else {
+            return
+        }
         selectInitialLayer()
         objectWillChange.send()
     }
@@ -141,8 +143,11 @@ final class AppModel: ObservableObject {
             var updated = profiles.first(where: { $0.id == id }),
             trimmed != updated.name
         else { return }
-        updated.name = controller.settings.uniqueName(trimmed)
-        controller.settings.profiles = profiles.map { $0.id == id ? updated : $0 }
+        updated.name = profileStore.uniqueName(trimmed)
+        guard profileStore.replaceProfiles(
+            profiles.map { $0.id == id ? updated : $0 },
+            selecting: activeProfileID
+        ) else { return }
         objectWillChange.send()
     }
 
@@ -150,7 +155,9 @@ final class AppModel: ObservableObject {
 
     func removeProfile(_ id: UUID) {
         guard canRemoveProfile else { return }
-        controller.settings.profiles = profiles.filter { $0.id != id }
+        let remaining = profiles.filter { $0.id != id }
+        let selectedID = id == activeProfileID ? remaining[0].id : activeProfileID
+        guard profileStore.replaceProfiles(remaining, selecting: selectedID) else { return }
         selectInitialLayer()
         objectWillChange.send()
     }
@@ -160,7 +167,7 @@ final class AppModel: ObservableObject {
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(profile.name).json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { try Settings.encoder.encode(profile).write(to: url) } catch {
+        do { try profileStore.exportProfile(profile).write(to: url) } catch {
             errorMessage = error.localizedDescription
         }
     }
@@ -172,7 +179,7 @@ final class AppModel: ObservableObject {
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(profile.name).json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { try controller.settings.exportJSON().write(to: url) } catch {
+        do { try profileStore.exportProfile(profile).write(to: url) } catch {
             errorMessage = error.localizedDescription
         }
     }
@@ -183,7 +190,7 @@ final class AppModel: ObservableObject {
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try controller.settings.importJSON(Data(contentsOf: url))
+            try profileStore.importProfile(Data(contentsOf: url))
             selectInitialLayer()
             objectWillChange.send()
         } catch {
@@ -207,9 +214,9 @@ final class AppModel: ObservableObject {
     }
 
     var isEnabled: Bool {
-        get { controller.settings.isEnabled }
+        get { controller.preferences.isEnabled }
         set {
-            controller.settings.isEnabled = newValue
+            controller.preferences.isEnabled = newValue
             refresh()
         }
     }
@@ -219,22 +226,22 @@ final class AppModel: ObservableObject {
     var updatesAvailable: Bool { UpdateController.isConfigured }
 
     var checksForUpdates: Bool {
-        get { controller.settings.checksForUpdates }
+        get { controller.preferences.checksForUpdates }
         set {
-            controller.settings.checksForUpdates = newValue
+            controller.preferences.checksForUpdates = newValue
             updates.checksAutomatically = newValue
             refresh()
         }
     }
 
     func startUpdater() {
-        updates.start(checksAutomatically: controller.settings.checksForUpdates)
+        updates.start(checksAutomatically: controller.preferences.checksForUpdates)
     }
 
     var showsCheatSheet: Bool {
-        get { controller.settings.showsCheatSheet }
+        get { controller.preferences.showsCheatSheet }
         set {
-            controller.settings.showsCheatSheet = newValue
+            controller.preferences.showsCheatSheet = newValue
             refresh()
         }
     }

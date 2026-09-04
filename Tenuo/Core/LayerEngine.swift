@@ -35,13 +35,33 @@ struct SyntheticKey: Equatable {
     var isKeyDown: Bool
 }
 
-// The event tap and the test target both drive this state machine. It has no
-// AppKit or CoreGraphics dependencies.
+private struct LayerActivationState {
+    let mode: LayerActivationMode
+    private(set) var isActive: Bool
+
+    init(mode: LayerActivationMode, isActive: Bool = false) {
+        self.mode = mode
+        self.isActive = isActive
+    }
+
+    mutating func update(isTriggered: Bool) {
+        switch mode {
+        case .hold:
+            isActive = isTriggered
+        }
+    }
+
+    mutating func reset(isBaseLayer: Bool) {
+        isActive = isBaseLayer
+    }
+}
+
 struct LayerEngine {
 
     private struct CompiledLayer {
         var trigger: LayerTrigger?
-        var holdMode: HoldMode
+        var outputMode: LayerOutputMode
+        var activation: LayerActivationState
         var mappings: [UInt16: KeyAction]
         var consumedFlags: EventFlags
         var triggerSlot: Int
@@ -105,7 +125,10 @@ struct LayerEngine {
             if layer.trigger == nil { baseMask |= UInt32(1) << UInt32(index) }
             return CompiledLayer(
                 trigger: layer.trigger,
-                holdMode: layer.trigger == nil ? .layer : layer.holdMode,
+                outputMode: layer.trigger == nil ? .layer : layer.outputMode,
+                activation: LayerActivationState(
+                    mode: layer.activationMode,
+                    isActive: layer.trigger == nil),
                 mappings: mappings,
                 consumedFlags: layer.trigger?.consumedFlags ?? [],
                 triggerSlot: layer.trigger.flatMap { keyOrder.firstIndex(of: $0.key) } ?? -1
@@ -207,7 +230,7 @@ struct LayerEngine {
         flags: EventFlags,
         emit: (SyntheticKey) -> Void
     ) {
-        var mask = baseMask
+        var eligible = [Bool](repeating: false, count: layers.count)
         var bestSpecificity = [Int](repeating: -1, count: triggers.count)
 
         for layer in layers {
@@ -221,11 +244,19 @@ struct LayerEngine {
 
         var highest: Int?
         for (index, layer) in layers.enumerated() {
-            guard let trigger = layer.trigger, layer.triggerSlot >= 0 else { continue }
-            guard triggers[layer.triggerSlot].isDown, trigger.matches(flags: flags) else {
-                continue
-            }
-            guard trigger.specificity == bestSpecificity[layer.triggerSlot] else { continue }
+            guard let trigger = layer.trigger, layer.triggerSlot >= 0,
+                triggers[layer.triggerSlot].isDown,
+                trigger.matches(flags: flags),
+                trigger.specificity == bestSpecificity[layer.triggerSlot]
+            else { continue }
+            eligible[index] = true
+        }
+
+        var mask = baseMask
+        for index in layers.indices {
+            guard layers[index].trigger != nil else { continue }
+            layers[index].activation.update(isTriggered: eligible[index])
+            guard layers[index].activation.isActive else { continue }
             mask |= UInt32(1) << UInt32(index)
             highest = max(highest ?? index, index)
         }
@@ -263,7 +294,7 @@ struct LayerEngine {
             defer { index -= 1 }
             guard activeMask & (UInt32(1) << UInt32(index)) != 0 else { continue }
             let layer = layers[index]
-            guard layer.holdMode.appliesMappings else { continue }
+            guard layer.outputMode.appliesMappings else { continue }
             guard let action = layer.mappings[event.keyCode], action != .transparent else {
                 continue
             }
@@ -321,7 +352,9 @@ struct LayerEngine {
     private func highestInjectingLayer() -> Int? {
         var index = layers.count - 1
         while index >= 0 {
-            if activeMask & (UInt32(1) << UInt32(index)) != 0, layers[index].holdMode.injectsHyper {
+            if activeMask & (UInt32(1) << UInt32(index)) != 0,
+                layers[index].outputMode.injectsHyper
+            {
                 return index
             }
             index -= 1
@@ -395,6 +428,9 @@ struct LayerEngine {
         for slot in triggers.indices {
             triggers[slot].isDown = false
             triggers[slot].wasUsed = true
+        }
+        for index in layers.indices {
+            layers[index].activation.reset(isBaseLayer: layers[index].trigger == nil)
         }
         activeMask = baseMask
         activeLayerIndex = nil
