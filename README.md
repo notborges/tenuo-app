@@ -62,6 +62,13 @@ xcodebuild \
   build test
 ```
 
+The Debug build uses the separate `app.tenuo.dev` bundle identifier and is
+shown as Tenuo Dev. Its Accessibility permission and local preferences are
+separate from the official Release build, which uses `app.tenuo`. Both apps
+can be installed on the Mac at the same time, but only one should be running
+at a time because keyboard event handling and the Caps Lock remap are
+system-wide.
+
 The default source configuration uses ad-hoc signing. macOS may ask for
 Accessibility access again after an ad-hoc rebuild because the app's code
 signature changes. For a stable local identity:
