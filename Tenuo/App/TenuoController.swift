@@ -237,7 +237,7 @@ final class TenuoController {
     }
 
     func toggleLaunchAtLogin() {
-        launchAtLogin.setEnabled(!launchAtLogin.isEnabled)
+        launchAtLogin.setEnabled(!launchAtLogin.isRegistered)
         onStateChanged?()
     }
 

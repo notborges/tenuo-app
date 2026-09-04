@@ -257,7 +257,7 @@ final class AppModel: ObservableObject {
     func refresh() {
         isTrusted = controller.isTrusted
         isActive = controller.isActive
-        launchesAtLogin = controller.launchAtLogin.isEnabled
+        launchesAtLogin = controller.launchAtLogin.isRegistered
         launchNeedsApproval = controller.launchAtLogin.requiresApproval
         objectWillChange.send()
     }

@@ -120,29 +120,7 @@ private struct PermissionView: View {
             PrimaryButton(title: "Open System Settings", action: onOpenSettings)
                 .padding(.bottom, DS.Space.medium)
 
-            if model.updatesAvailable {
-                Button {
-                    model.checksForUpdates.toggle()
-                } label: {
-                    HStack(spacing: DS.Space.tight) {
-                        Image(
-                            systemName: model.checksForUpdates
-                                ? "checkmark.square.fill" : "square"
-                        )
-                        .font(.system(size: DS.Icon.regular))
-                        .foregroundStyle(
-                            model.checksForUpdates
-                                ? DS.Ink.primary : DS.Ink.tertiary)
-                        Text("Check for updates automatically")
-                            .font(DS.Typography.body)
-                            .foregroundStyle(DS.Ink.secondary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, DS.Space.tight)
-
-            }
+            optionalSettings
 
             Text(updatesLine)
                 .font(DS.Typography.label)
@@ -156,5 +134,87 @@ private struct PermissionView: View {
         .padding(.bottom, 28)
         .frame(width: 480)
         .background(DS.Surface.window)
+    }
+
+    private var optionalSettings: some View {
+        VStack(alignment: .leading, spacing: DS.Space.tight) {
+            Text("Optional").sectionLabel()
+
+            VStack(spacing: 0) {
+                OnboardingSettingRow(
+                    title: "Start Tenuo at login",
+                    isOn: Binding(
+                        get: { model.launchesAtLogin },
+                        set: { _ in model.toggleLaunchAtLogin() })
+                )
+
+                if model.updatesAvailable {
+                    Divider()
+                        .opacity(0.35)
+                        .padding(.leading, 14)
+
+                    OnboardingSettingRow(
+                        title: "Check for updates automatically",
+                        isOn: Binding(
+                            get: { model.checksForUpdates },
+                            set: { model.checksForUpdates = $0 })
+                    )
+                }
+            }
+            .background {
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(DS.Surface.raised)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .strokeBorder(DS.Line.hairline, lineWidth: 0.5)
+            }
+        }
+        .frame(width: 400, alignment: .leading)
+        .padding(.bottom, DS.Space.medium)
+    }
+}
+
+private struct OnboardingSettingRow: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            HStack(spacing: DS.Space.small) {
+                Text(title)
+                    .font(DS.Typography.body)
+                    .foregroundStyle(DS.Ink.primary)
+                Spacer(minLength: DS.Space.small)
+                OnboardingSwitch(isOn: isOn)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 42)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+private struct OnboardingSwitch: View {
+    let isOn: Bool
+
+    var body: some View {
+        Capsule()
+            .fill(isOn ? DS.Selection.solid : Color.white.opacity(0.14))
+            .frame(width: 34, height: 20)
+            .overlay(alignment: isOn ? .trailing : .leading) {
+                Circle()
+                    .fill(isOn ? DS.Selection.solidInk : Color.white.opacity(0.55))
+                    .frame(width: 16, height: 16)
+                    .padding(.horizontal, 2)
+            }
+            .animation(DS.Motion.fill, value: isOn)
+            .accessibilityHidden(true)
     }
 }
