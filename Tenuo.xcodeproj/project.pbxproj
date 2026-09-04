@@ -70,6 +70,7 @@
 		TENUO0000000000000000096 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
 		TENUO0000000000000000097 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000099 /* Actions.swift */; };
 		TENUO0000000000000000098 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000099 /* Actions.swift */; };
+		TENUO00000000000000000A0 /* LayerStatusController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000A1 /* LayerStatusController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -125,6 +126,7 @@
 		TENUO0000000000000000090 /* AppPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000091 /* ProfileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStoreTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000092 /* ProfileSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionTests.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000A1 /* LayerStatusController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerStatusController.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -210,6 +212,7 @@
 				TENUO000000000000000003E /* LayerList.swift */,
 				TENUO0000000000000000040 /* ProfileSwitcher.swift */,
 				TENUO0000000000000000042 /* CheatSheetController.swift */,
+				TENUO00000000000000000A1 /* LayerStatusController.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -422,6 +425,7 @@
 				TENUO000000000000000003D /* LayerList.swift in Sources */,
 				TENUO000000000000000003F /* ProfileSwitcher.swift in Sources */,
 				TENUO0000000000000000041 /* CheatSheetController.swift in Sources */,
+				TENUO00000000000000000A0 /* LayerStatusController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

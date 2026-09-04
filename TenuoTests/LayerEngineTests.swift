@@ -251,12 +251,16 @@ final class LayerEngineTests: XCTestCase {
         harness.capsDown(at: 0)
         harness.capsUp(at: 50 * milliseconds)
         XCTAssertTrue(harness.engine.isLayerActive)
+        XCTAssertEqual(
+            harness.engine.activeLayerStates,
+            [LayerActivity(index: 1, isHeld: false, isToggled: true, isOneShot: false)])
         XCTAssertEqual(rewrittenKey(harness.keyDown(KeyCode.h)), KeyCode.leftArrow)
         _ = harness.keyUp(KeyCode.h)
 
         harness.capsDown(at: 100 * milliseconds)
         harness.capsUp(at: 150 * milliseconds)
         XCTAssertFalse(harness.engine.isLayerActive)
+        XCTAssertTrue(harness.engine.activeLayerStates.isEmpty)
         XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
     }
 
@@ -277,6 +281,9 @@ final class LayerEngineTests: XCTestCase {
         harness.capsDown(at: 0)
         harness.capsUp(at: 50 * milliseconds)
         XCTAssertTrue(harness.engine.isLayerActive)
+        XCTAssertEqual(
+            harness.engine.activeLayerStates,
+            [LayerActivity(index: 1, isHeld: false, isToggled: false, isOneShot: true)])
         harness.modifiers(leftShiftHeld)
         let disposition = harness.keyDown(KeyCode.h, flags: leftShiftHeld)
         XCTAssertEqual(rewrittenKey(disposition), KeyCode.leftArrow)
@@ -284,6 +291,7 @@ final class LayerEngineTests: XCTestCase {
         _ = harness.keyUp(KeyCode.h)
         harness.modifiers([])
         XCTAssertFalse(harness.engine.isLayerActive)
+        XCTAssertTrue(harness.engine.activeLayerStates.isEmpty)
         XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
     }
 

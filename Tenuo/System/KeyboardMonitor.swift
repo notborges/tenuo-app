@@ -15,8 +15,8 @@ final class KeyboardMonitor {
 
     var onTapInvalidated: (() -> Void)?
 
-    var onActiveLayerChanged: ((Int?) -> Void)?
-    private var lastActiveLayer: Int?
+    var onActiveLayersChanged: (([LayerActivity]) -> Void)?
+    private var lastActiveLayerStates: [LayerActivity] = []
 
     var isRunning: Bool { tap != nil }
 
@@ -93,10 +93,10 @@ final class KeyboardMonitor {
     }
 
     func flushHeldKeys() {
-        let hadActiveLayer = engine.activeLayerIndex != nil || lastActiveLayer != nil
+        let hadActiveLayer = engine.isLayerActive || !lastActiveLayerStates.isEmpty
         engine.reset { [weak self] key in self?.post(key) }
-        lastActiveLayer = nil
-        if hadActiveLayer { onActiveLayerChanged?(nil) }
+        lastActiveLayerStates = []
+        if hadActiveLayer { onActiveLayersChanged?([]) }
     }
 
     private func process(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -160,10 +160,10 @@ final class KeyboardMonitor {
     }
 
     private func publishActiveLayerIfNeeded() {
-        let active = engine.activeLayerIndex
-        guard active != lastActiveLayer else { return }
-        lastActiveLayer = active
-        onActiveLayerChanged?(active)
+        let active = engine.activeLayerStates
+        guard active != lastActiveLayerStates else { return }
+        lastActiveLayerStates = active
+        onActiveLayersChanged?(active)
     }
 
     deinit {

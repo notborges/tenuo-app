@@ -19,7 +19,7 @@ final class TenuoController {
     var onStateChanged: (() -> Void)?
     var onPermissionMissing: (() -> Void)?
     var onPermissionGranted: (() -> Void)?
-    var onActiveLayerChanged: ((Int?) -> Void)?
+    var onActiveLayersChanged: (([LayerActivity]) -> Void)?
 
     var isTrusted: Bool { monitor.isRunning || accessibility.isTrusted }
 
@@ -72,8 +72,8 @@ final class TenuoController {
         systemEvents.onShouldReapplyRemap = { [weak self] in self?.reconcileRemap() }
         systemEvents.start()
 
-        monitor.onActiveLayerChanged = { [weak self] index in
-            self?.onActiveLayerChanged?(index)
+        monitor.onActiveLayersChanged = { [weak self] states in
+            self?.onActiveLayersChanged?(states)
         }
 
         monitor.onTapInvalidated = { [weak self] in

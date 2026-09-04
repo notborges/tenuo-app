@@ -35,6 +35,15 @@ struct SyntheticKey: Equatable {
     var isKeyDown: Bool
 }
 
+struct LayerActivity: Equatable, Sendable {
+    let index: Int
+    let isHeld: Bool
+    let isToggled: Bool
+    let isOneShot: Bool
+
+    var isStateful: Bool { isToggled || isOneShot }
+}
+
 private struct LayerActivationState {
     private(set) var isHeld: Bool
     private(set) var isToggled: Bool
@@ -119,6 +128,7 @@ struct LayerEngine {
     var isEnabled: Bool
 
     private(set) var activeLayerIndex: Int?
+    private(set) var activeLayerStates: [LayerActivity] = []
 
     init(
         profile: Profile = Presets.default,
@@ -169,6 +179,7 @@ struct LayerEngine {
         held.removeAll(keepingCapacity: true)
         activeMask = baseMask
         activeLayerIndex = nil
+        activeLayerStates = []
     }
 
     @inline(__always)
@@ -342,11 +353,26 @@ struct LayerEngine {
             highest = max(highest ?? index, index)
         }
 
-        guard mask != activeMask else { return }
+        let nextActiveLayerStates = layers.indices.compactMap { index -> LayerActivity? in
+            guard layers[index].trigger != nil,
+                mask & (UInt32(1) << UInt32(index)) != 0
+            else { return nil }
+            let activation = layers[index].activation
+            return LayerActivity(
+                index: index,
+                isHeld: activation.isHeld,
+                isToggled: activation.isToggled,
+                isOneShot: activation.isOneShotArmed)
+        }
+
+        let maskChanged = mask != activeMask
+        let layerStatesChanged = nextActiveLayerStates != activeLayerStates
+        guard maskChanged || layerStatesChanged else { return }
         activeMask = mask
         activeLayerIndex = highest
+        activeLayerStates = nextActiveLayerStates
 
-        if !held.isEmpty { releaseHeldOutputs(emit: emit) }
+        if maskChanged, !held.isEmpty { releaseHeldOutputs(emit: emit) }
     }
 
     @inline(__always)
@@ -578,6 +604,7 @@ struct LayerEngine {
         }
         activeMask = baseMask
         activeLayerIndex = nil
+        activeLayerStates = []
     }
 
     var isLayerActive: Bool { activeMask & ~baseMask != 0 }

@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private var menuBar: MenuBarController?
     private var cheatSheet: CheatSheetController?
+    private var layerStatus: LayerStatusController?
     private var editorWindow: NSWindow?
     private var onboarding: PermissionWindowController?
     private lazy var preferences = PreferencesWindowController(model: model)
@@ -85,6 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         cheatSheet.isEnabled = controller.preferences.showsCheatSheet
         self.cheatSheet = cheatSheet
 
+        let layerStatus = LayerStatusController(model: model)
+        self.layerStatus = layerStatus
+
         let onboarding = PermissionWindowController(
             model: model,
             onOpenSettings: { [weak self] in
@@ -100,8 +104,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         controller.onPermissionMissing = { [weak self] in self?.showOnboarding() }
         controller.onPermissionGranted = { [weak onboarding] in onboarding?.dismiss() }
-        controller.onActiveLayerChanged = { [weak cheatSheet] index in
-            cheatSheet?.setActiveLayer(index)
+        controller.onActiveLayersChanged = { [weak cheatSheet, weak layerStatus] states in
+            cheatSheet?.setActiveLayer(states.last?.index)
+            layerStatus?.setActiveLayers(states)
         }
 
         controller.start()
