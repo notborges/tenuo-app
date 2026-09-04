@@ -123,7 +123,7 @@ final class ProfileStoreTests: XCTestCase {
             JSONSerialization.jsonObject(with: profileData) as? [String: Any])
         let layers = try XCTUnwrap(profileObject["layers"] as? [[String: Any]])
         let layer = try XCTUnwrap(layers[1])
-        XCTAssertEqual(layer["holdMode"] as? String, "injectAndLayer")
+        XCTAssertEqual(layer["holdMode"] as? String, "layer")
         XCTAssertNil(layer["outputMode"])
         XCTAssertEqual(
             (layer["tapAction"] as? [String: Any])?["key"] as? String,

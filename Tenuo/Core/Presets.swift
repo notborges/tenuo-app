@@ -17,7 +17,7 @@ enum Presets {
                 id: id(1),
                 name: "Navigation",
                 trigger: LayerTrigger(key: .capsLock),
-                outputMode: .injectAndLayer,
+                outputMode: .layer,
                 tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
                     "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
@@ -36,7 +36,7 @@ enum Presets {
                 id: id(1),
                 name: "Motion",
                 trigger: LayerTrigger(key: .capsLock),
-                outputMode: .injectAndLayer,
+                outputMode: .layer,
                 tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
                     "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
@@ -64,7 +64,7 @@ enum Presets {
                 id: id(1),
                 name: "Move",
                 trigger: LayerTrigger(key: .capsLock),
-                outputMode: .injectAndLayer,
+                outputMode: .layer,
                 tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
                     "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
@@ -99,7 +99,7 @@ enum Presets {
                 id: id(1),
                 name: "Hyper",
                 trigger: LayerTrigger(key: .capsLock),
-                outputMode: .inject,
+                outputMode: .injectAndLayer,
                 tapAction: .sendKey(KeyBinding(key: "escape"))
             ),
         ])

@@ -7,23 +7,21 @@ enum LayerOutputMode: String, Codable, CaseIterable, Hashable, Sendable {
 
     var displayName: String {
         switch self {
-        case .inject: return "Send Hyper"
-        case .layer: return "Remap keys"
-        case .injectAndLayer: return "Remap keys + send Hyper"
+        case .inject, .injectAndLayer: return "Hyper shortcuts"
+        case .layer: return "Normal keys"
         }
     }
 
     var summary: String {
         switch self {
-        case .inject:
-            return "Every held key sends Hyper (⌃⌥⌘⇧). Mappings are ignored."
         case .layer:
-            return "Mapped keys send their assigned output. Everything else passes through."
-        case .injectAndLayer:
-            return "Mapped keys send their assigned output. Everything else sends Hyper (⌃⌥⌘⇧)."
+            return
+                "If no active layer maps the key, use it normally. Another active layer can still turn it into a Hyper shortcut."
+        case .inject, .injectAndLayer:
+            return
+                "If no active layer maps the key, send it with Control, Option, Command and Shift held together."
         }
     }
 
-    var appliesMappings: Bool { self != .inject }
     var injectsHyper: Bool { self != .layer }
 }

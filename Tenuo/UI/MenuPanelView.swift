@@ -122,7 +122,7 @@ struct MenuPanelView: View {
 
     private func detail(for layer: Layer) -> String {
         guard !layer.mappings.isEmpty else {
-            return layer.outputMode.injectsHyper ? "Hyper" : "Pass through"
+            return layer.outputMode.injectsHyper ? "Hyper" : "Normal keys"
         }
         return "\(layer.mappings.count) key\(layer.mappings.count == 1 ? "" : "s")"
     }

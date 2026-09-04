@@ -132,7 +132,7 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         id: UUID = UUID(),
         name: String,
         trigger: LayerTrigger? = nil,
-        outputMode: LayerOutputMode = .injectAndLayer,
+        outputMode: LayerOutputMode = .layer,
         tapAction: Action? = nil,
         mappings: [String: LayerMapping] = [:]
     ) {
@@ -155,7 +155,7 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         trigger = try container.decodeIfPresent(LayerTrigger.self, forKey: .trigger)
         outputMode =
             try container.decodeIfPresent(LayerOutputMode.self, forKey: .holdMode)
-            ?? .injectAndLayer
+            ?? .layer
         tapAction = try container.decodeIfPresent(Action.self, forKey: .tapAction)
         mappings =
             try container.decodeIfPresent([String: LayerMapping].self, forKey: .mappings) ?? [:]

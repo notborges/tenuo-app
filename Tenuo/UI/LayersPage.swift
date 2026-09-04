@@ -102,11 +102,6 @@ struct LayersPage: View {
                 parts.append("tap uses this layer once")
             }
         }
-        switch layer.outputMode {
-        case .inject: parts.append("all held keys send Hyper")
-        case .layer: parts.append("unmapped keys pass through")
-        case .injectAndLayer: parts.append("unmapped keys send Hyper")
-        }
         return parts.joined(separator: " · ")
     }
 
@@ -382,9 +377,9 @@ private enum TapActionChoice: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .none: return "Do nothing"
-        case .sendKey: return "Send a key or shortcut"
-        case .toggleLayer: return "Toggle this layer · Pro"
-        case .oneShotLayer: return "Use this layer once · Pro"
+        case .sendKey: return "Send key"
+        case .toggleLayer: return "Toggle layer · Pro"
+        case .oneShotLayer: return "One-shot · Pro"
         }
     }
 
@@ -420,12 +415,12 @@ private struct LayerInspector: View {
         TapActionChoice(action: model.selectedLayer.tapAction)
     }
 
-    private var hasTapDetails: Bool { model.selectedLayer.tapAction != nil }
+    private var hasTapDetails: Bool { model.selectedLayer.tapAction?.binding != nil }
 
     var body: some View {
         if model.selectedLayer.isBase {
             Text(
-                "Always active. Mapped keys apply when no other layer is active; every other key passes through."
+                "Always active. Its mappings apply when no higher layer handles a key; other keys behave normally."
             )
             .font(DS.Typography.body)
             .foregroundStyle(DS.Ink.secondary)
@@ -442,24 +437,36 @@ private struct LayerInspector: View {
                 }
 
                 InspectorCard(
-                    title: "Behavior",
-                    footer: model.selectedLayer.outputMode.summary
+                    title: "Other keys",
+                    footer: model.selectedLayer.outputMode.injectsHyper
+                        ? "Without a mapping in an active layer, Q sends ⌃⌥⌘⇧Q. Hyper holds Control, Option, Command and Shift together."
+                        : "Without a mapping in an active layer, keys work normally. Another active layer’s Hyper setting can still apply."
                 ) {
-                    InspectorRow(label: "Unmapped keys") {
+                    InspectorRow(label: "Send", divider: false) {
                         Picker(
-                            "",
+                            "Other keys",
                             selection: Binding(
-                                get: { model.selectedLayer.outputMode },
+                                get: {
+                                    switch model.selectedLayer.outputMode {
+                                    case .layer: return .layer
+                                    case .inject, .injectAndLayer: return .injectAndLayer
+                                    }
+                                },
                                 set: { model.selectedLayer.outputMode = $0 }
                             )
                         ) {
-                            ForEach(LayerOutputMode.allCases, id: \.self) {
+                            ForEach(
+                                [LayerOutputMode.layer, .injectAndLayer],
+                                id: \.self
+                            ) {
                                 Text($0.displayName).tag($0)
                             }
                         }
                     }
+                }
 
-                    InspectorRow(label: "On tap", divider: !hasTapDetails) {
+                InspectorCard(title: "Tap action") {
+                    InspectorRow(label: "On tap", divider: hasTapDetails) {
                         Picker(
                             "",
                             selection: Binding(
@@ -488,10 +495,8 @@ private struct LayerInspector: View {
                                         }
                                     ))
                             }
-                        case .toggleLayer:
-                            targetRow(divider: false)
-                        case .oneShotLayer:
-                            targetRow(divider: false)
+                        case .toggleLayer, .oneShotLayer:
+                            EmptyView()
                         }
                     }
                 }
@@ -510,40 +515,9 @@ private struct LayerInspector: View {
             model.selectedLayer.tapAction = .sendKey(
                 current?.binding ?? KeyBinding(key: "escape"))
         case .toggleLayer:
-            model.selectedLayer.tapAction = .toggleLayer(current?.target ?? .current)
+            model.selectedLayer.tapAction = .toggleLayer(.current)
         case .oneShotLayer:
-            model.selectedLayer.tapAction = .oneShotLayer(current?.target ?? .current)
-        }
-    }
-
-    @ViewBuilder
-    private func targetRow(divider: Bool) -> some View {
-        InspectorRow(label: "Layer", divider: divider) {
-            Picker(
-                "",
-                selection: Binding(
-                    get: { model.selectedLayer.tapAction?.target ?? .current },
-                    set: { updateTarget($0) }
-                )
-            ) {
-                Text("This layer").tag(LayerTarget.current)
-                ForEach(model.layers.filter { !$0.isBase }, id: \.id) { layer in
-                    Text(layer.name.isEmpty ? "Unnamed layer" : layer.name)
-                        .tag(LayerTarget.layer(layer.id))
-                }
-            }
-        }
-    }
-
-    private func updateTarget(_ target: LayerTarget) {
-        guard let action = model.selectedLayer.tapAction else { return }
-        switch action {
-        case .sendKey:
-            break
-        case .toggleLayer:
-            model.selectedLayer.tapAction = .toggleLayer(target)
-        case .oneShotLayer:
-            model.selectedLayer.tapAction = .oneShotLayer(target)
+            model.selectedLayer.tapAction = .oneShotLayer(.current)
         }
     }
 

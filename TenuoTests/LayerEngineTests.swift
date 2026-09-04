@@ -122,6 +122,13 @@ final class LayerEngineTests: XCTestCase {
     }
 
     func testOutputModesDefineWhatHappensToUnmappedKeys() {
+        var legacyHyper = Presets.hyperOnly
+        legacyHyper.layers[1].outputMode = .inject
+        legacyHyper.layers[1].mappings["h"] = .action(.sendKey(KeyBinding(key: "leftArrow")))
+        var legacy = Harness(profile: legacyHyper)
+        legacy.capsDown()
+        XCTAssertEqual(rewrittenKey(legacy.keyDown(KeyCode.h)), KeyCode.leftArrow)
+
         var injecting = Harness(profile: Presets.hyperOnly)
         injecting.capsDown()
         let injected = injecting.keyDown(KeyCode.t)
@@ -147,7 +154,7 @@ final class LayerEngineTests: XCTestCase {
         var right = Harness(profile: Presets.stacked)
         right.capsDown(flags: rightShiftHeld)
         right.modifiers(rightShiftHeld)
-        XCTAssertEqual(rewrittenKey(right.keyDown(KeyCode.w, flags: rightShiftHeld)), KeyCode.w)
+        XCTAssertEqual(right.keyDown(KeyCode.w, flags: rightShiftHeld), .passThrough)
     }
 
     func testChangingLayersReleasesHeldOutput() {

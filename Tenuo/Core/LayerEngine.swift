@@ -281,7 +281,14 @@ struct LayerEngine {
         guard let candidate, !wasUsed else { return }
         guard timestamp >= downTimestamp else { return }
         guard timestamp - downTimestamp <= tapThresholdNanoseconds else { return }
-        perform(candidate.action, from: candidate.layerIndex, emit: emit)
+        switch candidate.action {
+        case .toggleLayer:
+            perform(.toggleLayer(.current), from: candidate.layerIndex, emit: emit)
+        case .oneShotLayer:
+            perform(.oneShotLayer(.current), from: candidate.layerIndex, emit: emit)
+        case .sendKey:
+            perform(candidate.action, from: candidate.layerIndex, emit: emit)
+        }
     }
 
     @inline(__always)
@@ -405,7 +412,6 @@ struct LayerEngine {
             defer { index -= 1 }
             guard activeMask & (UInt32(1) << UInt32(index)) != 0 else { continue }
             let layer = layers[index]
-            guard layer.outputMode.appliesMappings else { continue }
             guard let action = layer.mappings[event.keyCode], action != .transparent else {
                 continue
             }
