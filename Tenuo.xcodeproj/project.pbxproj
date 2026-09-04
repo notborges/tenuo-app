@@ -57,6 +57,9 @@
 		TENUO0000000000000000058 /* TenuoMark.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000059 /* TenuoMark.png */; };
 		TENUO000000000000000005A /* TenuoMark@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000005B /* TenuoMark@2x.png */; };
 		TENUO000000000000000005C /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = TENUO000000000000000005D /* Sparkle */; };
+		TENUO0000000000000000080 /* HIDMappingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000081 /* HIDMappingParser.swift */; };
+		TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000081 /* HIDMappingParser.swift */; };
+		TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000084 /* CapsLockRemapperTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -104,6 +107,8 @@
 		TENUO0000000000000000059 /* TenuoMark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoMark.png; sourceTree = "<group>"; };
 		TENUO000000000000000005B /* TenuoMark@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "TenuoMark@2x.png"; sourceTree = "<group>"; };
 		TENUO0000000000000000060 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		TENUO0000000000000000081 /* HIDMappingParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDMappingParser.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000084 /* CapsLockRemapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockRemapperTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -142,6 +147,7 @@
 		TENUO0000000000000000066 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				TENUO0000000000000000081 /* HIDMappingParser.swift */,
 				TENUO000000000000000000C /* KeyCodes.swift */,
 				TENUO000000000000000000E /* TriggerKey.swift */,
 				TENUO0000000000000000010 /* KeyCatalog.swift */,
@@ -218,6 +224,7 @@
 		TENUO000000000000000006B /* TenuoTests */ = {
 			isa = PBXGroup;
 			children = (
+				TENUO0000000000000000084 /* CapsLockRemapperTests.swift */,
 				TENUO0000000000000000044 /* LayerEngineTests.swift */,
 				TENUO0000000000000000046 /* SettingsTests.swift */,
 			);
@@ -355,6 +362,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				TENUO0000000000000000080 /* HIDMappingParser.swift in Sources */,
 				TENUO0000000000000000001 /* TenuoApp.swift in Sources */,
 				TENUO0000000000000000003 /* MainMenu.swift in Sources */,
 				TENUO0000000000000000005 /* TenuoController.swift in Sources */,
@@ -395,6 +403,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */,
+				TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */,
 				TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */,
 				TENUO0000000000000000045 /* SettingsTests.swift in Sources */,
 				TENUO0000000000000000047 /* KeyCodes.swift in Sources */,

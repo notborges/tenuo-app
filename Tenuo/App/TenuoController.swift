@@ -20,9 +20,15 @@ final class TenuoController {
 
     var isTrusted: Bool { monitor.isRunning || accessibility.isTrusted }
 
-    var isActive: Bool { monitor.isRunning && settings.isEnabled }
+    var isActive: Bool {
+        guard monitor.isRunning && settings.isEnabled else { return false }
+        return !requiresCapsLockRemap || capsLockRemapReady
+    }
 
     private var retryTimer: Timer?
+    private var remapRetryTimer: Timer?
+    private var remapGeneration = 0
+    private var capsLockRemapReady = true
     private static let retryInterval: TimeInterval = 1.0
 
     init(settings: Settings = Settings()) {
@@ -44,7 +50,7 @@ final class TenuoController {
         accessibility.startMonitoring()
 
         systemEvents.onShouldResetState = { [weak self] in self?.monitor.flushHeldKeys() }
-        systemEvents.onShouldReapplyRemap = { [weak self] in self?.remapper.reapplyIfNeeded() }
+        systemEvents.onShouldReapplyRemap = { [weak self] in self?.reconcileRemap() }
         systemEvents.start()
 
         monitor.onActiveLayerChanged = { [weak self] index in
@@ -70,6 +76,8 @@ final class TenuoController {
 
     func shutDown() {
         stopRetrying()
+        stopRemapRetrying()
+        remapGeneration += 1
         monitor.stop()
         remapper.revert(waitUntilFinished: true)
         accessibility.stopMonitoring()
@@ -84,7 +92,7 @@ final class TenuoController {
             return false
         }
         accessibility.noteObservedState(true)
-        applyRemapIfNeeded()
+        reconcileRemap()
         return true
     }
 
@@ -109,18 +117,72 @@ final class TenuoController {
         retryTimer = nil
     }
 
+    private func startRemapRetrying() {
+        guard remapRetryTimer == nil else { return }
+        let timer = Timer(timeInterval: Self.retryInterval, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            guard settings.isEnabled, monitor.isRunning, requiresCapsLockRemap else {
+                stopRemapRetrying()
+                return
+            }
+            reconcileRemap()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        remapRetryTimer = timer
+    }
+
+    private func stopRemapRetrying() {
+        remapRetryTimer?.invalidate()
+        remapRetryTimer = nil
+    }
+
     private func deactivate() {
+        remapGeneration += 1
+        capsLockRemapReady = false
         monitor.stop()
         remapper.revert()
     }
 
-    private func applyRemapIfNeeded() {
-        if settings.activeProfile.triggeredLayers.contains(where: {
+    private var requiresCapsLockRemap: Bool {
+        settings.activeProfile.triggeredLayers.contains {
             $0.trigger?.key.requiresCapsLockRemap == true
-        }) {
-            remapper.apply()
-        } else {
+        }
+    }
+
+    private func reconcileRemap() {
+        remapGeneration += 1
+        let generation = remapGeneration
+
+        guard settings.isEnabled, monitor.isRunning else {
+            capsLockRemapReady = false
+            stopRemapRetrying()
             remapper.revert()
+            onStateChanged?()
+            return
+        }
+
+        guard requiresCapsLockRemap else {
+            capsLockRemapReady = true
+            stopRemapRetrying()
+            remapper.revert()
+            onStateChanged?()
+            return
+        }
+
+        capsLockRemapReady = false
+        remapper.ensureApplied { [weak self] success in
+            guard let self, generation == remapGeneration else { return }
+            guard settings.isEnabled, monitor.isRunning, requiresCapsLockRemap else { return }
+
+            capsLockRemapReady = success
+            if success {
+                stopRemapRetrying()
+                log.info("Caps Lock mapping is ready")
+            } else {
+                log.error("Caps Lock mapping is unavailable; retrying")
+                startRemapRetrying()
+            }
+            onStateChanged?()
         }
     }
 
@@ -136,6 +198,7 @@ final class TenuoController {
             }
         } else {
             stopRetrying()
+            stopRemapRetrying()
             deactivate()
         }
         onStateChanged?()
@@ -156,5 +219,6 @@ final class TenuoController {
 
     deinit {
         retryTimer?.invalidate()
+        remapRetryTimer?.invalidate()
     }
 }
