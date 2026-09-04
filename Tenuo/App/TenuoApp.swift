@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+enum AppIdentity {
+    static var displayName: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Tenuo"
+    }
+}
+
 @main
 enum TenuoApp {
     static func main() {

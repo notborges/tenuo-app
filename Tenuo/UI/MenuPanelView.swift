@@ -53,7 +53,7 @@ struct MenuPanelView: View {
                 .opacity(model.isActive ? 1 : 0.45)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text("Tenuo").font(DS.Typography.title)
+                Text(AppIdentity.displayName).font(DS.Typography.title)
                 Text(statusText)
                     .font(DS.Typography.label)
                     .foregroundStyle(DS.Ink.tertiary)
@@ -65,7 +65,7 @@ struct MenuPanelView: View {
                 isOn: Binding(
                     get: { model.isEnabled },
                     set: { model.isEnabled = $0 }),
-                label: "Enable Tenuo",
+                label: "Enable \(AppIdentity.displayName)",
                 isEnabled: model.isTrusted)
         }
         .padding(.horizontal, 12)
@@ -156,7 +156,7 @@ struct MenuPanelView: View {
                 .foregroundStyle(DS.Signal.warning)
 
             Text(
-                "Tenuo needs Accessibility access to remap keys. Enable it in System Settings to start using your profiles."
+                "\(AppIdentity.displayName) needs Accessibility access to remap keys. Enable it in System Settings to start using your profiles."
             )
             .font(DS.Typography.label)
             .foregroundStyle(DS.Ink.secondary)
@@ -188,7 +188,7 @@ struct MenuPanelView: View {
         VStack(spacing: 0) {
             FooterRow(title: "Edit layers…", action: onOpenEditor)
             FooterRow(title: "Settings…", action: onOpenPreferences)
-            FooterRow(title: "Quit Tenuo", action: model.quit)
+            FooterRow(title: "Quit \(AppIdentity.displayName)", action: model.quit)
         }
     }
 }

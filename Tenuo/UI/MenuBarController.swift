@@ -17,7 +17,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     init(model: AppModel) {
         self.model = model
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        menu = NSMenu(title: "Tenuo")
+        menu = NSMenu(title: AppIdentity.displayName)
         super.init()
 
         menu.autoenablesItems = false
@@ -26,7 +26,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         if let button = statusItem.button {
-            button.setAccessibilityLabel("Tenuo")
+            button.setAccessibilityLabel(AppIdentity.displayName)
         }
 
         installContent()
@@ -43,15 +43,17 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         } else {
             button.image = NSImage(
                 systemSymbolName: "exclamationmark.triangle",
-                accessibilityDescription: "Tenuo")
+                accessibilityDescription: AppIdentity.displayName)
         }
         button.image?.isTemplate = true
         button.appearsDisabled = !active
 
         button.toolTip =
             model.isTrusted
-            ? (model.isEnabled ? "Tenuo is active" : "Tenuo is disabled")
-            : "Tenuo needs Accessibility access"
+            ? (model.isEnabled
+                ? "\(AppIdentity.displayName) is active"
+                : "\(AppIdentity.displayName) is disabled")
+            : "\(AppIdentity.displayName) needs Accessibility access"
     }
 
     private func installContent() {

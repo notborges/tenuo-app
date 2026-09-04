@@ -50,15 +50,15 @@ private struct PreferencesView: View {
             group(
                 "General",
                 footer: model.launchNeedsApproval
-                    ? "Allow Tenuo in System Settings → General → Login Items."
+                    ? "Allow \(AppIdentity.displayName) in System Settings → General → Login Items."
                     : nil
             ) {
-                InspectorRow(label: "Enable Tenuo") {
+                InspectorRow(label: "Enable \(AppIdentity.displayName)") {
                     AppSwitch(
                         isOn: Binding(
                             get: { model.isEnabled },
                             set: { model.isEnabled = $0 }),
-                        label: "Enable Tenuo")
+                        label: "Enable \(AppIdentity.displayName)")
                 }
                 InspectorRow(label: "Launch at login", divider: false) {
                     AppSwitch(
@@ -86,7 +86,7 @@ private struct PreferencesView: View {
             group(
                 "Timing",
                 footer:
-                    "How long you can hold a trigger before Tenuo treats it as a hold instead of a tap."
+                    "How long you can hold a trigger before \(AppIdentity.displayName) treats it as a hold instead of a tap."
             ) {
                 InspectorRow(label: "Tap window", divider: false) {
                     HStack(spacing: DS.Space.small) {
@@ -130,7 +130,7 @@ private struct PreferencesView: View {
             group(
                 "Permission",
                 footer:
-                    "Tenuo only needs Accessibility access to remap keys. It does not need Input Monitoring."
+                    "\(AppIdentity.displayName) only needs Accessibility access to remap keys. It does not need Input Monitoring."
             ) {
                 InspectorRow(label: "Accessibility", divider: false) {
                     if model.isTrusted {
@@ -168,8 +168,8 @@ private struct PreferencesView: View {
 
     private var updatesFooter: String {
         model.checksForUpdates
-            ? "Tenuo checks tenuo.app in the background for new versions. It does not collect usage data or install updates without asking you."
-            : "Tenuo checks tenuo.app only when you ask it to look for a new version. It does not collect usage data."
+            ? "\(AppIdentity.displayName) checks tenuo.app in the background for new versions. It does not collect usage data or install updates without asking you."
+            : "\(AppIdentity.displayName) checks tenuo.app only when you ask it to look for a new version. It does not collect usage data."
     }
 
     private var updateStatus: String {

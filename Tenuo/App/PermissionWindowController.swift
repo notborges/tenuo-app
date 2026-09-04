@@ -30,7 +30,7 @@ final class PermissionWindowController: NSObject, NSWindowDelegate {
         )
         hosting.safeAreaRegions = []
         let newWindow = NSWindow(contentViewController: hosting)
-        newWindow.title = "Tenuo needs Accessibility access"
+        newWindow.title = "\(AppIdentity.displayName) needs Accessibility access"
         newWindow.styleMask = [.titled, .closable, .fullSizeContentView]
         newWindow.titleVisibility = .hidden
         newWindow.titlebarAppearsTransparent = true
@@ -65,11 +65,11 @@ private struct PermissionView: View {
     private var updatesLine: String {
         guard model.updatesAvailable else {
             return
-                "This source build does not check for updates. Tenuo does not collect usage data."
+                "This source build does not check for updates. \(AppIdentity.displayName) does not collect usage data."
         }
         return model.checksForUpdates
-            ? "If you turn on automatic checks, Tenuo contacts tenuo.app in the background to look for new versions. It does not collect usage data."
-            : "Tenuo only contacts tenuo.app when you ask it to check for a new version. It does not collect usage data."
+            ? "If you turn on automatic checks, \(AppIdentity.displayName) contacts tenuo.app in the background to look for new versions. It does not collect usage data."
+            : "\(AppIdentity.displayName) only contacts tenuo.app when you ask it to check for a new version. It does not collect usage data."
     }
 
     private var shipped: Layer? { Presets.library.first?.triggeredLayers.first }
@@ -108,7 +108,7 @@ private struct PermissionView: View {
                 .padding(.vertical, DS.Space.large)
 
             Text(
-                "Tenuo needs Accessibility access to remap keys. Turn on Tenuo in System Settings, then come back here."
+                "\(AppIdentity.displayName) needs Accessibility access to remap keys. Turn it on in System Settings, then come back here."
             )
             .font(DS.Typography.body)
             .foregroundStyle(DS.Ink.secondary)
@@ -142,7 +142,7 @@ private struct PermissionView: View {
 
             VStack(spacing: 0) {
                 OnboardingSettingRow(
-                    title: "Start Tenuo at login",
+                    title: "Start \(AppIdentity.displayName) at login",
                     isOn: Binding(
                         get: { model.launchesAtLogin },
                         set: { _ in model.toggleLaunchAtLogin() })

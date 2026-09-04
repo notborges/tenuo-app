@@ -78,7 +78,7 @@ struct LayerList: View {
             HStack(spacing: 8) {
                 AppMark(size: 24)
 
-                Text("Tenuo")
+                Text(AppIdentity.displayName)
                     .font(DS.Typography.title)
 
                 Spacer(minLength: 8)
