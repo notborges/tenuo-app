@@ -46,6 +46,7 @@ struct ProfileStoreChange: Equatable, Sendable {
 
 protocol ProfileStore: AnyObject {
     var snapshot: ProfileStoreSnapshot { get }
+    var history: any ProfileHistoryStore { get }
 
     func addObserver(_ observer: @escaping (ProfileStoreChange) -> Void) -> UUID
     func removeObserver(_ token: UUID)
@@ -58,6 +59,9 @@ protocol ProfileStore: AnyObject {
 
     @discardableResult
     func selectManualProfile(_ id: UUID) -> Bool
+
+    @discardableResult
+    func restore(_ entry: ProfileHistoryEntry) -> Bool
 
     func uniqueName(_ wanted: String) -> String
     func exportProfile(_ profile: Profile) throws -> Data
@@ -101,10 +105,15 @@ final class UserDefaultsProfileStore: ProfileStore {
     }
 
     private let defaults: UserDefaults
+    let history: any ProfileHistoryStore
     private var observers: [UUID: (ProfileStoreChange) -> Void] = [:]
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        history: (any ProfileHistoryStore)? = nil
+    ) {
         self.defaults = defaults
+        self.history = history ?? UserDefaultsProfileHistoryStore(defaults: defaults)
     }
 
     var snapshot: ProfileStoreSnapshot {
@@ -172,6 +181,23 @@ final class UserDefaultsProfileStore: ProfileStore {
         return commit(next, after: current)
     }
 
+    @discardableResult
+    func restore(_ entry: ProfileHistoryEntry) -> Bool {
+        guard (try? entry.profile.validate()) != nil else { return false }
+
+        let current = snapshot
+        guard let index = current.profiles.firstIndex(where: { $0.id == entry.profile.id }) else {
+            return false
+        }
+
+        var profiles = current.profiles
+        profiles[index] = entry.profile
+        let next = ProfileStoreSnapshot(
+            profiles: profiles,
+            manualProfileID: current.manualProfileID)
+        return commit(next, after: current, forceHistoryFor: entry.profile.id)
+    }
+
     func uniqueName(_ wanted: String) -> String {
         let taken = Set(profiles.map(\.name))
         guard taken.contains(wanted) else { return wanted }
@@ -220,9 +246,14 @@ final class UserDefaultsProfileStore: ProfileStore {
         return profiles[0].id
     }
 
-    private func commit(_ next: ProfileStoreSnapshot, after previous: ProfileStoreSnapshot) -> Bool {
+    private func commit(
+        _ next: ProfileStoreSnapshot,
+        after previous: ProfileStoreSnapshot,
+        forceHistoryFor profileID: UUID? = nil
+    ) -> Bool {
         guard next != previous,
-            let data = try? ProfileDocument.encoder.encode(next.profiles)
+            let data = try? ProfileDocument.encoder.encode(next.profiles),
+            prepareHistory(before: previous, after: next, forceHistoryFor: profileID)
         else { return false }
 
         defaults.set(data, forKey: Key.profiles)
@@ -233,6 +264,25 @@ final class UserDefaultsProfileStore: ProfileStore {
         let change = ProfileStoreChange(previous: previous, current: next)
         for observer in Array(observers.values) {
             observer(change)
+        }
+        return true
+    }
+
+    private func prepareHistory(
+        before previous: ProfileStoreSnapshot,
+        after next: ProfileStoreSnapshot,
+        forceHistoryFor profileID: UUID?
+    ) -> Bool {
+        guard previous.profiles != next.profiles else { return true }
+
+        let currentByID = Dictionary(uniqueKeysWithValues: next.profiles.map { ($0.id, $0) })
+        for profile in previous.profiles {
+            guard let current = currentByID[profile.id] else {
+                guard history.removeAll(for: profile.id) else { return false }
+                continue
+            }
+            guard current != profile else { continue }
+            guard history.record(profile, force: profile.id == profileID) else { return false }
         }
         return true
     }
