@@ -7,8 +7,10 @@ struct LayersPage: View {
     var body: some View {
         HStack(spacing: 0) {
             canvas
-            ColumnDivider()
             inspector
+                .windowPanel()
+                .padding(.trailing, DS.Metrics.windowInset)
+                .padding(.vertical, DS.Metrics.windowInset)
         }
         .onChange(of: model.selectedLayerID) { _, _ in selectedKey = nil }
         .background(escapeDeselects)
@@ -30,6 +32,7 @@ struct LayersPage: View {
     private var canvas: some View {
         VStack(spacing: 0) {
             ColumnHeader { header }
+                .padding(.top, DS.Metrics.windowInset)
                 .padding(.horizontal, DS.Space.large)
 
             GeometryReader { proxy in
@@ -50,13 +53,26 @@ struct LayersPage: View {
                     }
                     .padding(.horizontal, DS.Space.large)
                     .padding(.vertical, DS.Space.large)
-                    .frame(minHeight: proxy.size.height, alignment: .center)
+                    .frame(minHeight: proxy.size.height, alignment: .top)
+                    .background(deselectionSurface)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DS.Surface.window)
+        .background {
+            DS.Surface.window
+            deselectionSurface
+        }
+    }
+
+    // A background hit target lets key and mapping buttons handle their own clicks.
+    // It is confined to the canvas so editing in the inspector keeps the selection.
+    private var deselectionSurface: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture { selectedKey = nil }
+            .accessibilityHidden(true)
     }
 
     private var header: some View {
@@ -124,20 +140,29 @@ struct LayersPage: View {
                     .glassCard()
             } else {
                 LazyVGrid(
-                    columns: Array(
-                        repeating: GridItem(.flexible(), spacing: DS.Space.large),
-                        count: 3),
+                    columns: [GridItem(.adaptive(minimum: 180), spacing: DS.Space.medium)],
                     alignment: .leading,
                     spacing: DS.Space.tight
                 ) {
                     ForEach(model.sortedMappings, id: \.source) { entry in
-                        MappingRow(
-                            source: KeyCatalog.label(for: KeyCatalog.code(for: entry.source) ?? 0),
-                            destination: entry.action.displayLabel,
-                            caption: Self.caption(for: entry.action)
-                        )
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedKey = entry.source }
+                        Button {
+                            selectedKey = entry.source
+                        } label: {
+                            MappingRow(
+                                source: KeyCatalog.label(
+                                    for: KeyCatalog.code(for: entry.source) ?? 0),
+                                destination: entry.action.displayLabel,
+                                caption: Self.caption(for: entry.action)
+                            )
+                            .padding(6)
+                            .background(
+                                selectedKey == entry.source ? DS.Selection.fill : .clear,
+                                in: RoundedRectangle(cornerRadius: DS.Radius.small)
+                            )
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(Self.caption(for: entry.action))
                     }
                 }
                 .padding(DS.Space.medium)
@@ -188,7 +213,9 @@ struct LayersPage: View {
 
             if hasDestructiveAction {
                 rule
-                destructiveAction.padding(DS.Space.medium)
+                destructiveAction
+                    .padding(.horizontal, DS.Metrics.panelInset)
+                    .frame(height: DS.Metrics.footerHeight)
             }
         }
         .frame(width: DS.Metrics.inspectorWidth)
@@ -450,8 +477,8 @@ private struct LayerInspector: View {
                         : "Without a mapping in an active layer, keys work normally. Another active layer’s Hyper setting can still apply."
                 ) {
                     InspectorRow(label: "Send", divider: false) {
-                        Picker(
-                            "Other keys",
+                        InspectorPicker(
+                            title: model.selectedLayer.outputMode.displayName,
                             selection: Binding(
                                 get: {
                                     switch model.selectedLayer.outputMode {
@@ -474,8 +501,8 @@ private struct LayerInspector: View {
 
                 InspectorCard(title: "Tap action") {
                     InspectorRow(label: "On tap", divider: hasTapDetails) {
-                        Picker(
-                            "",
+                        InspectorPicker(
+                            title: tapChoice.title,
                             selection: Binding(
                                 get: { tapChoice },
                                 set: { setTapAction($0) }

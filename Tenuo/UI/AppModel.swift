@@ -36,7 +36,11 @@ final class AppModel: ObservableObject {
     var profile: Profile {
         get { profileStore.manualProfile }
         set {
-            guard profileStore.updateProfile(newValue) else { return }
+            guard newValue != profile else { return }
+            guard profileStore.updateProfile(newValue) else {
+                errorMessage = "Tenuo could not save the profile or its history."
+                return
+            }
             objectWillChange.send()
         }
     }
@@ -82,6 +86,30 @@ final class AppModel: ObservableObject {
 
     func canUse(_ kind: ActionKind) -> Bool {
         controller.actionAvailability.canUse(kind)
+    }
+
+    func profileHistory(for profileID: UUID) -> Result<[ProfileHistoryEntry], ProfileHistoryError> {
+        guard license.hasProAccess else { return .success([]) }
+        return profileStore.history.entries(for: profileID)
+    }
+
+    @discardableResult
+    func restore(_ entry: ProfileHistoryEntry) -> Bool {
+        guard license.hasProAccess,
+            let current = profiles.first(where: { $0.id == entry.profile.id }),
+            current != entry.profile
+        else { return false }
+
+        guard profileStore.restore(entry) else {
+            errorMessage = "Tenuo could not restore this profile version."
+            return false
+        }
+
+        if entry.profile.id == activeProfileID {
+            selectInitialLayer()
+        }
+        objectWillChange.send()
+        return true
     }
 
     func activateLicense(_ key: String) {
@@ -175,10 +203,15 @@ final class AppModel: ObservableObject {
             trimmed != updated.name
         else { return }
         updated.name = profileStore.uniqueName(trimmed)
-        guard profileStore.replaceProfiles(
-            profiles.map { $0.id == id ? updated : $0 },
-            selecting: activeProfileID
-        ) else { return }
+        guard
+            profileStore.replaceProfiles(
+                profiles.map { $0.id == id ? updated : $0 },
+                selecting: activeProfileID
+            )
+        else {
+            errorMessage = "Tenuo could not save the profile or its history."
+            return
+        }
         objectWillChange.send()
     }
 
@@ -188,7 +221,10 @@ final class AppModel: ObservableObject {
         guard canRemoveProfile else { return }
         let remaining = profiles.filter { $0.id != id }
         let selectedID = id == activeProfileID ? remaining[0].id : activeProfileID
-        guard profileStore.replaceProfiles(remaining, selecting: selectedID) else { return }
+        guard profileStore.replaceProfiles(remaining, selecting: selectedID) else {
+            errorMessage = "Tenuo could not delete the profile or its history."
+            return
+        }
         selectInitialLayer()
         objectWillChange.send()
     }

@@ -13,7 +13,6 @@ enum TenuoApp {
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
-        app.appearance = NSAppearance(named: .darkAqua)
         app.setActivationPolicy(.accessory)
         app.run()
         withExtendedLifetime(delegate) {}
@@ -22,10 +21,48 @@ enum TenuoApp {
 
 @MainActor
 extension NSWindow {
+    func configureEditorChrome() {
+        let toolbar = NSToolbar(identifier: "TenuoEditorChrome")
+        toolbar.showsBaselineSeparator = false
+        toolbar.allowsUserCustomization = false
+        self.toolbar = toolbar
+        toolbarStyle = .unified
+        (self as? EditorWindow)?.positionWindowButtons()
+        DispatchQueue.main.async { [weak self] in
+            (self as? EditorWindow)?.positionWindowButtons()
+        }
+    }
+
     func showOnActiveSpace() {
         collectionBehavior.insert(.moveToActiveSpace)
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
+    }
+}
+
+/// Keeps native window controls aligned with the inset navigation panel.
+@MainActor
+final class EditorWindow: NSWindow {
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(frameRect, display: flag)
+        positionWindowButtons()
+    }
+
+    func positionWindowButtons() {
+        guard let frameView = contentView?.superview else { return }
+        let controls: [NSWindow.ButtonType] = [.closeButton, .miniaturizeButton, .zoomButton]
+        for (index, type) in controls.enumerated() {
+            guard let button = standardWindowButton(type), let parent = button.superview else {
+                continue
+            }
+            let top: CGFloat = DS.Metrics.windowInset + DS.Metrics.panelInset
+            let y =
+                frameView.isFlipped
+                ? top - button.frame.height / 2
+                : frameView.bounds.height - top - button.frame.height / 2
+            let point = NSPoint(x: top + CGFloat(index) * 20, y: y)
+            button.setFrameOrigin(parent.convert(point, from: frameView))
+        }
     }
 }
 
@@ -53,10 +90,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        NSApp.appearance = NSAppearance(named: .darkAqua)
         MainMenu.install(target: self)
 
         guard !Self.isUIPreview else {
             NSApp.setActivationPolicy(.regular)
+
+            #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--history") {
+                    let hosting = NSHostingController(rootView: ProfileHistoryPreview())
+                    hosting.safeAreaRegions = []
+                    let window = EditorWindow(contentViewController: hosting)
+                    window.styleMask = [
+                        .titled, .closable, .miniaturizable, .resizable, .fullSizeContentView,
+                    ]
+                    window.title = "History preview"
+                    window.titleVisibility = .hidden
+                    window.titlebarAppearsTransparent = true
+                    window.configureEditorChrome()
+                    window.isReleasedWhenClosed = false
+                    window.contentMinSize = NSSize(width: 900, height: 620)
+                    window.setContentSize(NSSize(width: 1040, height: 740))
+                    window.center()
+                    window.showOnActiveSpace()
+                    editorWindow = window
+                    capturePreviewIfRequested(window)
+                    return
+                }
+            #endif
+
+            if ProcessInfo.processInfo.arguments.contains("--onboarding") {
+                let onboarding = PermissionWindowController(
+                    model: model, onOpenSettings: {}, onClose: {})
+                self.onboarding = onboarding
+                onboarding.show()
+                if let window = onboarding.window { capturePreviewIfRequested(window) }
+                return
+            }
+
+            if ProcessInfo.processInfo.arguments.contains("--settings") {
+                preferences.show()
+                if let window = preferences.window { capturePreviewIfRequested(window) }
+                return
+            }
 
             if ProcessInfo.processInfo.arguments.contains("--panel") {
                 let menuBar = MenuBarController(model: model)
@@ -69,9 +145,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             editorWindow?.level = .floating
             editorWindow?.orderFrontRegardless()
             NSApp.activate(ignoringOtherApps: true)
+            if let editorWindow { capturePreviewIfRequested(editorWindow) }
             return
         }
         startNormally()
+    }
+
+    private func capturePreviewIfRequested(_ window: NSWindow) {
+        #if DEBUG
+            guard ProcessInfo.processInfo.arguments.contains("--snapshot") else { return }
+            if ProcessInfo.processInfo.arguments.contains("--light") {
+                window.appearance = NSAppearance(named: .aqua)
+            } else if ProcessInfo.processInfo.arguments.contains("--dark") {
+                window.appearance = NSAppearance(named: .darkAqua)
+            }
+            if ProcessInfo.processInfo.arguments.contains("--compact") {
+                window.setContentSize(window.contentMinSize)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                guard let view = window.contentView?.superview else { return }
+                view.layoutSubtreeIfNeeded()
+                guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                    return
+                }
+                view.cacheDisplay(in: view.bounds, to: bitmap)
+                if let data = bitmap.representation(using: .png, properties: [:]) {
+                    try? data.write(to: URL(fileURLWithPath: "/tmp/tenuo-native-preview.png"))
+                }
+            }
+        #endif
     }
 
     private func startNormally() {
@@ -124,11 +226,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             rootView: LayerEditorView(model: model) { [weak self] in self?.preferences.show() }
         )
         hosting.safeAreaRegions = []
-        let window = NSWindow(contentViewController: hosting)
-        window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+        let window = EditorWindow(contentViewController: hosting)
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.title = ""
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
+        window.configureEditorChrome()
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.backgroundColor = NSColor(DS.Surface.window)

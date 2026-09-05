@@ -1,9 +1,11 @@
+import AppKit
 import SwiftUI
 
 struct ProfileSection: View {
     @ObservedObject var model: AppModel
     @Binding var renaming: Profile?
     @Binding var deleting: Profile?
+    var onOpenHistory: (UUID) -> Void
 
     var body: some View {
         VStack(spacing: 1) {
@@ -37,6 +39,9 @@ struct ProfileSection: View {
             Button("Switch to profile") { model.selectProfile(profile.id) }
             Divider()
         }
+        if model.license.hasProAccess {
+            Button("History") { onOpenHistory(profile.id) }
+        }
         Button("Rename…") { renaming = profile }
         Button("Duplicate") { model.duplicateProfile(profile) }
         Button("Export…") { model.exportProfile(profile) }
@@ -45,6 +50,7 @@ struct ProfileSection: View {
             Button("Delete…", role: .destructive) { deleting = profile }
         }
     }
+
 }
 
 struct RenameProfileSheet: View {

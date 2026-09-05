@@ -3,7 +3,7 @@ import SwiftUI
 enum Inspector {
     static let controlWidth: CGFloat = 148
     static let rowInset: CGFloat = 12
-    static let rowHeight: CGFloat = 38
+    static let rowHeight: CGFloat = 48
 }
 
 struct InspectorCard<Content: View>: View {
@@ -16,7 +16,7 @@ struct InspectorCard<Content: View>: View {
             if let title {
                 Text(title)
                     .sectionLabel()
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, Inspector.rowInset)
             }
 
             VStack(spacing: 0) { content }
@@ -34,7 +34,7 @@ struct InspectorCard<Content: View>: View {
                     .font(DS.Typography.footnote)
                     .foregroundStyle(DS.Ink.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, Inspector.rowInset)
             }
         }
     }
@@ -56,6 +56,7 @@ struct InspectorRow<Control: View>: View {
                 control
                     .controlSize(.regular)
                     .labelsHidden()
+                    .accessibilityLabel(label)
                     .frame(width: Inspector.controlWidth, alignment: .trailing)
             }
             .padding(.horizontal, Inspector.rowInset)
@@ -278,6 +279,25 @@ struct KeyChooser: View {
     }
 }
 
+struct InspectorPicker<Selection: Hashable, Content: View>: View {
+    var title: String
+    @Binding var selection: Selection
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) { content }
+                .pickerStyle(.inline)
+        } label: {
+            PopupFieldLabel(title: title)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 struct PopupFieldLabel: View {
     var title: String
 
@@ -293,14 +313,14 @@ struct PopupFieldLabel: View {
                 .font(.system(size: DS.Icon.small, weight: .medium))
                 .foregroundStyle(DS.Ink.tertiary)
         }
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 10)
         .frame(height: DS.Metrics.controlHeight)
         .background {
-            RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
-                .fill(DS.Surface.raised)
+            RoundedRectangle(cornerRadius: DS.Radius.field, style: .continuous)
+                .fill(DS.Surface.raisedHover)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+            RoundedRectangle(cornerRadius: DS.Radius.field, style: .continuous)
                 .strokeBorder(DS.Line.hairline, lineWidth: 0.5)
         }
         .contentShape(Rectangle())
@@ -341,8 +361,8 @@ struct TriggerKeyField: View {
     }
 
     var body: some View {
-        Picker(
-            "",
+        InspectorPicker(
+            title: trigger.displayName,
             selection: Binding<Choice>(
                 get: { .use(trigger) },
                 set: { choice in

@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 final class PermissionWindowController: NSObject, NSWindowDelegate {
-    private var window: NSWindow?
+    private(set) var window: NSWindow?
     private let model: AppModel
     private let onOpenSettings: () -> Void
     private let onClose: () -> Void
@@ -29,11 +29,12 @@ final class PermissionWindowController: NSObject, NSWindowDelegate {
             rootView: PermissionView(model: model, onOpenSettings: onOpenSettings)
         )
         hosting.safeAreaRegions = []
-        let newWindow = NSWindow(contentViewController: hosting)
+        let newWindow = EditorWindow(contentViewController: hosting)
         newWindow.title = "\(AppIdentity.displayName) needs Accessibility access"
         newWindow.styleMask = [.titled, .closable, .fullSizeContentView]
         newWindow.titleVisibility = .hidden
         newWindow.titlebarAppearsTransparent = true
+        newWindow.configureEditorChrome()
         newWindow.isMovableByWindowBackground = true
         newWindow.isReleasedWhenClosed = false
         newWindow.backgroundColor = NSColor(DS.Surface.window)
@@ -68,71 +69,81 @@ private struct PermissionView: View {
                 "This source build does not check for updates. \(AppIdentity.displayName) does not collect usage data."
         }
         return model.checksForUpdates
-            ? "If you turn on automatic checks, \(AppIdentity.displayName) contacts tenuo.app in the background to look for new versions. It does not collect usage data."
+            ? "With automatic checks on, \(AppIdentity.displayName) contacts tenuo.app in the background to look for new versions. It does not collect usage data."
             : "\(AppIdentity.displayName) only contacts tenuo.app when you ask it to check for a new version. It does not collect usage data."
     }
 
     private var shipped: Layer? { Presets.library.first?.triggeredLayers.first }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 56, height: 56)
-                .padding(.bottom, DS.Space.small)
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 12) {
+                AppMark(size: 40)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Welcome to Tenuo")
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    Text("More shortcuts. Right under your fingers.")
+                        .font(DS.Typography.body)
+                        .foregroundStyle(DS.Ink.secondary)
+                }
+            }
 
-            Text("Use a layer key for more shortcuts.")
-                .font(DS.Typography.display)
-                .multilineTextAlignment(.center)
-                .padding(.bottom, DS.Space.tight)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Hold Caps Lock, then press H, J, K or L")
+                        .font(DS.Typography.label.weight(.semibold))
+                    Spacer()
+                    Text("←  ↓  ↑  →")
+                        .font(DS.Typography.body)
+                        .foregroundStyle(DS.Ink.secondary)
+                }
 
-            Text(
-                "Hold the layer key, then press one of the highlighted keys. Caps Lock is the default and sends Escape when tapped; you can choose a different layer key in Settings."
-            )
-            .font(DS.Typography.body)
-            .foregroundStyle(DS.Ink.secondary)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(width: 380)
-            .padding(.bottom, DS.Space.large)
+                KeyboardLayoutView(
+                    mappings: shipped?.mappings ?? [:],
+                    triggerKey: shipped?.trigger?.key,
+                    width: 472,
+                    isInteractive: false
+                )
 
-            KeyboardLayoutView(
-                mappings: shipped?.mappings ?? [:],
-                triggerKey: shipped?.trigger?.key,
-                width: 424,
-                isInteractive: false
-            )
+                Text("Tap Caps Lock for Escape. Customize your keys in the layer editor.")
+                    .font(DS.Typography.footnote)
+                    .foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            Divider()
-                .opacity(0.35)
-                .padding(.vertical, DS.Space.large)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "hand.raised")
+                    Text("Allow keyboard remapping")
+                }
+                .font(DS.Typography.title)
 
-            Text(
-                "\(AppIdentity.displayName) needs Accessibility access to remap keys. Turn it on in System Settings, then come back here."
-            )
-            .font(DS.Typography.body)
-            .foregroundStyle(DS.Ink.secondary)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(width: 400)
-            .padding(.bottom, DS.Space.medium)
+                Text(
+                    "Enable \(AppIdentity.displayName) in System Settings → Accessibility. This window closes automatically when access is ready."
+                )
+                .font(DS.Typography.body)
+                .foregroundStyle(DS.Ink.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            PrimaryButton(title: "Open System Settings", action: onOpenSettings)
-                .padding(.bottom, DS.Space.medium)
+                Button("Open System Settings", action: onOpenSettings)
+                    .buttonStyle(RoundedActionStyle(prominent: true))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(DS.Metrics.panelInset)
+            .glassCard()
 
             optionalSettings
 
             Text(updatesLine)
-                .font(DS.Typography.label)
+                .font(DS.Typography.footnote)
                 .foregroundStyle(DS.Ink.tertiary)
-                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(width: 400)
         }
-        .padding(.horizontal, 28)
-        .padding(.top, DS.Metrics.titlebar)
-        .padding(.bottom, 28)
-        .frame(width: 480)
+        .foregroundStyle(DS.Ink.primary)
+        .padding(.horizontal, 24)
+        .padding(.top, 52)
+        .padding(.bottom, 24)
+        .frame(width: 520)
         .background(DS.Surface.window)
     }
 
@@ -170,8 +181,7 @@ private struct PermissionView: View {
                     .strokeBorder(DS.Line.hairline, lineWidth: 0.5)
             }
         }
-        .frame(width: 400, alignment: .leading)
-        .padding(.bottom, DS.Space.medium)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -180,41 +190,14 @@ private struct OnboardingSettingRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            HStack(spacing: DS.Space.small) {
-                Text(title)
-                    .font(DS.Typography.body)
-                    .foregroundStyle(DS.Ink.primary)
-                Spacer(minLength: DS.Space.small)
-                OnboardingSwitch(isOn: isOn)
-            }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 42)
-            .contentShape(Rectangle())
+        HStack(spacing: DS.Space.small) {
+            Text(title)
+                .font(DS.Typography.body)
+                .foregroundStyle(DS.Ink.primary)
+            Spacer(minLength: DS.Space.small)
+            AppSwitch(isOn: $isOn, label: title)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityValue(isOn ? "On" : "Off")
-        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
-    }
-}
-
-private struct OnboardingSwitch: View {
-    let isOn: Bool
-
-    var body: some View {
-        Capsule()
-            .fill(isOn ? DS.Selection.solid : Color.white.opacity(0.14))
-            .frame(width: 34, height: 20)
-            .overlay(alignment: isOn ? .trailing : .leading) {
-                Circle()
-                    .fill(isOn ? DS.Selection.solidInk : Color.white.opacity(0.55))
-                    .frame(width: 16, height: 16)
-                    .padding(.horizontal, 2)
-            }
-            .animation(DS.Motion.fill, value: isOn)
-            .accessibilityHidden(true)
+        .padding(.horizontal, DS.Metrics.panelInset)
+        .frame(minHeight: 44)
     }
 }

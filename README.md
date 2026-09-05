@@ -21,7 +21,8 @@ update feed by default.
   or send Hyper (Control + Option + Command + Shift).
 - An optional tap action for a layer key, such as sending Escape when Caps Lock
   is tapped.
-- Pro actions for toggling a layer or using it for the next keypress.
+- Pro features including toggling a layer, using it for the next keypress, and
+  restoring previous versions of a profile.
 - A visual editor, an optional active-layer view while holding a trigger, and
   JSON profile import and export.
 - Launch at login.
