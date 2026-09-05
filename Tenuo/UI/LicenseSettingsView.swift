@@ -7,7 +7,13 @@ struct LicenseSettingsView: View {
 
     var body: some View {
         InspectorCard(title: "Tenuo Pro", footer: footer) {
-            if license.state == .notConfigured {
+            if license.isDevelopmentPreview {
+                InspectorStatusRow(text: "Debug build", divider: false) {
+                    Text("Pro preview enabled")
+                        .font(DS.Typography.label)
+                        .foregroundStyle(DS.Ink.tertiary)
+                }
+            } else if license.state == .notConfigured {
                 InspectorStatusRow(text: "Source build", divider: false) {
                     Text("Licensing is not configured")
                         .font(DS.Typography.label)
@@ -86,6 +92,10 @@ struct LicenseSettingsView: View {
     }
 
     private var footer: String {
+        if license.isDevelopmentPreview {
+            return "Pro features are enabled locally for this Debug build. No license is used."
+        }
+
         switch license.state {
         case .notConfigured:
             return "This source build has no official license configuration."
@@ -96,7 +106,7 @@ struct LicenseSettingsView: View {
         case .offlinePro:
             return "Tenuo will check again when you are back online."
         default:
-            return "Unlock toggle and one-shot layer actions with a Tenuo Pro license."
+            return "Unlock layer actions and profile history with a Tenuo Pro license."
         }
     }
 }

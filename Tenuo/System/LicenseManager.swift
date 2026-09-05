@@ -5,6 +5,14 @@ import Foundation
 final class LicenseManager: ObservableObject {
     static let offlineGracePeriod: TimeInterval = 30 * 24 * 60 * 60
 
+    private static var developmentPreviewEnabled: Bool {
+        #if DEBUG
+            true
+        #else
+            false
+        #endif
+    }
+
     let entitlement: LicenseEntitlement
     let configuration: PolarConfiguration
 
@@ -30,28 +38,36 @@ final class LicenseManager: ObservableObject {
         self.client = client ?? PolarLicenseClient(configuration: configuration)
         self.now = now
 
-        guard configuration.isConfigured else {
-            state = .notConfigured
-            return
-        }
-
-        do {
-            record = try self.store.load()
-            displayKey = record?.displayKey
-            if let record, record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod)
-            {
-                entitlement.setProAccess(true)
-                state = .offlinePro
-            } else {
-                state = .free
+        if Self.developmentPreviewEnabled {
+            state = .pro
+            entitlement.setProAccess(true)
+        } else {
+            guard configuration.isConfigured else {
+                state = .notConfigured
+                return
             }
-        } catch {
-            state = .failed
-            message = "Tenuo could not read its saved license."
+
+            do {
+                record = try self.store.load()
+                displayKey = record?.displayKey
+                if let record,
+                    record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod)
+                {
+                    entitlement.setProAccess(true)
+                    state = .offlinePro
+                } else {
+                    state = .free
+                }
+            } catch {
+                state = .failed
+                message = "Tenuo could not read its saved license."
+            }
         }
     }
 
     var hasProAccess: Bool { entitlement.isPro }
+
+    var isDevelopmentPreview: Bool { Self.developmentPreviewEnabled }
 
     var isBusy: Bool {
         switch state {
@@ -61,12 +77,12 @@ final class LicenseManager: ObservableObject {
     }
 
     func start() {
-        guard configuration.isConfigured, record != nil else { return }
+        guard !isDevelopmentPreview, configuration.isConfigured, record != nil else { return }
         validateStoredLicense()
     }
 
     func validateStoredLicense() {
-        guard configuration.isConfigured, let record else { return }
+        guard !isDevelopmentPreview, configuration.isConfigured, let record else { return }
         cancelTask()
         message = nil
         if record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod) {
@@ -89,7 +105,7 @@ final class LicenseManager: ObservableObject {
     }
 
     func activate(key: String) {
-        guard configuration.isConfigured else { return }
+        guard !isDevelopmentPreview, configuration.isConfigured else { return }
         let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else {
             message = "Paste a license key to continue."
@@ -152,6 +168,7 @@ final class LicenseManager: ObservableObject {
     }
 
     func deactivate() {
+        guard !isDevelopmentPreview else { return }
         guard configuration.isConfigured, let record else {
             clearLocalLicense()
             return
