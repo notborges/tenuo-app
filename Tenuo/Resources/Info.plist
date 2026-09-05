@@ -44,5 +44,11 @@
 	<false/>
 	<key>SUSendProfileInfo</key>
 	<false/>
+	<key>TenuoPolarAPIURL</key>
+	<string>$(TENUO_POLAR_API_URL)</string>
+	<key>TenuoPolarOrganizationID</key>
+	<string>$(TENUO_POLAR_ORGANIZATION_ID)</string>
+	<key>TenuoPolarBenefitID</key>
+	<string>$(TENUO_POLAR_BENEFIT_ID)</string>
 </dict>
 </plist>

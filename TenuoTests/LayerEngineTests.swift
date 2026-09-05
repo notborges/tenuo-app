@@ -10,7 +10,10 @@ private struct Harness {
     private let capsCode = TriggerKey.capsLock.observedKeyCode!
 
     init(profile: Profile = Presets.navigation, isEnabled: Bool = true) {
-        engine = LayerEngine(profile: profile, isEnabled: isEnabled)
+        engine = LayerEngine(
+            profile: profile,
+            isEnabled: isEnabled,
+            actionAvailability: AllActionsAvailability())
     }
 
     mutating func send(_ event: InputEvent) -> Disposition {

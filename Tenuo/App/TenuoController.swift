@@ -2,12 +2,14 @@ import AppKit
 import Foundation
 import os
 
+@MainActor
 final class TenuoController {
     private let log = Logger(subsystem: "app.tenuo", category: "controller")
 
     let preferences: AppPreferences
     let profileStore: ProfileStore
     let actionAvailability: any ActionAvailability
+    let license: LicenseManager
     let accessibility = AccessibilityManager()
     let launchAtLogin = LaunchAtLoginManager()
 
@@ -38,10 +40,13 @@ final class TenuoController {
         preferences: AppPreferences = AppPreferences(),
         profileStore: ProfileStore? = nil,
         profileSelection: ProfileSelectionSource? = nil,
-        actionAvailability: any ActionAvailability = DefaultActionAvailability.current
+        actionAvailability: (any ActionAvailability)? = nil,
+        license: LicenseManager? = nil
     ) {
         self.preferences = preferences
-        self.actionAvailability = actionAvailability
+        let license = license ?? LicenseManager()
+        self.license = license
+        self.actionAvailability = actionAvailability ?? license.entitlement
         let store = profileStore ?? UserDefaultsProfileStore()
         self.profileStore = store
         let selection = profileSelection ?? ManualProfileSelectionSource(store: store)
@@ -49,10 +54,11 @@ final class TenuoController {
         monitor = KeyboardMonitor(
             profile: selection.current.profile,
             isEnabled: preferences.isEnabled,
-            actionAvailability: actionAvailability)
+            actionAvailability: self.actionAvailability)
     }
 
     func start() {
+        license.start()
         preferences.onChange = { [weak self] in self?.applySettings() }
         profileSelection.onChange = { [weak self] selection in
             self?.applyEffectiveProfile(selection.profile)
@@ -96,6 +102,7 @@ final class TenuoController {
     }
 
     func shutDown() {
+        license.stop()
         stopRetrying()
         stopRemapRetrying()
         profileSelection.stop()
@@ -122,14 +129,16 @@ final class TenuoController {
     private func startRetrying() {
         guard retryTimer == nil else { return }
         let timer = Timer(timeInterval: Self.retryInterval, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            guard preferences.isEnabled else { return }
-            guard activate() else { return }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                guard self.preferences.isEnabled else { return }
+                guard self.activate() else { return }
 
-            log.info("Accessibility granted; tap started without a relaunch")
-            stopRetrying()
-            onPermissionGranted?()
-            onStateChanged?()
+                self.log.info("Accessibility granted; tap started without a relaunch")
+                self.stopRetrying()
+                self.onPermissionGranted?()
+                self.onStateChanged?()
+            }
         }
         RunLoop.main.add(timer, forMode: .common)
         retryTimer = timer
@@ -143,12 +152,16 @@ final class TenuoController {
     private func startRemapRetrying() {
         guard remapRetryTimer == nil else { return }
         let timer = Timer(timeInterval: Self.retryInterval, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            guard preferences.isEnabled, monitor.isRunning, requiresCapsLockRemap else {
-                stopRemapRetrying()
-                return
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                guard self.preferences.isEnabled, self.monitor.isRunning,
+                    self.requiresCapsLockRemap
+                else {
+                    self.stopRemapRetrying()
+                    return
+                }
+                self.reconcileRemap()
             }
-            reconcileRemap()
         }
         RunLoop.main.add(timer, forMode: .common)
         remapRetryTimer = timer

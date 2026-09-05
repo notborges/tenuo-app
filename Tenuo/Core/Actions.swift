@@ -214,10 +214,6 @@ struct FreeActionsAvailability: ActionAvailability {
 
 enum DefaultActionAvailability {
     static var current: any ActionAvailability {
-        #if DEBUG
-            return AllActionsAvailability()
-        #else
-            return FreeActionsAvailability()
-        #endif
+        FreeActionsAvailability()
     }
 }

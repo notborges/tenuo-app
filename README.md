@@ -21,6 +21,7 @@ update feed by default.
   or send Hyper (Control + Option + Command + Shift).
 - An optional tap action for a layer key, such as sending Escape when Caps Lock
   is tapped.
+- Pro actions for toggling a layer or using it for the next keypress.
 - A visual editor, an optional active-layer view while holding a trigger, and
   JSON profile import and export.
 - Launch at login.
@@ -89,6 +90,10 @@ Keyboard events are processed locally. Tenuo does not record or transmit
 keystrokes, and profiles and settings stay on the Mac unless you export a
 profile yourself.
 
+Official builds can contact Polar when a Pro license is activated or checked.
+The license record stays in the macOS Keychain; keyboard events and profiles
+are not sent.
+
 When Caps Lock is used as a layer trigger, Tenuo temporarily maps it to F18
 with `hidutil` while it is running, then restores the previous mapping when it
 shuts down. Other trigger keys do not use this remapping.
@@ -96,6 +101,10 @@ shuts down. Other trigger keys do not use this remapping.
 Source builds have no update feed configured and do not check for updates. An
 official build can be configured to use Sparkle for updates; update checks are
 off until a feed is provided.
+
+Source builds also leave official Polar licensing unconfigured. The Pro action
+code is included in the source, but a source build does not unlock it unless
+you configure Polar locally or change the gate yourself.
 
 ## Development
 

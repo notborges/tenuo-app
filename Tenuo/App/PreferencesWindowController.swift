@@ -69,6 +69,8 @@ private struct PreferencesView: View {
                 }
             }
 
+            LicenseSettingsView(model: model, license: model.license)
+
             group(
                 "Active layer",
                 footer:

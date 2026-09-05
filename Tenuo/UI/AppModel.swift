@@ -10,15 +10,26 @@ final class AppModel: ObservableObject {
     @Published private(set) var isActive: Bool = false
     @Published private(set) var launchesAtLogin: Bool = false
     @Published private(set) var launchNeedsApproval: Bool = false
+    @Published private(set) var licenseState: LicenseState
 
     @Published var selectedLayerID: UUID?
 
+    let license: LicenseManager
+    private var licenseObserver: AnyCancellable?
+
     init(controller: TenuoController) {
         self.controller = controller
+        license = controller.license
+        licenseState = controller.license.state
         let store = controller.profileStore
         selectedLayerID =
             store.manualProfile.triggeredLayers.first?.id
             ?? store.manualProfile.layers.first?.id
+        licenseObserver = license.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                self?.licenseState = state
+            }
         refresh()
     }
 
@@ -71,6 +82,18 @@ final class AppModel: ObservableObject {
 
     func canUse(_ kind: ActionKind) -> Bool {
         controller.actionAvailability.canUse(kind)
+    }
+
+    func activateLicense(_ key: String) {
+        license.activate(key: key)
+    }
+
+    func checkLicense() {
+        license.validateStoredLicense()
+    }
+
+    func deactivateLicense() {
+        license.deactivate()
     }
 
     func addLayer() {
