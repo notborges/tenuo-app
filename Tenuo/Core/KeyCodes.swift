@@ -35,7 +35,6 @@ enum KeyCode {
     static let capsLock: UInt16 = 57
     static let f18 = catalogCode("f18")
 
-    // These are physical trigger codes, not selectable mapping keys.
     static let leftShift: UInt16 = 56
     static let rightShift: UInt16 = 60
     static let leftControl: UInt16 = 59

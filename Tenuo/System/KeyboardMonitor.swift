@@ -3,7 +3,7 @@ import Foundation
 import os
 
 final class KeyboardMonitor {
-    private static let syntheticMarker: Int64 = 0x4E56_5348  // "TENU"
+    private static let syntheticMarker: Int64 = 0x4E56_5348
 
     private let log = Logger(subsystem: "app.tenuo", category: "tap")
 
