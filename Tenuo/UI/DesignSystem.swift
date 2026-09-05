@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum DS {
@@ -116,58 +117,242 @@ extension View {
 struct TooltipModifier: ViewModifier {
     let title: String?
 
-    @State private var isVisible = false
-    @State private var isHovering = false
-    @State private var generation = 0
-
-    private static let delay: Duration = .milliseconds(200)
-    private static let bubbleHeight: CGFloat = 24
+    @State private var tooltipReference = TooltipReference()
 
     func body(content: Content) -> some View {
         content
+            .overlay {
+                if title != nil {
+                    TooltipAnchorRepresentable(reference: tooltipReference)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(false)
+                }
+            }
             .onHover { hovering in
-                isHovering = hovering
-                guard title != nil else { return }
+                guard let title else { return }
                 if hovering {
-                    generation &+= 1
-                    let mine = generation
-                    Task { @MainActor in
-                        try? await Task.sleep(for: Self.delay)
-                        guard mine == generation, isHovering else { return }
-                        withAnimation(DS.Motion.hover) { isVisible = true }
-                    }
+                    TooltipWindowController.shared.schedule(
+                        title: title, from: tooltipReference)
                 } else {
-                    generation &+= 1
-                    withAnimation(DS.Motion.hover) { isVisible = false }
+                    TooltipWindowController.shared.hide(from: tooltipReference)
                 }
             }
-            .overlay(alignment: .top) {
-                if isVisible, let title {
-                    bubble(title)
-                        .offset(y: -(Self.bubbleHeight + 6))
-                }
-            }
+            .accessibilityHint(title ?? "")
+    }
+}
+
+private final class TooltipReference {
+    weak var view: TooltipAnchorNSView?
+}
+
+private final class TooltipAnchorNSView: NSView {
+}
+
+private struct TooltipAnchorRepresentable: NSViewRepresentable {
+    let reference: TooltipReference
+
+    func makeNSView(context: Context) -> TooltipAnchorNSView {
+        let view = TooltipAnchorNSView()
+        reference.view = view
+        return view
     }
 
-    private func bubble(_ title: String) -> some View {
+    func updateNSView(_ nsView: TooltipAnchorNSView, context: Context) {
+        reference.view = nsView
+    }
+}
+
+@MainActor
+private final class TooltipWindowController {
+    static let shared = TooltipWindowController()
+
+    private static let delay: TimeInterval = 0.2
+
+    private var generation = 0
+    private var showWorkItem: DispatchWorkItem?
+    private var panel: NSPanel?
+    private var hosting: NSHostingView<TooltipBubble>?
+    private var activeReference: TooltipReference?
+
+    func schedule(title: String, from reference: TooltipReference) {
+        showWorkItem?.cancel()
+        generation &+= 1
+        let currentGeneration = generation
+
+        if activeReference !== reference {
+            dismiss(animated: false)
+        }
+        activeReference = reference
+
+        let workItem = DispatchWorkItem { [weak self, weak reference] in
+            guard let self,
+                self.generation == currentGeneration,
+                let reference,
+                let anchor = reference.view,
+                anchor.window != nil
+            else { return }
+
+            self.present(title: title, from: anchor)
+        }
+
+        showWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + Self.delay,
+            execute: workItem)
+    }
+
+    func hide(from reference: TooltipReference) {
+        guard activeReference === reference else { return }
+        generation &+= 1
+        showWorkItem?.cancel()
+        showWorkItem = nil
+        activeReference = nil
+        dismiss()
+    }
+
+    private func present(title: String, from anchor: TooltipAnchorNSView) {
+        guard anchor.window != nil else { return }
+
+        let hosting: NSHostingView<TooltipBubble>
+        let panel: NSPanel
+
+        if let existingHosting = self.hosting, let existingPanel = self.panel {
+            hosting = existingHosting
+            panel = existingPanel
+        } else {
+            hosting = NSHostingView(rootView: TooltipBubble(title: title))
+            hosting.setFrameSize(hosting.fittingSize)
+
+            panel = NSPanel(
+                contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false)
+            panel.contentView = hosting
+            panel.isFloatingPanel = true
+            panel.level = .statusBar
+            panel.backgroundColor = .clear
+            panel.isOpaque = false
+            panel.hasShadow = false
+            panel.ignoresMouseEvents = true
+            panel.hidesOnDeactivate = false
+            panel.collectionBehavior = [
+                .canJoinAllSpaces,
+                .canJoinAllApplications,
+                .fullScreenAuxiliary,
+                .stationary,
+                .ignoresCycle,
+            ]
+            panel.becomesKeyOnlyIfNeeded = true
+
+            self.hosting = hosting
+            self.panel = panel
+        }
+
+        let size = layout(hosting: hosting, panel: panel, title: title, around: anchor)
+        guard size.width > 0, size.height > 0 else { return }
+
+        panel.orderFrontRegardless()
+
+        if panel.alphaValue == 0 {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.12
+                panel.animator().alphaValue = 1
+            }
+        }
+    }
+
+    private func dismiss(animated: Bool = true) {
+        guard let panel else { return }
+
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.10
+                panel.animator().alphaValue = 0
+            } completionHandler: {
+                panel.orderOut(nil)
+            }
+        } else {
+            panel.orderOut(nil)
+            panel.alphaValue = 0
+        }
+    }
+
+    private func layout(
+        hosting: NSHostingView<TooltipBubble>,
+        panel: NSPanel,
+        title: String,
+        around anchor: TooltipAnchorNSView
+    ) -> CGSize {
+        hosting.rootView = TooltipBubble(title: title)
+        hosting.invalidateIntrinsicContentSize()
+        hosting.layoutSubtreeIfNeeded()
+
+        let size = hosting.fittingSize
+        guard let window = anchor.window else { return size }
+
+        let anchorInWindow = anchor.convert(anchor.bounds, to: nil)
+        let anchorRect = window.convertToScreen(anchorInWindow)
+        let screen = NSScreen.screens.first {
+            $0.frame.contains(NSPoint(x: anchorRect.midX, y: anchorRect.midY))
+        } ?? window.screen ?? NSScreen.main
+        guard let screen else { return size }
+
+        let visibleFrame = screen.visibleFrame.insetBy(dx: 8, dy: 8)
+        let gap: CGFloat = 6
+        let canShowAbove = anchorRect.maxY + gap + size.height <= visibleFrame.maxY
+
+        let proposedX = anchorRect.midX - size.width / 2
+        let x = min(
+            max(proposedX, visibleFrame.minX),
+            max(visibleFrame.minX, visibleFrame.maxX - size.width))
+        let proposedY = canShowAbove
+            ? anchorRect.maxY + gap
+            : anchorRect.minY - gap - size.height
+        let y = min(
+            max(proposedY, visibleFrame.minY),
+            max(visibleFrame.minY, visibleFrame.maxY - size.height))
+        hosting.setFrameSize(size)
+        panel.setContentSize(size)
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        return size
+    }
+}
+
+private struct TooltipBubble: View {
+    let title: String
+
+    private var textWidth: CGFloat {
+        let font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        let measured = (title as NSString).boundingRect(
+            with: NSSize(width: 10_000, height: 10_000),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font]
+        ).width
+        return min(300, max(1, ceil(measured)))
+    }
+
+    var body: some View {
         Text(title)
             .font(DS.Typography.label)
             .foregroundStyle(DS.Ink.primary)
-            .fixedSize()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .multilineTextAlignment(.leading)
+            .lineSpacing(1)
+            .lineLimit(2)
+            .frame(width: textWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
             .background {
                 RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
-                    .fill(.regularMaterial)
-                    .shadow(color: .black.opacity(0.45), radius: 9, y: 3)
+                    .fill(DS.Surface.sidebar)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
+                            .stroke(DS.Line.strong, lineWidth: 0.5)
+                    }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
-                    .strokeBorder(DS.Line.strong, lineWidth: 0.5)
-            }
-            .transition(.opacity)
-            .allowsHitTesting(false)
-            .zIndex(999)
+            .shadow(color: .black.opacity(0.38), radius: 10, y: 4)
+            .accessibilityHidden(true)
     }
 }
 
