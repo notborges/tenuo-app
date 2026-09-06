@@ -16,7 +16,7 @@ enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
     var requiresPro: Bool {
         switch self {
         case .sendKey: return false
-        case .toggleLayer, .oneShotLayer: return true
+        case .toggleLayer, .oneShotLayer: return false
         }
     }
 }

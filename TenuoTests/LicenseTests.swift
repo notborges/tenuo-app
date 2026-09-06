@@ -2,12 +2,12 @@ import Foundation
 import XCTest
 
 final class LicenseTests: XCTestCase {
-    func testEntitlementUnlocksOnlyProActions() {
+    func testLayerActionsRemainAvailableWithoutPro() {
         let entitlement = LicenseEntitlement()
 
         XCTAssertTrue(entitlement.canUse(.sendKey))
-        XCTAssertFalse(entitlement.canUse(.toggleLayer))
-        XCTAssertFalse(entitlement.canUse(.oneShotLayer))
+        XCTAssertTrue(entitlement.canUse(.toggleLayer))
+        XCTAssertTrue(entitlement.canUse(.oneShotLayer))
 
         entitlement.setProAccess(true)
 
