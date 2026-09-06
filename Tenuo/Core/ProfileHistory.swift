@@ -37,6 +37,7 @@ struct ProfileHistoryChange: Identifiable, Equatable {
     let title: String
     let before: String
     let after: String
+    var applicationID: String? = nil
 }
 
 enum ProfileHistoryComparison {
@@ -44,13 +45,13 @@ enum ProfileHistoryComparison {
         var result: [ProfileHistoryChange] = []
         func append(
             _ field: String, _ title: String, _ old: String, _ new: String,
-            layer: Layer? = nil, key: String? = nil
+            layer: Layer? = nil, key: String? = nil, applicationID: String? = nil
         ) {
             result.append(
                 ProfileHistoryChange(
                     id: "\(layer?.id.uuidString ?? "profile")/\(field)",
                     layerID: layer?.id, layerName: layer?.name, key: key,
-                    title: title, before: old, after: new))
+                    title: title, before: old, after: new, applicationID: applicationID))
         }
         if before.name != after.name {
             append("name", "Profile name", before.name, after.name)
@@ -96,6 +97,28 @@ enum ProfileHistoryComparison {
                     append(
                         "tap", "Tap action", actionLabel(old.tapAction, in: before),
                         actionLabel(new.tapAction, in: after), layer: new)
+                }
+            }
+            let appIDs = Set(old?.applications.keys.map { $0 } ?? [])
+                .union(new?.applications.keys.map { $0 } ?? [])
+            for appID in appIDs.sorted() {
+                let oldApp = old?.applications[appID]
+                let newApp = new?.applications[appID]
+                let name = newApp?.name ?? oldApp?.name ?? appID
+                if oldApp == nil || newApp == nil || oldApp?.name != newApp?.name {
+                    append(
+                        "app/\(appID)", "\(name) overrides", oldApp?.name ?? "Not present",
+                        newApp?.name ?? "Not present", layer: layer, applicationID: appID)
+                }
+                let appKeys = Set(oldApp?.mappings.keys.map { $0 } ?? [])
+                    .union(newApp?.mappings.keys.map { $0 } ?? [])
+                for key in appKeys.sorted() where oldApp?.mappings[key] != newApp?.mappings[key] {
+                    append(
+                        "app/\(appID)/\(key)",
+                        "\(name) · \(KeyCatalog.key(named: key)?.displayName ?? key)",
+                        oldApp?.mappings[key].map { mappingLabel($0, in: before) } ?? "Use Default",
+                        newApp?.mappings[key].map { mappingLabel($0, in: after) } ?? "Use Default",
+                        layer: layer, key: key, applicationID: appID)
                 }
             }
             let keys = Set(old?.mappings.keys.map { $0 } ?? [])

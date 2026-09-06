@@ -80,6 +80,10 @@ final class KeyboardMonitor {
         log.info("Event tap removed")
     }
 
+    func updateApplication(_ applicationID: String?) {
+        engine.updateApplication(applicationID)
+    }
+
     func update(profile: Profile) {
         flushHeldKeys()
         engine.apply(profile: profile)

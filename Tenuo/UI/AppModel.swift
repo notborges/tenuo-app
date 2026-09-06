@@ -12,7 +12,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var launchNeedsApproval: Bool = false
     @Published private(set) var licenseState: LicenseState
 
-    @Published var selectedLayerID: UUID?
+    @Published var selectedApplicationID: String?
+    @Published var selectedLayerID: UUID? { didSet { selectedApplicationID = nil } }
 
     let license: LicenseManager
     private var licenseObserver: AnyCancellable?
@@ -63,16 +64,57 @@ final class AppModel: ObservableObject {
         }
     }
 
-    var selectedMappings: [String: LayerMapping] { selectedLayer.mappings }
+    var selectedMappings: [String: LayerMapping] {
+        get {
+            guard let id = selectedApplicationID else { return selectedLayer.mappings }
+            return selectedLayer.applications[id]?.mappings ?? [:]
+        }
+        set {
+            if let id = selectedApplicationID {
+                guard license.hasProAccess, selectedLayer.applications[id] != nil else { return }
+                selectedLayer.applications[id]?.mappings = newValue
+            } else {
+                selectedLayer.mappings = newValue
+            }
+        }
+    }
+
+    var editingApplicationName: String? {
+        selectedApplicationID.flatMap { selectedLayer.applications[$0]?.name }
+    }
+
+    func addApplication(url: URL) {
+        guard license.hasProAccess, let bundle = Bundle(url: url),
+            let id = bundle.bundleIdentifier
+        else { return }
+        let name =
+            (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? url.deletingPathExtension().lastPathComponent
+        if selectedLayer.applications[id] == nil {
+            selectedLayer.applications[id] = ApplicationOverride(name: name, mappings: [:])
+        }
+        if selectedLayer.applications[id] != nil { selectedApplicationID = id }
+    }
+
+    var liveApplication: NSRunningApplication? { NSWorkspace.shared.frontmostApplication }
+
+    func liveMappings(for layer: Layer) -> [String: LayerMapping] {
+        layer.mappings(for: license.hasProAccess ? liveApplication?.bundleIdentifier : nil)
+    }
 
     var inheritedMappings: [String: LayerMapping] {
         var result: [String: LayerMapping] = [:]
         for layer in profile.layers.prefix(selectedIndex) {
-            for (key, action) in layer.mappings where action != .transparent {
+            for (key, action) in layer.mappings(for: selectedApplicationID)
+            where action != .transparent {
                 result[key] = action
             }
         }
-        for key in selectedLayer.mappings.keys { result.removeValue(forKey: key) }
+        if selectedApplicationID != nil {
+            result.merge(selectedLayer.mappings) { _, mapping in mapping }
+        }
+        for key in selectedMappings.keys { result.removeValue(forKey: key) }
         return result
     }
 
@@ -144,6 +186,11 @@ final class AppModel: ObservableObject {
         let copiedLayerIDs = [originalID: copy.id]
         copy.tapAction = copy.tapAction?.remappingLayerIDs(copiedLayerIDs)
         copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) }
+        copy.applications = copy.applications.mapValues { app in
+            ApplicationOverride(
+                name: app.name,
+                mappings: app.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) })
+        }
         guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
         copy.trigger = trigger
         profile.layers.append(copy)

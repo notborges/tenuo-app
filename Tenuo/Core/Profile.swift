@@ -120,6 +120,11 @@ struct LayerTrigger: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+struct ApplicationOverride: Codable, Equatable, Sendable {
+    var name: String
+    var mappings: [String: LayerMapping]
+}
+
 struct Layer: Codable, Equatable, Identifiable, Sendable {
     var id: UUID
     var name: String
@@ -127,6 +132,12 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
     var outputMode: LayerOutputMode
     var tapAction: Action?
     var mappings: [String: LayerMapping]
+    var applications: [String: ApplicationOverride] = [:]
+
+    func mappings(for applicationID: String?) -> [String: LayerMapping] {
+        guard let applicationID, let override = applications[applicationID] else { return mappings }
+        return mappings.merging(override.mappings) { _, override in override }
+    }
 
     init(
         id: UUID = UUID(),
@@ -145,13 +156,16 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, trigger, holdMode, tapAction, mappings
+        case id, name, trigger, holdMode, tapAction, mappings, applications
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
+        applications =
+            try container.decodeIfPresent(
+                [String: ApplicationOverride].self, forKey: .applications) ?? [:]
         trigger = try container.decodeIfPresent(LayerTrigger.self, forKey: .trigger)
         outputMode =
             try container.decodeIfPresent(LayerOutputMode.self, forKey: .holdMode)
@@ -169,6 +183,7 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         try container.encode(outputMode, forKey: .holdMode)
         try container.encodeIfPresent(tapAction, forKey: .tapAction)
         try container.encode(mappings, forKey: .mappings)
+        if !applications.isEmpty { try container.encode(applications, forKey: .applications) }
     }
 
     var isBase: Bool { trigger == nil }
@@ -203,6 +218,11 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
                 copy.id = newIDs[layer.id]!
                 copy.tapAction = copy.tapAction?.remappingLayerIDs(newIDs)
                 copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(newIDs) }
+                copy.applications = copy.applications.mapValues { app in
+                    ApplicationOverride(
+                        name: app.name,
+                        mappings: app.mappings.mapValues { $0.remappingLayerIDs(newIDs) })
+                }
                 return copy
             },
             tapThresholdMilliseconds: tapThresholdMilliseconds)
@@ -243,7 +263,8 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
 
             try validate(layer.tapAction, in: layer)
 
-            for (source, action) in layer.mappings {
+            let allMappings = [layer.mappings] + layer.applications.values.map(\.mappings)
+            for (source, action) in allMappings.flatMap({ Array($0) }) {
                 guard KeyCatalog.code(for: source) != nil else {
                     throw ProfileError.unknownSourceKey(layer: layer.name, key: source)
                 }

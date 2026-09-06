@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 import os
 
@@ -16,6 +17,8 @@ final class TenuoController {
     private let remapper = CapsLockRemapper()
     private let systemEvents = SystemEventObserver()
     private let profileSelection: ProfileSelectionSource
+    private var applicationObserver: NSObjectProtocol?
+    private var licenseObserver: AnyCancellable?
     private var monitor: KeyboardMonitor
 
     var onStateChanged: (() -> Void)?
@@ -58,6 +61,15 @@ final class TenuoController {
     }
 
     func start() {
+        applicationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshApplication() }
+        }
+        licenseObserver = license.$state.receive(on: RunLoop.main).sink { [weak self] _ in
+            self?.refreshApplication()
+        }
+        refreshApplication()
         license.start()
         preferences.onChange = { [weak self] in self?.applySettings() }
         profileSelection.onChange = { [weak self] selection in
@@ -101,7 +113,19 @@ final class TenuoController {
         onStateChanged?()
     }
 
+    private func refreshApplication() {
+        monitor.updateApplication(
+            license.hasProAccess
+                ? NSWorkspace.shared.frontmostApplication?.bundleIdentifier : nil)
+        onStateChanged?()
+    }
+
     func shutDown() {
+        if let applicationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(applicationObserver)
+        }
+        applicationObserver = nil
+        licenseObserver = nil
         license.stop()
         stopRetrying()
         stopRemapRetrying()

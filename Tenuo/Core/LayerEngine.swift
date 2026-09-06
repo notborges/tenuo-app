@@ -106,6 +106,8 @@ struct LayerEngine {
         var tapCandidate: TapCandidate?
     }
 
+    private var sourceLayers: [Layer] = []
+    private var applicationID: String?
     private var layers: [CompiledLayer] = []
     private var triggers: [TriggerRuntime] = []
 
@@ -141,7 +143,29 @@ struct LayerEngine {
         apply(profile: profile)
     }
 
+    private static func compileMappings(_ mappings: [String: LayerMapping]) -> [UInt16:
+        LayerMapping]
+    {
+        var compiled: [UInt16: LayerMapping] = [:]
+        for (name, mapping) in mappings {
+            guard let code = KeyCatalog.code(for: name) else { continue }
+            if let binding = mapping.binding, binding.keyCode == nil { continue }
+            compiled[code] = mapping
+        }
+        return compiled
+    }
+
+    mutating func updateApplication(_ applicationID: String?) {
+        guard self.applicationID != applicationID else { return }
+        self.applicationID = applicationID
+        for index in layers.indices {
+            layers[index].mappings = Self.compileMappings(
+                sourceLayers[index].mappings(for: applicationID))
+        }
+    }
+
     mutating func apply(profile: Profile) {
+        sourceLayers = profile.layers
         tapThresholdNanoseconds =
             UInt64(max(0, profile.tapThresholdMilliseconds)) * 1_000_000
 
@@ -154,15 +178,7 @@ struct LayerEngine {
 
         baseMask = 0
         layers = profile.layers.enumerated().map { index, layer in
-            var mappings: [UInt16: LayerMapping] = [:]
-            mappings.reserveCapacity(layer.mappings.count)
-            for (name, action) in layer.mappings {
-                guard let code = KeyCatalog.code(for: name) else { continue }
-                if case let .action(.sendKey(binding)) = action, binding.keyCode == nil {
-                    continue
-                }
-                mappings[code] = action
-            }
+            let mappings = Self.compileMappings(layer.mappings(for: applicationID))
             if layer.trigger == nil { baseMask |= UInt32(1) << UInt32(index) }
             return CompiledLayer(
                 id: layer.id,

@@ -106,7 +106,7 @@ struct LicenseSettingsView: View {
         case .offlinePro:
             return "Tenuo will check again when you are back online."
         default:
-            return "Unlock layer actions and profile history with a Tenuo Pro license."
+            return "Unlock app-specific layers and profile history with a Tenuo Pro license."
         }
     }
 }

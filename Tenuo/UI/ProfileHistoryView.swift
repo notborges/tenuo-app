@@ -38,6 +38,7 @@ struct ProfileHistoryBrowser: View {
     }
 
     @State private var selection: Selection? = .current
+    @State private var selectedApplicationID: String?
     @State private var selectedLayerID: UUID?
     @State private var selectedKey: String?
     @State private var pendingRestore: ProfileHistoryEntry?
@@ -314,7 +315,8 @@ struct ProfileHistoryBrowser: View {
                                 selection: Binding(
                                     get: { self.selectedLayer?.id ?? selectedLayer.id },
                                     set: {
-                                        selectedLayerID = $0; selectedKey = nil
+                                        selectedLayerID = $0; selectedKey = nil;
+                                        selectedApplicationID = nil
                                     })
                             ) {
                                 ForEach(preview.layers) { layer in Text(layer.name).tag(layer.id) }
@@ -322,15 +324,40 @@ struct ProfileHistoryBrowser: View {
                             .frame(width: Inspector.controlWidth)
                             .accessibilityLabel("Preview layer")
                         }
+                        if !selectedLayer.applications.isEmpty || selectedApplicationID != nil {
+                            Picker(
+                                "Application",
+                                selection: Binding(
+                                    get: { selectedApplicationID },
+                                    set: {
+                                        selectedApplicationID = $0; selectedKey = nil
+                                    })
+                            ) {
+                                Text("Default").tag(nil as String?)
+                                ForEach(selectedLayer.applications.keys.sorted(), id: \.self) {
+                                    id in
+                                    Text(selectedLayer.applications[id]?.name ?? id).tag(
+                                        Optional(id))
+                                }
+                                if let id = selectedApplicationID,
+                                    selectedLayer.applications[id] == nil
+                                {
+                                    Text("Removed app · Default mappings").tag(Optional(id))
+                                }
+                            }
+                        }
                         KeyboardLayoutView(
-                            mappings: selectedLayer.mappings,
+                            mappings: selectedLayer.mappings(for: selectedApplicationID),
                             inherited: inheritedMappings(for: selectedLayer, in: preview),
                             selected: selectedKey,
                             triggerName: selectedLayer.trigger?.displayLabel ?? "Base",
                             triggerKey: selectedLayer.trigger?.key,
                             isReadOnly: true,
                             changedKeys: Set(
-                                changes.filter { $0.layerID == selectedLayer.id }.compactMap(\.key))
+                                changes.filter {
+                                    $0.layerID == selectedLayer.id
+                                        && $0.applicationID == selectedApplicationID
+                                }.compactMap(\.key))
                         ) { key in selectedKey = selectedKey == key ? nil : key }
                         .frame(height: min(260, max(140, geometry.size.height - 320)))
                         .frame(maxWidth: 610)
@@ -361,12 +388,13 @@ struct ProfileHistoryBrowser: View {
                 Image(systemName: "arrow.right").font(.system(size: 9))
                 Text(
                     ProfileHistoryComparison.mappingLabel(
-                        layer.mappings[selectedKey] ?? inherited, in: profile)
+                        layer.mappings(for: selectedApplicationID)[selectedKey] ?? inherited,
+                        in: profile)
                 )
                 .textSelection(.enabled)
                 Spacer(minLength: 4)
                 Text(
-                    layer.mappings[selectedKey] != nil
+                    layer.mappings(for: selectedApplicationID)[selectedKey] != nil
                         ? "Direct" : inherited != nil ? "Inherited" : "Unmapped")
             } else {
                 Text("Select a key to inspect")
@@ -464,6 +492,7 @@ struct ProfileHistoryBrowser: View {
         {
             Button {
                 selectedLayerID = layerID
+                selectedApplicationID = change.applicationID
                 selectedKey = key
             } label: {
                 row
@@ -485,6 +514,11 @@ struct ProfileHistoryBrowser: View {
     private func changeDescription(_ change: ProfileHistoryChange) -> (
         title: String, detail: String
     ) {
+        if change.applicationID != nil {
+            return (
+                "\(change.title): \(change.before) → \(change.after)", change.layerName ?? "Profile"
+            )
+        }
         let scope = change.layerName.map { "\($0) layer" } ?? "Profile"
         guard let key = change.key, let layerID = change.layerID else {
             if change.title == "Add layer" {
@@ -599,7 +633,8 @@ struct ProfileHistoryBrowser: View {
         }
         var mappings: [String: LayerMapping] = [:]
         for earlier in profile.layers.prefix(index) {
-            for (key, mapping) in earlier.mappings where mapping != .transparent {
+            for (key, mapping) in earlier.mappings(for: selectedApplicationID)
+            where mapping != .transparent {
                 mappings[key] = mapping
             }
         }

@@ -90,7 +90,7 @@ struct MenuPanelView: View {
             }
 
             KeyboardLayoutView(
-                mappings: layer.mappings,
+                mappings: model.liveMappings(for: layer),
                 triggerKey: layer.trigger?.key,
                 width: Self.width - 24,
                 isInteractive: false
