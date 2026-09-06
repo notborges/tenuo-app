@@ -8,6 +8,7 @@ struct LayerList: View {
     @State private var deletingProfile: Profile?
     var onOpenHistory: (UUID) -> Void
     @State private var isHistoryHovering = false
+    @State private var showsHistoryProInfo = false
     @FocusState private var isHistoryFocused: Bool
 
     var body: some View {
@@ -79,36 +80,52 @@ struct LayerList: View {
         HStack(spacing: DS.Space.tight) {
             Text("Profiles").sectionLabel()
             Spacer(minLength: 0)
-            if model.license.hasProAccess {
-                Button {
+            Button {
+                if model.license.hasProAccess {
                     onOpenHistory(model.profile.id)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "clock.arrow.circlepath")
-                        Text("History")
-                    }
-                    .font(.system(size: 12))
-                    .foregroundStyle(
-                        isHistoryHovering || isHistoryFocused
-                            ? DS.Ink.primary : DS.Ink.tertiary
-                    )
-                    .padding(.horizontal, 6)
-                    .frame(height: 22)
-                    .background {
-                        RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
-                            .fill(
-                                isHistoryHovering || isHistoryFocused
-                                    ? DS.Selection.hover : .clear)
-                    }
-                    .frame(height: DS.Metrics.controlHeight)
-                    .contentShape(Rectangle())
+                } else {
+                    showsHistoryProInfo = true
                 }
-                .buttonStyle(.plain)
-                .focused($isHistoryFocused)
-                .onHover { isHistoryHovering = $0 }
-                .animation(DS.Motion.hover, value: isHistoryHovering || isHistoryFocused)
-                .accessibilityLabel("View history for \(model.profile.name)")
-                .tooltip("Profile history")
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                    Text("History")
+                    if !model.license.hasProAccess {
+                        Text("Pro").font(.system(size: 9, weight: .medium))
+                    }
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(
+                    isHistoryHovering || isHistoryFocused
+                        ? DS.Ink.primary : DS.Ink.tertiary
+                )
+                .padding(.horizontal, 6)
+                .frame(height: 22)
+                .background {
+                    RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+                        .fill(
+                            isHistoryHovering || isHistoryFocused
+                                ? DS.Selection.hover : .clear)
+                }
+                .frame(height: DS.Metrics.controlHeight)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focused($isHistoryFocused)
+            .onHover { isHistoryHovering = $0 }
+            .animation(DS.Motion.hover, value: isHistoryHovering || isHistoryFocused)
+            .accessibilityLabel("View history for \(model.profile.name)")
+            .tooltip("Profile history")
+            .popover(isPresented: $showsHistoryProInfo) {
+                ProFeaturePrompt(
+                    title: "Profile history",
+                    detail:
+                        "Included in Tenuo Pro. Compare saved versions and restore a layout when you want to undo a change."
+                ) {
+                    showsHistoryProInfo = false
+                    model.onOpenProSettings?()
+                }
+                .padding(20).frame(width: 300)
             }
         }
         .padding(.horizontal, 10)

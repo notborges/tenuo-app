@@ -103,6 +103,7 @@ struct KeyboardLayoutView: View {
             symbol: key.symbol,
             secondary: legend.text,
             secondarySymbol: legend.symbol,
+            secondaryImage: shown?.action?.macAction?.icon,
             secondaryAbove: legend.above,
             secondaryIsMapping: legend.isMapping,
             width: width,
@@ -150,6 +151,9 @@ struct KeyboardLayoutView: View {
         for key: KeyboardGeometry.Key,
         shown: LayerMapping?
     ) -> (text: String?, symbol: String?, above: Bool, isMapping: Bool) {
+        if case let .action(.macAction(action)) = shown {
+            return (nil, action.symbol, false, true)
+        }
         if let shown { return (shown.displayLabel, nil, false, true) }
         if let glyph = key.glyph { return (nil, glyph, true, false) }
         if let shifted = key.shifted { return (shifted, nil, true, false) }

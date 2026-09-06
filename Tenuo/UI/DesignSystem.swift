@@ -401,6 +401,7 @@ struct Keycap: View {
     var symbol: String?
     var secondary: String?
     var secondarySymbol: String?
+    var secondaryImage: NSImage?
     var secondaryAbove: Bool = false
     var secondaryIsMapping: Bool = false
     var width: CGFloat = 34
@@ -445,18 +446,29 @@ struct Keycap: View {
 
     private func face(_ shape: RoundedRectangle) -> some View {
         Group {
-            if secondaryIsMapping, let secondary {
+            if secondaryIsMapping,
+                secondary != nil || secondarySymbol != nil || secondaryImage != nil
+            {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(label)
                         .font(.system(size: max(7, legend * 0.72), weight: .medium))
                         .foregroundStyle(legendColor.opacity(0.8))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(secondary)
-                        .font(.system(size: legend * 1.05, weight: .semibold))
-                        .foregroundStyle(secondaryColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Group {
+                        if let secondaryImage {
+                            Image(nsImage: secondaryImage).resizable().scaledToFit()
+                                .frame(width: legend * 1.6, height: legend * 1.6)
+                        } else if let secondarySymbol {
+                            Image(systemName: secondarySymbol)
+                        } else {
+                            Text(secondary ?? "")
+                        }
+                    }
+                    .font(.system(size: legend * 1.05, weight: .semibold))
+                    .foregroundStyle(secondaryColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .padding(.horizontal, 4)
                 .padding(.vertical, 3)

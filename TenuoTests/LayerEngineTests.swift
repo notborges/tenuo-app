@@ -406,3 +406,111 @@ final class LayerEngineTests: XCTestCase {
         XCTAssertTrue(harness.engine.isLayerActive)
     }
 }
+
+final class MacActionEngineTests: XCTestCase {
+    func testActionFiresOnceAndConsumesReleaseAfterApplicationAndLicenseChange() {
+        let entitlement = LicenseEntitlement()
+        entitlement.setProAccess(true)
+        let action = MacAction.application(
+            NamedActionTarget(id: "com.apple.Safari", name: "Safari"))
+        var profile = Presets.navigation
+        profile.layers[0].mappings["a"] = .action(.macAction(action))
+        profile.layers[0].applications["com.apple.Safari"] = ApplicationOverride(
+            name: "Safari", mappings: ["a": .action(.sendKey(KeyBinding(key: "b")))])
+        var engine = LayerEngine(profile: profile, actionAvailability: entitlement)
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a)) { _ in }, .suppress)
+        XCTAssertEqual(engine.takePendingActions(), [action])
+        engine.updateApplication("com.apple.Safari")
+        entitlement.setProAccess(false)
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a, isRepeat: true)) { _ in },
+            .suppress)
+        XCTAssertTrue(engine.takePendingActions().isEmpty)
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyUp, keyCode: KeyCode.a)) { _ in }, .suppress)
+        engine.updateApplication(nil)
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a)) { _ in }, .suppress)
+        XCTAssertTrue(engine.takePendingActions().isEmpty)
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyUp, keyCode: KeyCode.a)) { _ in }, .suppress)
+        engine.isEnabled = false
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a)) { _ in }, .passThrough)
+    }
+
+    func testTapActionOnlyRunsForAnUnusedTapAndResetDiscardsQueuedActions() {
+        let action = MacAction.url("https://tenuo.app")
+        var profile = Presets.navigation
+        profile.layers[1].tapAction = .macAction(action)
+        var engine = LayerEngine(profile: profile, actionAvailability: AllActionsAvailability())
+        let caps = TriggerKey.capsLock.observedKeyCode!
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: caps, timestamp: 0)) { _ in }
+        _ = engine.handle(InputEvent(kind: .keyUp, keyCode: caps, timestamp: 50_000_000)) { _ in }
+        XCTAssertEqual(engine.takePendingActions(), [action])
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: caps, timestamp: 100_000_000)) { _ in
+        }
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.h, timestamp: 110_000_000)) {
+            _ in
+        }
+        _ = engine.handle(InputEvent(kind: .keyUp, keyCode: caps, timestamp: 150_000_000)) { _ in }
+        XCTAssertTrue(engine.takePendingActions().isEmpty)
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: caps, timestamp: 200_000_000)) { _ in
+        }
+        _ = engine.handle(InputEvent(kind: .keyUp, keyCode: caps, timestamp: 250_000_000)) { _ in }
+        engine.reset { _ in }
+        XCTAssertTrue(engine.takePendingActions().isEmpty)
+    }
+
+    func testMacActionsSurviveProfileRoundTripAndInvalidTargetsAreRejected() throws {
+        let actions: [MacAction] = [
+            .application(NamedActionTarget(id: "com.apple.Safari", name: "Safari")),
+            .file(FileActionTarget(bookmark: Data([1, 2, 3]), name: "Project")),
+            .url("https://tenuo.app/docs"),
+            .shortcut(NamedActionTarget(id: UUID().uuidString, name: "Start work")),
+        ]
+        for action in actions {
+            var profile = Presets.navigation
+            profile.layers[1].mappings["a"] = .action(.macAction(action))
+            profile.layers[1].applications["com.apple.Safari"] = ApplicationOverride(
+                name: "Safari", mappings: ["b": .action(.macAction(action))])
+            try profile.validate()
+            XCTAssertEqual(
+                try JSONDecoder().decode(Profile.self, from: JSONEncoder().encode(profile)), profile
+            )
+        }
+        var profile = Presets.navigation
+        profile.layers[0].mappings["a"] = .action(.macAction(.url("javascript:alert(1)")))
+        XCTAssertThrowsError(try profile.validate())
+        profile.layers[0].mappings["a"] = .action(
+            .macAction(.shortcut(NamedActionTarget(id: "--help", name: "Invalid"))))
+        XCTAssertThrowsError(try profile.validate())
+        let legacy = Data(#"{"key":"a","modifiers":[]}"#.utf8)
+        XCTAssertEqual(
+            try JSONDecoder().decode(Action.self, from: legacy), .sendKey(KeyBinding(key: "a")))
+    }
+
+    func testFileBookmarkResolvesAfterRenameAndRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let original = directory.appendingPathComponent("Original.txt")
+        try Data("Tenuo bookmark test".utf8).write(to: original)
+        let target = FileActionTarget(
+            bookmark: try original.bookmarkData(
+                options: [],
+                includingResourceValuesForKeys: nil, relativeTo: nil),
+            name: original.lastPathComponent)
+        let restored = try JSONDecoder().decode(
+            FileActionTarget.self, from: JSONEncoder().encode(target))
+        let renamed = directory.appendingPathComponent("Renamed.txt")
+        try FileManager.default.moveItem(at: original, to: renamed)
+        var stale = false
+        let resolved = try URL(
+            resolvingBookmarkData: restored.bookmark,
+            options: [.withoutUI, .withoutMounting], relativeTo: nil, bookmarkDataIsStale: &stale)
+        XCTAssertEqual(resolved.standardizedFileURL, renamed.standardizedFileURL)
+    }
+}

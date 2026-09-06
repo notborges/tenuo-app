@@ -96,6 +96,10 @@ struct LicenseSettingsView: View {
             return "Pro features are enabled locally for this Debug build. No license is used."
         }
 
+        if license.hasProAccess && license.state != .offlinePro {
+            return "Mac actions, app-specific layers, and profile history are unlocked."
+        }
+
         switch license.state {
         case .notConfigured:
             return "This source build has no official license configuration."
@@ -106,7 +110,8 @@ struct LicenseSettingsView: View {
         case .offlinePro:
             return "Tenuo will check again when you are back online."
         default:
-            return "Unlock app-specific layers and profile history with a Tenuo Pro license."
+            return
+                "Unlock Mac actions, app-specific layers, and profile history with a Tenuo Pro license."
         }
     }
 }

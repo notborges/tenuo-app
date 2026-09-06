@@ -19,6 +19,8 @@ final class TenuoController {
     private let profileSelection: ProfileSelectionSource
     private var applicationObserver: NSObjectProtocol?
     private var licenseObserver: AnyCancellable?
+    private let actionRunner: MacActionRunner
+    private let actionFeedback = ActionFeedbackController()
     private var monitor: KeyboardMonitor
 
     var onStateChanged: (() -> Void)?
@@ -50,6 +52,7 @@ final class TenuoController {
         let license = license ?? LicenseManager()
         self.license = license
         self.actionAvailability = actionAvailability ?? license.entitlement
+        actionRunner = MacActionRunner(availability: self.actionAvailability)
         let store = profileStore ?? UserDefaultsProfileStore()
         self.profileStore = store
         let selection = profileSelection ?? ManualProfileSelectionSource(store: store)
@@ -61,6 +64,13 @@ final class TenuoController {
     }
 
     func start() {
+        actionRunner.onFailure = { [weak self] message in self?.actionFeedback.show(message) }
+        monitor.onAction = { [weak self] action in
+            Task { @MainActor [weak self] in
+                guard let self, isActive else { return }
+                actionRunner.run(action)
+            }
+        }
         applicationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -114,6 +124,7 @@ final class TenuoController {
     }
 
     private func refreshApplication() {
+        if !actionAvailability.canUse(.macAction) { actionRunner.cancelAll() }
         monitor.updateApplication(
             license.hasProAccess
                 ? NSWorkspace.shared.frontmostApplication?.bundleIdentifier : nil)
@@ -126,6 +137,7 @@ final class TenuoController {
         }
         applicationObserver = nil
         licenseObserver = nil
+        actionRunner.cancelAll()
         license.stop()
         stopRetrying()
         stopRemapRetrying()
@@ -197,6 +209,7 @@ final class TenuoController {
     }
 
     private func deactivate() {
+        actionRunner.cancelAll()
         remapGeneration += 1
         capsLockRemapReady = false
         monitor.stop()

@@ -15,6 +15,8 @@ final class AppModel: ObservableObject {
     @Published var selectedApplicationID: String?
     @Published var selectedLayerID: UUID? { didSet { selectedApplicationID = nil } }
 
+    var onOpenProSettings: (() -> Void)?
+
     let license: LicenseManager
     private var licenseObserver: AnyCancellable?
 

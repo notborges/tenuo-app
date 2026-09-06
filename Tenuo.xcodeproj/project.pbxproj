@@ -81,6 +81,10 @@
 		TENUO00000000000000000BD /* ProfileHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BF /* ProfileHistory.swift */; };
 		TENUO00000000000000000BE /* ProfileHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BF /* ProfileHistory.swift */; };
 		TENUO00000000000000000C0 /* ProfileHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000C1 /* ProfileHistoryView.swift */; };
+		AC7200000000000000000000 /* MacActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000000 /* MacActionRunner.swift */; };
+		AC7200000000000000000001 /* ApplicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000001 /* ApplicationPicker.swift */; };
+		AC7200000000000000000002 /* MacActionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000002 /* MacActionEditor.swift */; };
+		AC7200000000000000000003 /* ActionFeedbackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000003 /* ActionFeedbackController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -147,6 +151,10 @@
 		TENUO00000000000000000C1 /* ProfileHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileHistoryView.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC7100000000000000000000 /* MacActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacActionRunner.swift; sourceTree = "<group>"; };
+		AC7100000000000000000001 /* ApplicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationPicker.swift; sourceTree = "<group>"; };
+		AC7100000000000000000002 /* MacActionEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacActionEditor.swift; sourceTree = "<group>"; };
+		AC7100000000000000000003 /* ActionFeedbackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionFeedbackController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -205,6 +213,7 @@
 		TENUO0000000000000000067 /* System */ = {
 			isa = PBXGroup;
 			children = (
+				AC7100000000000000000000 /* MacActionRunner.swift */,
 				TENUO000000000000000001E /* KeyboardMonitor.swift */,
 				TENUO0000000000000000020 /* CapsLockRemapper.swift */,
 				TENUO0000000000000000022 /* AccessibilityManager.swift */,
@@ -221,6 +230,9 @@
 		TENUO0000000000000000068 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				AC7100000000000000000003 /* ActionFeedbackController.swift */,
+				AC7100000000000000000002 /* MacActionEditor.swift */,
+				AC7100000000000000000001 /* ApplicationPicker.swift */,
 				TENUO000000000000000001A /* KeyboardGeometry.swift */,
 				TENUO000000000000000002A /* DesignSystem.swift */,
 				TENUO000000000000000002C /* Controls.swift */,
@@ -413,6 +425,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AC7200000000000000000003 /* ActionFeedbackController.swift in Sources */,
+				AC7200000000000000000002 /* MacActionEditor.swift in Sources */,
+				AC7200000000000000000001 /* ApplicationPicker.swift in Sources */,
+				AC7200000000000000000000 /* MacActionRunner.swift in Sources */,
 				TENUO0000000000000000080 /* HIDMappingParser.swift in Sources */,
 				TENUO0000000000000000001 /* TenuoApp.swift in Sources */,
 				TENUO0000000000000000003 /* MainMenu.swift in Sources */,

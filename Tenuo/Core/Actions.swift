@@ -4,17 +4,20 @@ enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
     case sendKey
     case toggleLayer
     case oneShotLayer
+    case macAction
 
     var displayName: String {
         switch self {
         case .sendKey: return "Send key or shortcut"
         case .toggleLayer: return "Toggle layer"
         case .oneShotLayer: return "One-shot layer"
+        case .macAction: return "Mac action"
         }
     }
 
     var requiresPro: Bool {
         switch self {
+        case .macAction: return true
         case .sendKey: return false
         case .toggleLayer, .oneShotLayer: return false
         }
@@ -54,13 +57,20 @@ enum Action: Codable, Equatable, Hashable, Sendable {
     case sendKey(KeyBinding)
     case toggleLayer(LayerTarget)
     case oneShotLayer(LayerTarget)
+    case macAction(MacAction)
 
     var kind: ActionKind {
         switch self {
+        case .macAction: return .macAction
         case .sendKey: return .sendKey
         case .toggleLayer: return .toggleLayer
         case .oneShotLayer: return .oneShotLayer
         }
+    }
+
+    var macAction: MacAction? {
+        guard case let .macAction(action) = self else { return nil }
+        return action
     }
 
     var binding: KeyBinding? {
@@ -70,13 +80,14 @@ enum Action: Codable, Equatable, Hashable, Sendable {
 
     var target: LayerTarget? {
         switch self {
-        case .sendKey: return nil
+        case .sendKey, .macAction: return nil
         case let .toggleLayer(target), let .oneShotLayer(target): return target
         }
     }
 
     var displayLabel: String {
         switch self {
+        case let .macAction(action): return action.displayLabel
         case let .sendKey(binding): return binding.displayLabel
         case .toggleLayer: return "Toggle layer"
         case .oneShotLayer: return "One-shot layer"
@@ -84,7 +95,7 @@ enum Action: Codable, Equatable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case type, binding, target
+        case type, binding, target, destination
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +106,8 @@ enum Action: Codable, Equatable, Hashable, Sendable {
 
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(String.self, forKey: .type) {
+        case "macAction":
+            self = .macAction(try container.decode(MacAction.self, forKey: .destination))
         case "sendKey":
             self = .sendKey(try container.decode(KeyBinding.self, forKey: .binding))
         case "toggleLayer":
@@ -113,6 +126,10 @@ enum Action: Codable, Equatable, Hashable, Sendable {
 
     func encode(to encoder: Encoder) throws {
         switch self {
+        case let .macAction(action):
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode("macAction", forKey: .type)
+            try container.encode(action, forKey: .destination)
         case let .sendKey(binding):
             try binding.encode(to: encoder)
         case let .toggleLayer(target):
@@ -128,7 +145,7 @@ enum Action: Codable, Equatable, Hashable, Sendable {
 
     func remappingLayerIDs(_ ids: [UUID: UUID]) -> Action {
         switch self {
-        case .sendKey:
+        case .sendKey, .macAction:
             return self
         case let .toggleLayer(target):
             return .toggleLayer(target.remappingLayerIDs(ids))
@@ -215,5 +232,57 @@ struct FreeActionsAvailability: ActionAvailability {
 enum DefaultActionAvailability {
     static var current: any ActionAvailability {
         FreeActionsAvailability()
+    }
+}
+
+struct NamedActionTarget: Codable, Equatable, Hashable, Sendable {
+    var id: String
+    var name: String
+}
+
+struct FileActionTarget: Codable, Equatable, Hashable, Sendable {
+    var bookmark: Data
+    var name: String
+}
+
+enum MacAction: Codable, Equatable, Hashable, Sendable {
+    case application(NamedActionTarget)
+    case file(FileActionTarget)
+    case url(String)
+    case shortcut(NamedActionTarget)
+
+    var displayLabel: String {
+        switch self {
+        case let .application(target): return "Open \(target.name)"
+        case let .file(target): return "Open \(target.name)"
+        case let .url(value): return "Open \(value)"
+        case let .shortcut(target): return "Run \(target.name)"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .application: return "app"
+        case .file: return "folder"
+        case .url: return "link"
+        case .shortcut: return "square.stack.3d.up"
+        }
+    }
+
+    var isValid: Bool {
+        switch self {
+        case let .application(target):
+            return !target.id.isEmpty && !target.name.isEmpty
+        case let .shortcut(target):
+            return UUID(uuidString: target.id) != nil && !target.name.isEmpty
+        case let .file(target):
+            return !target.bookmark.isEmpty && !target.name.isEmpty
+        case let .url(value):
+            guard let url = URL(string: value),
+                ["https", "http"].contains(url.scheme?.lowercased() ?? ""),
+                let host = url.host, !host.isEmpty
+            else { return false }
+            return true
+        }
     }
 }

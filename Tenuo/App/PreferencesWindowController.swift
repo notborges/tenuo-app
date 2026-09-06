@@ -5,19 +5,21 @@ import SwiftUI
 final class PreferencesWindowController {
     private(set) var window: NSWindow?
     private let model: AppModel
+    private let navigation = PreferencesNavigation()
 
     init(model: AppModel) {
         self.model = model
     }
 
-    func show() {
+    func show(page: PreferencesPage? = nil) {
+        if let page { navigation.page = page }
         if let window {
             window.showOnActiveSpace()
             return
         }
 
         let hosting = NSHostingController(
-            rootView: PreferencesView(model: model, updates: model.updates)
+            rootView: PreferencesView(model: model, updates: model.updates, navigation: navigation)
         )
         hosting.safeAreaRegions = []
         let created = EditorWindow(contentViewController: hosting)
@@ -38,18 +40,13 @@ final class PreferencesWindowController {
     }
 }
 
-private struct PreferencesView: View {
-    @ObservedObject var model: AppModel
-    @ObservedObject var updates: UpdateController
+enum PreferencesPage: String, CaseIterable {
+    case general = "General", pro = "Tenuo Pro", about = "About & Updates"
+}
 
-    private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-    }
-
-    private enum Page: String, CaseIterable {
-        case general = "General", pro = "Tenuo Pro", about = "About & Updates"
-    }
-    @State private var page: Page = {
+@MainActor
+private final class PreferencesNavigation: ObservableObject {
+    @Published var page: PreferencesPage = {
         #if DEBUG
             let arguments = ProcessInfo.processInfo.arguments
             if arguments.contains("--ui-preview") {
@@ -59,6 +56,18 @@ private struct PreferencesView: View {
         #endif
         return .general
     }()
+
+}
+
+private struct PreferencesView: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var updates: UpdateController
+
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    @ObservedObject var navigation: PreferencesNavigation
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -75,24 +84,26 @@ private struct PreferencesView: View {
             .padding(.bottom, 20)
 
             HStack(spacing: 4) {
-                ForEach(Page.allCases, id: \.self) { item in
+                ForEach(PreferencesPage.allCases, id: \.self) { item in
                     Button {
-                        page = item
+                        navigation.page = item
                     } label: {
                         Text(item.rawValue)
                             .font(DS.Typography.label)
-                            .foregroundStyle(page == item ? DS.Ink.primary : DS.Ink.secondary)
+                            .foregroundStyle(
+                                navigation.page == item ? DS.Ink.primary : DS.Ink.secondary
+                            )
                             .frame(maxWidth: .infinity)
                             .frame(height: 32)
                             .background(
-                                page == item ? DS.Selection.fill : .clear,
+                                navigation.page == item ? DS.Selection.fill : .clear,
                                 in: RoundedRectangle(
                                     cornerRadius: DS.Radius.field, style: .continuous)
                             )
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityAddTraits(page == item ? .isSelected : [])
+                    .accessibilityAddTraits(navigation.page == item ? .isSelected : [])
                 }
             }
             .padding(4)
@@ -101,7 +112,7 @@ private struct PreferencesView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    switch page {
+                    switch navigation.page {
                     case .general: general
                     case .pro: LicenseSettingsView(model: model, license: model.license)
                     case .about: about

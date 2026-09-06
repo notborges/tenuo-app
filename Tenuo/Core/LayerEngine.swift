@@ -106,6 +106,13 @@ struct LayerEngine {
         var tapCandidate: TapCandidate?
     }
 
+    private var pendingActions: [MacAction] = []
+
+    mutating func takePendingActions() -> [MacAction] {
+        defer { pendingActions.removeAll(keepingCapacity: true) }
+        return pendingActions
+    }
+
     private var sourceLayers: [Layer] = []
     private var applicationID: String?
     private var layers: [CompiledLayer] = []
@@ -165,6 +172,7 @@ struct LayerEngine {
     }
 
     mutating func apply(profile: Profile) {
+        pendingActions.removeAll(keepingCapacity: true)
         sourceLayers = profile.layers
         tapThresholdNanoseconds =
             UInt64(max(0, profile.tapThresholdMilliseconds)) * 1_000_000
@@ -302,7 +310,7 @@ struct LayerEngine {
             perform(.toggleLayer(.current), from: candidate.layerIndex, emit: emit)
         case .oneShotLayer:
             perform(.oneShotLayer(.current), from: candidate.layerIndex, emit: emit)
-        case .sendKey:
+        case .sendKey, .macAction:
             perform(candidate.action, from: candidate.layerIndex, emit: emit)
         }
     }
@@ -316,6 +324,8 @@ struct LayerEngine {
         guard actionAvailability.canUse(action.kind) else { return }
 
         switch action {
+        case let .macAction(destination):
+            if destination.isValid { pendingActions.append(destination) }
         case let .sendKey(binding):
             guard let keyCode = binding.keyCode else { return }
             emit(SyntheticKey(keyCode: keyCode, flags: binding.flags, isKeyDown: true))
@@ -418,6 +428,13 @@ struct LayerEngine {
         _ event: InputEvent,
         emit: (SyntheticKey) -> Void
     ) -> Disposition {
+        if event.isRepeat,
+            held.contains(where: {
+                $0.source == event.keyCode && $0.awaitingSourceRelease
+            })
+        {
+            return .suppress
+        }
         if !event.isRepeat { discardStrandedEntry(for: event.keyCode) }
 
         guard activeMask != 0 else { return .passThrough }
@@ -466,7 +483,7 @@ struct LayerEngine {
                         hasArmedOneShots: hasArmedOneShots,
                         flags: event.flags,
                         emit: emit)
-                case .toggleLayer, .oneShotLayer:
+                case .toggleLayer, .oneShotLayer, .macAction:
                     perform(action, from: index, emit: emit)
                     remember(
                         source: event.keyCode, output: event.keyCode, flags: [],
@@ -615,6 +632,7 @@ struct LayerEngine {
     }
 
     mutating func reset(emit: (SyntheticKey) -> Void) {
+        pendingActions.removeAll(keepingCapacity: true)
         releaseHeldOutputs(emit: emit)
         held.removeAll(keepingCapacity: true)
         for slot in triggers.indices {

@@ -92,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.appearance = NSAppearance(named: .darkAqua)
         MainMenu.install(target: self)
+        model.onOpenProSettings = { [weak self] in self?.preferences.show(page: .pro) }
 
         guard !Self.isUIPreview else {
             NSApp.setActivationPolicy(.regular)

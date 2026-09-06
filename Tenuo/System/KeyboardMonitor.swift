@@ -13,6 +13,8 @@ final class KeyboardMonitor {
 
     private let eventSource = CGEventSource(stateID: .privateState)
 
+    var onAction: ((MacAction) -> Void)?
+
     var onTapInvalidated: (() -> Void)?
 
     var onActiveLayersChanged: (([LayerActivity]) -> Void)?
@@ -135,6 +137,7 @@ final class KeyboardMonitor {
         )
 
         let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
+        for action in engine.takePendingActions() { onAction?(action) }
         publishActiveLayerIfNeeded()
 
         switch disposition {

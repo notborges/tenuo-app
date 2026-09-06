@@ -280,6 +280,10 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
     private func validate(_ action: Action?, in layer: Layer) throws {
         guard let action else { return }
         switch action {
+        case let .macAction(destination):
+            guard destination.isValid else {
+                throw ProfileError.invalidActionTarget(layer: layer.name)
+            }
         case let .sendKey(binding):
             guard binding.keyCode != nil else {
                 throw ProfileError.unknownDestinationKey(
