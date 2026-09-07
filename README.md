@@ -21,8 +21,9 @@ update feed by default.
   or send Hyper (Control + Option + Command + Shift).
 - An optional tap action for a layer key, such as sending Escape when Caps Lock
   is tapped.
-- Pro features including toggling a layer, using it for the next keypress, and
-  restoring previous versions of a profile.
+- Hold, toggle, and one-shot layers are free.
+- Pro adds Mac actions, app-specific mapping overrides, profile history, and
+  optional iCloud profile sync between Macs.
 - A visual editor, an optional active-layer view while holding a trigger, and
   JSON profile import and export.
 - Launch at login.
@@ -81,6 +82,19 @@ cp Local.xcconfig.example Local.xcconfig
 
 Then set `CODE_SIGN_IDENTITY` and `DEVELOPMENT_TEAM` in the ignored file.
 
+Debug builds enable Pro features for local development. iCloud sync also needs
+CloudKit provisioning; the default source build leaves it unavailable.
+To develop sync, register app IDs and an iCloud container under your Apple
+Developer team, enable CloudKit and Push Notifications, and set your container
+identifier in `Tenuo/Resources/TenuoCloud.entitlements`. Enable the CloudKit
+signing options shown in `Local.xcconfig.example`, then let Xcode manage the
+matching provisioning profiles.
+
+Debug uses CloudKit's Development environment; Release uses Production. A
+Developer ID release must include its CloudKit provisioning profile, preserve
+the Production entitlements through Xcode export, and have its container's
+schema deployed to Production.
+
 ## Permissions and privacy
 
 Tenuo installs a system-wide `CGEventTap` so it can pass, suppress, or rewrite
@@ -88,8 +102,10 @@ keyboard events. It is intentionally not sandboxed and needs Accessibility
 access; it does not need Input Monitoring.
 
 Keyboard events are processed locally. Tenuo does not record or transmit
-keystrokes, and profiles and settings stay on the Mac unless you export a
-profile yourself.
+keystrokes. Profiles stay local unless you export them or enable Pro's iCloud
+sync. Sync stores profile definitions in your private iCloud database. Active
+profile selection, app preferences, profile history, file-access bookmarks,
+and local target replacements stay on each Mac.
 
 Official builds can contact Polar when a Pro license is activated or checked.
 The license record stays in the macOS Keychain; keyboard events and profiles
@@ -103,9 +119,11 @@ Source builds have no update feed configured and do not check for updates. An
 official build can be configured to use Sparkle for updates; update checks are
 off until a feed is provided.
 
-Source builds also leave official Polar licensing unconfigured. The Pro action
-code is included in the source, but a source build does not unlock it unless
-you configure Polar locally or change the gate yourself.
+Source builds leave official Polar licensing unconfigured. Debug builds enable
+a local Pro preview; Release builds require configured Polar licensing and an
+active entitlement. All Pro code is included in this repository. Apple's
+authorization to use a CloudKit container comes from signing and provisioning,
+not from enabling the Pro preview.
 
 ## Development
 

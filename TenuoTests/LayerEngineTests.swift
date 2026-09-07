@@ -274,6 +274,35 @@ final class LayerEngineTests: XCTestCase {
         XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
     }
 
+    func testSyncBoundaryWaitsForTriggersMappedReleasesAndPersistentLayers() {
+        var harness = Harness()
+        XCTAssertTrue(harness.engine.isQuiescent)
+        harness.capsDown()
+        XCTAssertFalse(harness.engine.isQuiescent)
+        harness.keyDown(KeyCode.h)
+        harness.capsUp(at: 500 * milliseconds)
+        XCTAssertFalse(harness.engine.isQuiescent)
+        harness.keyUp(KeyCode.h)
+        XCTAssertTrue(harness.engine.isQuiescent)
+        var profile = Presets.navigation
+        profile.layers[1].tapAction = .toggleLayer(.current)
+        harness = Harness(profile: profile)
+        harness.capsDown()
+        harness.capsUp(at: 50 * milliseconds)
+        XCTAssertFalse(harness.engine.isQuiescent)
+        harness.reset()
+        XCTAssertTrue(harness.engine.isQuiescent)
+        profile.layers[1].tapAction = .oneShotLayer(.current)
+        harness = Harness(profile: profile)
+        harness.capsDown()
+        harness.capsUp(at: 50 * milliseconds)
+        XCTAssertFalse(harness.engine.isQuiescent)
+        harness.keyDown(KeyCode.h)
+        XCTAssertFalse(harness.engine.isQuiescent)
+        harness.keyUp(KeyCode.h)
+        XCTAssertTrue(harness.engine.isQuiescent)
+    }
+
     func testOneShotTapAppliesToOneOrdinaryKeypress() {
         let layout = Profile(
             name: "One-shot",

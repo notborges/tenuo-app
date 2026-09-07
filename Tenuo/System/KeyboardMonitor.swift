@@ -13,6 +13,17 @@ final class KeyboardMonitor {
 
     private let eventSource = CGEventSource(stateID: .privateState)
 
+    private var pressedKeys: Set<UInt16> = []
+    private var physicalModifiers: CGEventFlags = []
+    private static let heldModifierMask: CGEventFlags = [
+        .maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn,
+    ]
+
+    var isQuiescent: Bool {
+        !isRunning || (engine.isQuiescent && pressedKeys.isEmpty && physicalModifiers.isEmpty)
+    }
+    var onIdle: (() -> Void)?
+
     var onAction: ((MacAction) -> Void)?
 
     var onTapInvalidated: (() -> Void)?
@@ -65,6 +76,10 @@ final class KeyboardMonitor {
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: port, enable: true)
 
+        pressedKeys = Set(
+            (UInt16(0)..<128).filter { CGEventSource.keyState(.combinedSessionState, key: $0) })
+        physicalModifiers = CGEventSource.flagsState(.combinedSessionState).intersection(
+            Self.heldModifierMask)
         tap = port
         runLoopSource = source
         log.info("Event tap installed")
@@ -79,6 +94,8 @@ final class KeyboardMonitor {
         CFMachPortInvalidate(tap)
         self.tap = nil
         self.runLoopSource = nil
+        pressedKeys.removeAll(keepingCapacity: true)
+        physicalModifiers = []
         log.info("Event tap removed")
     }
 
@@ -103,6 +120,7 @@ final class KeyboardMonitor {
         engine.reset { [weak self] key in self?.post(key) }
         lastActiveLayerStates = []
         if hadActiveLayer { onActiveLayersChanged?([]) }
+        onIdle?()
     }
 
     private func process(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -136,7 +154,14 @@ final class KeyboardMonitor {
             timestamp: event.timestamp
         )
 
+        let wasIdle = isQuiescent
+        if !input.isSynthetic {
+            if type == .keyDown { pressedKeys.insert(input.keyCode) }
+            if type == .keyUp { pressedKeys.remove(input.keyCode) }
+            physicalModifiers = event.flags.intersection(Self.heldModifierMask)
+        }
         let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
+        if !wasIdle && isQuiescent { onIdle?() }
         for action in engine.takePendingActions() { onAction?(action) }
         publishActiveLayerIfNeeded()
 

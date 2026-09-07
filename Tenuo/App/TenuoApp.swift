@@ -149,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             if let editorWindow { capturePreviewIfRequested(editorWindow) }
             return
         }
+        if CloudProfileConfiguration.current != nil { NSApp.registerForRemoteNotifications() }
         startNormally()
     }
 

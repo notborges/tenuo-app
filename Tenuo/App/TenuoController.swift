@@ -9,6 +9,7 @@ final class TenuoController {
 
     let preferences: AppPreferences
     let profileStore: ProfileStore
+    let sync: ProfileSyncController
     let actionAvailability: any ActionAvailability
     let license: LicenseManager
     let accessibility = AccessibilityManager()
@@ -18,6 +19,7 @@ final class TenuoController {
     private let systemEvents = SystemEventObserver()
     private let profileSelection: ProfileSelectionSource
     private var applicationObserver: NSObjectProtocol?
+    private var profileObserver: UUID?
     private var licenseObserver: AnyCancellable?
     private let actionRunner: MacActionRunner
     private let actionFeedback = ActionFeedbackController()
@@ -53,8 +55,10 @@ final class TenuoController {
         self.license = license
         self.actionAvailability = actionAvailability ?? license.entitlement
         actionRunner = MacActionRunner(availability: self.actionAvailability)
-        let store = profileStore ?? UserDefaultsProfileStore()
+        let store = profileStore ?? Self.openProfileStore()
         self.profileStore = store
+        sync = ProfileSyncController(
+            store: store as? SQLiteProfileStore, hasPro: { license.hasProAccess })
         let selection = profileSelection ?? ManualProfileSelectionSource(store: store)
         self.profileSelection = selection
         monitor = KeyboardMonitor(
@@ -63,7 +67,36 @@ final class TenuoController {
             actionAvailability: self.actionAvailability)
     }
 
+    private static func openProfileStore() -> ProfileStore {
+        do {
+            let directory = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask, appropriateFor: nil, create: true
+            )
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "app.tenuo", isDirectory: true)
+            return try SQLiteProfileStore(url: directory.appendingPathComponent("profiles.sqlite"))
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Your profiles could not be opened"
+            alert.informativeText =
+                "Tenuo has kept your existing data and will not start keyboard remapping. \(error.localizedDescription)"
+            alert.addButton(withTitle: "Quit")
+            alert.runModal()
+            exit(EXIT_FAILURE)
+        }
+    }
+
     func start() {
+        sync.canApply = { [weak self] in self?.monitor.isQuiescent == true }
+        monitor.onIdle = { [weak self] in
+            Task { @MainActor [weak self] in self?.sync.applyWaitingChanges() }
+        }
+        sync.start()
+        profileObserver = profileStore.addObserver { [weak self] change in
+            if change.previous.manualProfile == change.current.manualProfile {
+                self?.onStateChanged?()
+            }
+        }
         actionRunner.onFailure = { [weak self] message in self?.actionFeedback.show(message) }
         monitor.onAction = { [weak self] action in
             Task { @MainActor [weak self] in
@@ -77,6 +110,7 @@ final class TenuoController {
             MainActor.assumeIsolated { self?.refreshApplication() }
         }
         licenseObserver = license.$state.receive(on: RunLoop.main).sink { [weak self] _ in
+            self?.sync.entitlementChanged()
             self?.refreshApplication()
         }
         refreshApplication()
@@ -132,6 +166,9 @@ final class TenuoController {
     }
 
     func shutDown() {
+        sync.stop()
+        if let profileObserver { profileStore.removeObserver(profileObserver) }
+        profileObserver = nil
         if let applicationObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(applicationObserver)
         }

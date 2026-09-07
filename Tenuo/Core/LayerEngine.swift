@@ -648,6 +648,7 @@ struct LayerEngine {
     }
 
     var isLayerActive: Bool { activeMask & ~baseMask != 0 }
+    var isQuiescent: Bool { !isLayerActive && held.isEmpty && !triggers.contains { $0.isDown } }
     var hasKeysHeld: Bool { !held.isEmpty }
 
     func isActive(layerIndex: Int) -> Bool {

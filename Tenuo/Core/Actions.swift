@@ -236,11 +236,13 @@ enum DefaultActionAvailability {
 }
 
 struct NamedActionTarget: Codable, Equatable, Hashable, Sendable {
+    var localID: UUID? = nil
     var id: String
     var name: String
 }
 
 struct FileActionTarget: Codable, Equatable, Hashable, Sendable {
+    var localID: UUID? = nil
     var bookmark: Data
     var name: String
 }
@@ -276,7 +278,7 @@ enum MacAction: Codable, Equatable, Hashable, Sendable {
         case let .shortcut(target):
             return UUID(uuidString: target.id) != nil && !target.name.isEmpty
         case let .file(target):
-            return !target.bookmark.isEmpty && !target.name.isEmpty
+            return (!target.bookmark.isEmpty || target.localID != nil) && !target.name.isEmpty
         case let .url(value):
             guard let url = URL(string: value),
                 ["https", "http"].contains(url.scheme?.lowercased() ?? ""),

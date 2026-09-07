@@ -17,6 +17,8 @@ final class AppModel: ObservableObject {
 
     var onOpenProSettings: (() -> Void)?
 
+    var sync: ProfileSyncController { controller.sync }
+
     let license: LicenseManager
     private var licenseObserver: AnyCancellable?
 
@@ -363,6 +365,12 @@ final class AppModel: ObservableObject {
     }
 
     func refresh() {
+        if !profile.layers.contains(where: { $0.id == selectedLayerID }) {
+            selectedLayerID = profile.triggeredLayers.first?.id ?? profile.layers.first?.id
+        }
+        if let selectedApplicationID, selectedLayer.applications[selectedApplicationID] == nil {
+            self.selectedApplicationID = nil
+        }
         isTrusted = controller.isTrusted
         isActive = controller.isActive
         launchesAtLogin = controller.launchAtLogin.isRegistered

@@ -41,7 +41,7 @@ final class PreferencesWindowController {
 }
 
 enum PreferencesPage: String, CaseIterable {
-    case general = "General", pro = "Tenuo Pro", about = "About & Updates"
+    case general = "General", sync = "Sync", pro = "Tenuo Pro", about = "About & Updates"
 }
 
 @MainActor
@@ -50,6 +50,7 @@ private final class PreferencesNavigation: ObservableObject {
         #if DEBUG
             let arguments = ProcessInfo.processInfo.arguments
             if arguments.contains("--ui-preview") {
+                if arguments.contains("--settings-sync") { return .sync }
                 if arguments.contains("--settings-pro") { return .pro }
                 if arguments.contains("--settings-about") { return .about }
             }
@@ -114,6 +115,10 @@ private struct PreferencesView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     switch navigation.page {
                     case .general: general
+                    case .sync:
+                        ProfileSyncSettingsView(sync: model.sync, license: model.license) {
+                            navigation.page = .pro
+                        }
                     case .pro: LicenseSettingsView(model: model, license: model.license)
                     case .about: about
                     }

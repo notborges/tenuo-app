@@ -9,6 +9,7 @@ CODE_SIGN_IDENTITY = -
 CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM =
 PROVISIONING_PROFILE_SPECIFIER =
+TENUO_CODE_SIGN_ENTITLEMENTS = Tenuo/Resources/Tenuo.entitlements
 
 // Leave these empty for source builds. The release script supplies the
 // official update channel values for distributed builds.

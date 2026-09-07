@@ -125,7 +125,13 @@ struct MacActionEditor: View {
             }
         }
         .sheet(isPresented: $showsShortcuts) {
-            ShortcutPicker { assign(.shortcut($0)) }
+            ShortcutPicker { chosen in
+                var target = chosen
+                if unavailable, case let .shortcut(previous) = destination {
+                    target.localID = previous.localID
+                }
+                assign(.shortcut(target))
+            }
         }
         .task(id: destination) {
             failure = nil
@@ -187,7 +193,7 @@ struct MacActionEditor: View {
         Button(action: action) {
             HStack {
                 Image(systemName: symbol)
-                Text(destination == nil ? title : (unavailable ? "Choose replacement…" : "Change…"))
+                Text(destination == nil ? title : (unavailable ? "Choose on this Mac…" : "Change…"))
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
             }
@@ -243,13 +249,16 @@ struct MacActionEditor: View {
             guard response == .OK, let url = panel.url else { return }
             Task { @MainActor in
                 do {
-                    let target = try await Task.detached {
+                    var target = try await Task.detached {
                         FileActionTarget(
                             bookmark: try url.bookmarkData(
                                 options: [],
                                 includingResourceValuesForKeys: nil, relativeTo: nil),
                             name: url.lastPathComponent)
                     }.value
+                    if unavailable, case let .file(previous) = destination {
+                        target.localID = previous.localID
+                    }
                     assign(.file(target))
                 } catch { failure = "This item could not be saved. Try choosing it again." }
             }

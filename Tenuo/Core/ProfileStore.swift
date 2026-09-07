@@ -9,6 +9,15 @@ struct ProfileStoreSnapshot: Codable, Equatable, Sendable {
         self.manualProfileID = manualProfileID
     }
 
+    func validate() throws {
+        guard !profiles.isEmpty, Set(profiles.map(\.id)).count == profiles.count,
+            profiles.contains(where: { $0.id == manualProfileID })
+        else {
+            throw ProfileStoreError.invalidSnapshot
+        }
+        for profile in profiles { try profile.validate() }
+    }
+
     var manualProfile: Profile {
         guard let profile = profiles.first(where: { $0.id == manualProfileID }) else {
             preconditionFailure("A profile store snapshot must contain its manual profile")
@@ -31,6 +40,7 @@ struct ProfileStoreSnapshot: Codable, Equatable, Sendable {
         }
 
         self.init(profiles: profiles, manualProfileID: manualProfileID)
+        try validate()
     }
 }
 
