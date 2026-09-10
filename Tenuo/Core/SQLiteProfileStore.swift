@@ -2,12 +2,16 @@ import Foundation
 
 final class SQLiteProfileStore: ProfileStore {
     private let database: ProfileDatabase
+    fileprivate let now: () -> Date
+    fileprivate var historySessions = HistoryCheckpointPolicy()
     private(set) var state: ProfileSyncState
     private var observers: [UUID: (ProfileStoreChange) -> Void] = [:]
     var onSyncChange: (() -> Void)?
     lazy var history: any ProfileHistoryStore = DatabaseProfileHistory(store: self)
 
-    init(url: URL, defaults: UserDefaults = .standard) throws {
+    init(url: URL, defaults: UserDefaults = .standard, now: @escaping () -> Date = Date.init) throws
+    {
+        self.now = now
         database = try ProfileDatabase(url: url)
         if let saved = try database.load() {
             state = saved
@@ -57,10 +61,20 @@ final class SQLiteProfileStore: ProfileStore {
     func transaction(_ body: (inout ProfileSyncState) throws -> Void) throws {
         var next = state
         try body(&next)
+        try persist(next)
+    }
+
+    private func persist(_ next: ProfileSyncState, sessions: HistoryCheckpointPolicy? = nil) throws
+    {
         guard next != state else { return }
         try database.save(next)
         let previous = snapshot
         state = next
+        if let sessions {
+            historySessions = sessions
+        } else if previous.profiles != snapshot.profiles {
+            historySessions = HistoryCheckpointPolicy()
+        }
         if previous != snapshot {
             let change = ProfileStoreChange(previous: previous, current: snapshot)
             for observer in Array(observers.values) { observer(change) }
@@ -175,20 +189,25 @@ final class SQLiteProfileStore: ProfileStore {
         forceHistoryFor profileID: UUID? = nil
     ) -> Bool {
         guard next != previous else { return false }
+        var sessions = historySessions
+        if next.manualProfileID != previous.manualProfileID { sessions = HistoryCheckpointPolicy() }
         do {
             try next.validate()
-            try transaction { state in
-                let previous = state.snapshot
-                let portable = ProfileStoreSnapshot(
-                    profiles: next.profiles.map { state.portable($0) },
-                    manualProfileID: next.manualProfileID)
-                for profile in previous.profiles
-                where portable.profiles.first(where: { $0.id == profile.id }) != profile {
-                    state.recordHistory(profile, force: profile.id == profileID)
+            var candidate = state
+            let previous = candidate.snapshot
+            let portable = ProfileStoreSnapshot(
+                profiles: next.profiles.map { candidate.portable($0) },
+                manualProfileID: next.manualProfileID)
+            let date = now()
+            for profile in previous.profiles
+            where portable.profiles.first(where: { $0.id == profile.id }) != profile {
+                if sessions.edit(profile.id, at: date, force: profile.id == profileID) {
+                    candidate.recordHistory(profile, now: date)
                 }
-                state.snapshot = portable
-                state.recordLocalChanges(from: previous)
             }
+            candidate.snapshot = portable
+            candidate.recordLocalChanges(from: previous)
+            try persist(candidate, sessions: sessions)
             return true
         } catch { return false }
     }
@@ -197,6 +216,7 @@ final class SQLiteProfileStore: ProfileStore {
 private final class DatabaseProfileHistory: ProfileHistoryStore {
     private unowned let store: SQLiteProfileStore
     init(store: SQLiteProfileStore) { self.store = store }
+    func endSession() { store.historySessions = HistoryCheckpointPolicy() }
     func entries(for profileID: UUID) -> Result<[ProfileHistoryEntry], ProfileHistoryError> {
         .success(
             store.state.history.filter { $0.profile.id == profileID }.map {
@@ -205,10 +225,18 @@ private final class DatabaseProfileHistory: ProfileHistoryStore {
             }.sorted { $0.savedAt > $1.savedAt })
     }
     func record(_ profile: Profile, force: Bool) -> Bool {
+        var sessions = store.historySessions
+        let date = store.now()
+        let checkpoint = sessions.edit(profile.id, at: date, force: force)
         do {
-            try store.transaction { state in
-                let profile = state.portable(profile); state.recordHistory(profile, force: force)
-            }; return true
+            if checkpoint {
+                try store.transaction { state in
+                    let profile = state.portable(profile)
+                    state.recordHistory(profile, now: date)
+                }
+            }
+            store.historySessions = sessions
+            return true
         } catch { return false }
     }
     func removeAll(for profileID: UUID) -> Bool {

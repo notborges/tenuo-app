@@ -43,6 +43,25 @@ extension NSWindow {
 /// Keeps native window controls aligned with the inset navigation panel.
 @MainActor
 final class EditorWindow: NSWindow {
+    var profileUndoManager: UndoManager?
+    override var undoManager: UndoManager? { profileUndoManager ?? super.undoManager }
+
+    @objc func undo(_ sender: Any?) { undoManager?.undo() }
+    @objc func redo(_ sender: Any?) { undoManager?.redo() }
+
+    override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(undo(_:)):
+            menuItem.title = undoManager?.undoMenuItemTitle ?? "Undo"
+            return undoManager?.canUndo == true
+        case #selector(redo(_:)):
+            menuItem.title = undoManager?.redoMenuItemTitle ?? "Redo"
+            return undoManager?.canRedo == true
+        default:
+            return super.validateMenuItem(menuItem)
+        }
+    }
+
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         super.setFrame(frameRect, display: flag)
         positionWindowButtons()
@@ -102,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     let hosting = NSHostingController(rootView: ProfileHistoryPreview())
                     hosting.safeAreaRegions = []
                     let window = EditorWindow(contentViewController: hosting)
+                    window.profileUndoManager = model.edits.undoManager
                     window.styleMask = [
                         .titled, .closable, .miniaturizable, .resizable, .fullSizeContentView,
                     ]
@@ -229,6 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         )
         hosting.safeAreaRegions = []
         let window = EditorWindow(contentViewController: hosting)
+        window.profileUndoManager = model.edits.undoManager
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.title = ""
         window.titleVisibility = .hidden
@@ -257,6 +278,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         guard (notification.object as? NSWindow) === editorWindow else { return }
+        model.edits.endSession()
         guard !Self.isUIPreview else { return }
         DispatchQueue.main.async { NSApp.setActivationPolicy(.accessory) }
     }

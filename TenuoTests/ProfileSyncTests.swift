@@ -14,6 +14,86 @@ final class ProfileSyncTests: XCTestCase {
         return (directory.appendingPathComponent("profiles.sqlite"), defaults)
     }
 
+    func testHistoryCheckpointsFollowEditingSessionsAndSurviveReopen() throws {
+        let (url, defaults) = try temporaryStore()
+        var clock = Date(timeIntervalSince1970: 1000)
+        let store = try SQLiteProfileStore(url: url, defaults: defaults, now: { clock })
+        let original = store.manualProfile
+        var edited = original
+        for index in 0..<12 {
+            clock.addTimeInterval(5)
+            edited.name = "Edit \(index)"
+            XCTAssertTrue(store.updateProfile(edited))
+        }
+        XCTAssertEqual(try store.history.entries(for: original.id).get().map(\.profile), [original])
+        clock.addTimeInterval(31)
+        let beforePause = edited
+        edited.name = "After pause"
+        XCTAssertTrue(store.updateProfile(edited))
+        XCTAssertEqual(
+            try store.history.entries(for: original.id).get().map(\.profile),
+            [beforePause, original])
+        let entry = try XCTUnwrap(try store.history.entries(for: original.id).get().last)
+        XCTAssertTrue(store.restore(entry))
+        XCTAssertEqual(try store.history.entries(for: original.id).get().first?.profile, edited)
+        let reopened = try SQLiteProfileStore(url: url, defaults: defaults, now: { clock })
+        var next = reopened.manualProfile
+        next.name = "After restart"
+        XCTAssertTrue(reopened.updateProfile(next))
+        XCTAssertEqual(
+            try reopened.history.entries(for: original.id).get().first?.profile, original)
+        let observer = reopened.addObserver { _ in reopened.history.endSession() }
+        next.name = "End session during notification"
+        XCTAssertTrue(reopened.updateProfile(next))
+        let checkpoint = next
+        next.name = "Next session"
+        XCTAssertTrue(reopened.updateProfile(next))
+        XCTAssertEqual(
+            try reopened.history.entries(for: original.id).get().first?.profile, checkpoint)
+        reopened.removeObserver(observer)
+    }
+
+    func testHistoryLongSessionAndExplicitBoundary() {
+        var policy = HistoryCheckpointPolicy()
+        let id = UUID()
+        let start = Date(timeIntervalSince1970: 1000)
+        XCTAssertTrue(policy.edit(id, at: start))
+        for seconds in stride(from: 10, to: 300, by: 10) {
+            XCTAssertFalse(policy.edit(id, at: start.addingTimeInterval(Double(seconds))))
+        }
+        XCTAssertTrue(policy.edit(id, at: start.addingTimeInterval(300)))
+        XCTAssertTrue(policy.edit(id, at: start.addingTimeInterval(301), force: true))
+        XCTAssertTrue(policy.edit(id, at: start.addingTimeInterval(302)))
+    }
+
+    @MainActor
+    func testFreeUndoRedoPreservesSelectionAndInvalidatesAfterExternalEdit() throws {
+        let (url, defaults) = try temporaryStore()
+        let store = try SQLiteProfileStore(url: url, defaults: defaults)
+        let edits = ProfileEditSession(store: store)
+        edits.undoManager.groupsByEvent = false
+        let original = store.manualProfile
+        var changed = original
+        changed.name = "Edited"
+        edits.undoManager.beginUndoGrouping()
+        XCTAssertTrue(edits.perform { store.updateProfile(changed) })
+        edits.undoManager.endUndoGrouping()
+        let otherID = try XCTUnwrap(store.profiles.first { $0.id != original.id }?.id)
+        XCTAssertTrue(store.selectManualProfile(otherID))
+        edits.undoManager.undo()
+        XCTAssertEqual(store.profiles.first { $0.id == original.id }, original)
+        XCTAssertEqual(store.manualProfileID, otherID)
+        edits.undoManager.redo()
+        XCTAssertEqual(store.profiles.first { $0.id == original.id }, changed)
+        var external = changed
+        external.name = "From another Mac"
+        XCTAssertTrue(store.updateProfile(external))
+        XCTAssertFalse(edits.undoManager.canUndo)
+        XCTAssertFalse(edits.undoManager.canRedo)
+        XCTAssertFalse(edits.perform { false })
+        XCTAssertFalse(edits.undoManager.canUndo)
+    }
+
     func testMigrationAndRestartKeepLocalTargetsOutOfPendingDocuments() throws {
         let (url, defaults) = try temporaryStore()
         var original = Presets.navigation

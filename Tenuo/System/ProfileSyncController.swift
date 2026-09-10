@@ -122,7 +122,7 @@ final class ProfileSyncController: ObservableObject {
         else { return }
         do {
             try store.transaction { state in
-                for profile in state.snapshot.profiles { state.recordHistory(profile, force: true) }
+                for profile in state.snapshot.profiles { state.recordHistory(profile) }
                 try state.connectAccount(account)
                 state.enabled = true
                 state.incoming = [:]
@@ -242,7 +242,7 @@ final class ProfileSyncController: ObservableObject {
                 let remote = conflict.remote
                 if keepLocal {
                     if let remoteProfile = remote.profile {
-                        state.recordHistory(remoteProfile, force: true)
+                        state.recordHistory(remoteProfile)
                     }
                     let profile = state.snapshot.profiles.first { $0.id == conflict.id }
                     state.acknowledged[conflict.id] = remote

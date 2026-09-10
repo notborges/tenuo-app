@@ -106,12 +106,10 @@ struct ProfileSyncState: Codable, Equatable, Sendable {
         accountID = account
     }
 
-    mutating func recordHistory(_ profile: Profile, force: Bool) {
-        let now = Date()
+    mutating func recordHistory(_ profile: Profile, now: Date = Date()) {
         let latest = history.first { $0.profile.id == profile.id }
         if let latest {
             if latest.profile == profile { return }
-            if !force, (0..<1).contains(now.timeIntervalSince(latest.savedAt)) { return }
         }
         history.insert(ProfileHistoryEntry(profile: profile, savedAt: now), at: 0)
         var count = 0
@@ -212,7 +210,7 @@ struct ProfileSyncState: Codable, Equatable, Sendable {
     mutating func apply(_ remote: SyncedProfile) throws {
         var profiles = snapshot.profiles
         if let old = profiles.first(where: { $0.id == remote.id }), old != remote.profile {
-            recordHistory(old, force: true)
+            recordHistory(old)
         }
         profiles.removeAll { $0.id == remote.id }
         if let profile = remote.profile {

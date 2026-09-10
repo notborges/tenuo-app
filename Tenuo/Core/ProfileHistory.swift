@@ -158,6 +158,11 @@ protocol ProfileHistoryStore: AnyObject {
     func entries(for profileID: UUID) -> Result<[ProfileHistoryEntry], ProfileHistoryError>
     func record(_ profile: Profile, force: Bool) -> Bool
     func removeAll(for profileID: UUID) -> Bool
+    func endSession()
+}
+
+extension ProfileHistoryStore {
+    func endSession() {}
 }
 
 final class UserDefaultsProfileHistoryStore: ProfileHistoryStore {
@@ -166,7 +171,9 @@ final class UserDefaultsProfileHistoryStore: ProfileHistoryStore {
     }
 
     private static let maxEntriesPerProfile = 20
-    private static let coalescingWindow: TimeInterval = 1
+    private var sessions = HistoryCheckpointPolicy()
+
+    func endSession() { sessions = HistoryCheckpointPolicy() }
 
     private let defaults: UserDefaults
     private let now: () -> Date
@@ -194,18 +201,17 @@ final class UserDefaultsProfileHistoryStore: ProfileHistoryStore {
             entries
             .filter { $0.profile.id == profile.id }
             .max { $0.savedAt < $1.savedAt }
-        if let latest {
-            if latest.profile == profile { return true }
-            if !force,
-                savedAt.timeIntervalSince(latest.savedAt) >= 0,
-                savedAt.timeIntervalSince(latest.savedAt) < Self.coalescingWindow
-            {
-                return true
-            }
+        var nextSessions = sessions
+        let checkpoint = nextSessions.edit(profile.id, at: savedAt, force: force)
+        if latest?.profile == profile || !checkpoint {
+            sessions = nextSessions
+            return true
         }
 
         entries.append(ProfileHistoryEntry(profile: profile, savedAt: savedAt))
-        return save(trimmed(entries))
+        guard save(trimmed(entries)) else { return false }
+        sessions = nextSessions
+        return true
     }
 
     func removeAll(for profileID: UUID) -> Bool {
@@ -237,5 +243,28 @@ final class UserDefaultsProfileHistoryStore: ProfileHistoryStore {
             counts[entry.profile.id] = count + 1
             return true
         }
+    }
+}
+
+struct HistoryCheckpointPolicy {
+    private static let idleTimeout: TimeInterval = 30
+    private static let maximumSessionDuration: TimeInterval = 300
+    private struct Session {
+        var started: Date
+        var lastEdit: Date
+    }
+    private var sessions: [UUID: Session] = [:]
+
+    mutating func edit(_ id: UUID, at now: Date, force: Bool = false) -> Bool {
+        guard !force, let previous = sessions[id] else {
+            sessions[id] = force ? nil : Session(started: now, lastEdit: now)
+            return true
+        }
+        let checkpoint =
+            now.timeIntervalSince(previous.lastEdit) >= Self.idleTimeout
+            || now.timeIntervalSince(previous.started) >= Self.maximumSessionDuration
+            || now < previous.lastEdit
+        sessions[id] = Session(started: checkpoint ? now : previous.started, lastEdit: now)
+        return checkpoint
     }
 }

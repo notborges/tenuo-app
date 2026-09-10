@@ -79,7 +79,9 @@
 		TENUO00000000000000000BB /* LicenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BA /* LicenseTests.swift */; };
 		TENUO00000000000000000BC /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B0 /* License.swift */; };
 		TENUO00000000000000000BD /* ProfileHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BF /* ProfileHistory.swift */; };
+		DE84942F344B4D98A9A08231 /* ProfileEditSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */; };
 		TENUO00000000000000000BE /* ProfileHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BF /* ProfileHistory.swift */; };
+		DE84942F344B4D98A9A08232 /* ProfileEditSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */; };
 		TENUO00000000000000000C0 /* ProfileHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000C1 /* ProfileHistoryView.swift */; };
 		AC7200000000000000000000 /* MacActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000000 /* MacActionRunner.swift */; };
 		AC7200000000000000000001 /* ApplicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000001 /* ApplicationPicker.swift */; };
@@ -163,6 +165,7 @@
 		TENUO00000000000000000B8 /* LicenseSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseSettingsView.swift; sourceTree = "<group>"; };
 		TENUO00000000000000000BA /* LicenseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseTests.swift; sourceTree = "<group>"; };
 		TENUO00000000000000000BF /* ProfileHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileHistory.swift; sourceTree = "<group>"; };
+		DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditSession.swift; sourceTree = "<group>"; };
 		TENUO00000000000000000C1 /* ProfileHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileHistoryView.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -228,6 +231,7 @@
 				TENUO0000000000000000099 /* Actions.swift */,
 				TENUO00000000000000000B0 /* License.swift */,
 				TENUO00000000000000000BF /* ProfileHistory.swift */,
+				DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */,
 				TENUO0000000000000000014 /* Profile.swift */,
 				TENUO0000000000000000016 /* Presets.swift */,
 				TENUO0000000000000000018 /* LayerEngine.swift */,
@@ -522,6 +526,7 @@
 				TENUO00000000000000000A0 /* LayerStatusController.swift in Sources */,
 				TENUO00000000000000000B9 /* LicenseSettingsView.swift in Sources */,
 				TENUO00000000000000000BD /* ProfileHistory.swift in Sources */,
+				DE84942F344B4D98A9A08231 /* ProfileEditSession.swift in Sources */,
 				TENUO00000000000000000C0 /* ProfileHistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -551,6 +556,7 @@
 				TENUO0000000000000000098 /* Actions.swift in Sources */,
 				TENUO00000000000000000BC /* License.swift in Sources */,
 				TENUO00000000000000000BE /* ProfileHistory.swift in Sources */,
+				DE84942F344B4D98A9A08232 /* ProfileEditSession.swift in Sources */,
 				TENUO000000000000000004B /* Profile.swift in Sources */,
 				TENUO000000000000000004C /* Presets.swift in Sources */,
 				TENUO000000000000000004D /* LayerEngine.swift in Sources */,

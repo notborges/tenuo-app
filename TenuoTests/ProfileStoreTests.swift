@@ -223,7 +223,7 @@ final class ProfileStoreTests: XCTestCase {
         XCTAssertEqual(try history.entries(for: profile.id).get().count, 2)
 
         for index in 0..<25 {
-            now.addTimeInterval(1)
+            now.addTimeInterval(31)
             profile.name = "Version \(index)"
             XCTAssertTrue(history.record(profile, force: false))
         }

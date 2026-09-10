@@ -179,7 +179,10 @@ struct ProfileHistoryBrowser: View {
                 }
             }
             Spacer(minLength: 0)
-            Text("Saved on this Mac · Up to 20 versions")
+            Text("Saved on this Mac · Up to 20 checkpoints")
+                .help(
+                    "Related edits share a checkpoint. A new checkpoint starts after 30 seconds idle, when you switch profiles or layers, or after five minutes of editing."
+                )
                 .font(.system(size: 10))
                 .foregroundStyle(DS.Ink.secondary)
                 .padding(18)

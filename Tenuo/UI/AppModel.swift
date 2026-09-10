@@ -13,13 +13,19 @@ final class AppModel: ObservableObject {
     @Published private(set) var licenseState: LicenseState
 
     @Published var selectedApplicationID: String?
-    @Published var selectedLayerID: UUID? { didSet { selectedApplicationID = nil } }
+    @Published var selectedLayerID: UUID? {
+        didSet {
+            selectedApplicationID = nil
+            if oldValue != selectedLayerID { profileStore.history.endSession() }
+        }
+    }
 
     var onOpenProSettings: (() -> Void)?
 
     var sync: ProfileSyncController { controller.sync }
 
     let license: LicenseManager
+    let edits: ProfileEditSession
     private var licenseObserver: AnyCancellable?
 
     init(controller: TenuoController) {
@@ -27,6 +33,7 @@ final class AppModel: ObservableObject {
         license = controller.license
         licenseState = controller.license.state
         let store = controller.profileStore
+        edits = ProfileEditSession(store: store)
         selectedLayerID =
             store.manualProfile.triggeredLayers.first?.id
             ?? store.manualProfile.layers.first?.id
@@ -35,6 +42,17 @@ final class AppModel: ObservableObject {
             .sink { [weak self] state in
                 self?.licenseState = state
             }
+        edits.onFailure = { [weak self] in
+            self?.errorMessage = "Tenuo could not undo or redo this change."
+        }
+        edits.onChange = { [weak self] in
+            guard let self else { return }
+            if !layers.contains(where: { $0.id == self.selectedLayerID }) { selectInitialLayer() }
+            if let id = selectedApplicationID, selectedLayer.applications[id] == nil {
+                selectedApplicationID = nil
+            }
+            objectWillChange.send()
+        }
         refresh()
     }
 
@@ -42,7 +60,7 @@ final class AppModel: ObservableObject {
         get { profileStore.manualProfile }
         set {
             guard newValue != profile else { return }
-            guard profileStore.updateProfile(newValue) else {
+            guard edits.perform("Edit Profile", { profileStore.updateProfile(newValue) }) else {
                 errorMessage = "Tenuo could not save the profile or its history."
                 return
             }
@@ -146,7 +164,7 @@ final class AppModel: ObservableObject {
             current != entry.profile
         else { return false }
 
-        guard profileStore.restore(entry) else {
+        guard edits.perform("Restore Profile", { profileStore.restore(entry) }) else {
             errorMessage = "Tenuo could not restore this profile version."
             return false
         }
@@ -230,7 +248,11 @@ final class AppModel: ObservableObject {
 
     func addProfile(from source: Profile, named name: String) {
         let created = source.copy(named: profileStore.uniqueName(name))
-        guard profileStore.replaceProfiles(profiles + [created], selecting: created.id) else {
+        guard
+            edits.perform(
+                "Add Profile",
+                { profileStore.replaceProfiles(profiles + [created], selecting: created.id) })
+        else {
             return
         }
         selectInitialLayer()
@@ -255,10 +277,14 @@ final class AppModel: ObservableObject {
         else { return }
         updated.name = profileStore.uniqueName(trimmed)
         guard
-            profileStore.replaceProfiles(
-                profiles.map { $0.id == id ? updated : $0 },
-                selecting: activeProfileID
-            )
+            edits.perform(
+                "Rename Profile",
+                {
+                    profileStore.replaceProfiles(
+                        profiles.map { $0.id == id ? updated : $0 },
+                        selecting: activeProfileID
+                    )
+                })
         else {
             errorMessage = "Tenuo could not save the profile or its history."
             return
@@ -272,7 +298,11 @@ final class AppModel: ObservableObject {
         guard canRemoveProfile else { return }
         let remaining = profiles.filter { $0.id != id }
         let selectedID = id == activeProfileID ? remaining[0].id : activeProfileID
-        guard profileStore.replaceProfiles(remaining, selecting: selectedID) else {
+        guard
+            edits.perform(
+                "Delete Profile", { profileStore.replaceProfiles(remaining, selecting: selectedID) }
+            )
+        else {
             errorMessage = "Tenuo could not delete the profile or its history."
             return
         }
@@ -308,7 +338,15 @@ final class AppModel: ObservableObject {
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try profileStore.importProfile(Data(contentsOf: url))
+            let data = try Data(contentsOf: url)
+            guard
+                try edits.perform(
+                    "Import Profile",
+                    {
+                        _ = try profileStore.importProfile(data)
+                        return true
+                    })
+            else { throw ProfileStoreError.unableToSave }
             selectInitialLayer()
             objectWillChange.send()
         } catch {

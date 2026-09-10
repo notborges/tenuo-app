@@ -267,6 +267,7 @@ final class UserDefaultsProfileStore: ProfileStore {
         else { return false }
 
         defaults.set(data, forKey: Key.profiles)
+        if next.manualProfileID != previous.manualProfileID { history.endSession() }
         if next.manualProfileID != previous.manualProfileID {
             defaults.set(next.manualProfileID.uuidString, forKey: Key.manualProfile)
         }
