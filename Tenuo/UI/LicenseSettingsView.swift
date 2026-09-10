@@ -97,7 +97,7 @@ struct LicenseSettingsView: View {
         }
 
         if license.hasProAccess && license.state != .offlinePro {
-            return "Mac actions, app-specific layers, and profile history are unlocked."
+            return "Mac actions, app-specific mappings, profile history, and iCloud profile sync are unlocked."
         }
 
         switch license.state {
@@ -111,7 +111,7 @@ struct LicenseSettingsView: View {
             return "Tenuo will check again when you are back online."
         default:
             return
-                "Unlock Mac actions, app-specific layers, and profile history with a Tenuo Pro license."
+                "Unlock Mac actions, app-specific mappings, profile history, and iCloud profile sync with a Tenuo Pro license."
         }
     }
 }
