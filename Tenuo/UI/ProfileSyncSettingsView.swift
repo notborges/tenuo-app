@@ -21,15 +21,13 @@ struct ProfileSyncSettingsView: View {
                 }
             }
             if !license.hasProAccess {
-                InspectorCard {
-                    ProFeaturePrompt(
-                        title: "Profile sync is part of Tenuo Pro",
-                        detail:
-                            "Use the same Apple Account on your Macs and activate Pro on each one. Your local profiles stay available when sync is paused.",
-                        activate: activate
-                    )
-                    .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                }
+                ProFeaturePrompt(
+                    title: "A familiar setup on every Mac",
+                    detail:
+                        "Bring your profiles, mappings, and actions to your other Macs. Turn it on when you’re ready, using the same Apple Account.",
+                    visual: "icloud", activate: activate
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if sync.enabled {
                     HStack {
                         Text("Sync is paused until Pro is active.")

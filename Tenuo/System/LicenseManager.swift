@@ -13,6 +13,14 @@ final class LicenseManager: ObservableObject {
         #endif
     }
 
+    private static var freePreviewEnabled: Bool {
+        #if DEBUG
+            ProcessInfo.processInfo.arguments.contains("--free-preview")
+        #else
+            false
+        #endif
+    }
+
     let entitlement: LicenseEntitlement
     let configuration: PolarConfiguration
 
@@ -39,8 +47,8 @@ final class LicenseManager: ObservableObject {
         self.now = now
 
         if Self.developmentPreviewEnabled {
-            state = .pro
-            entitlement.setProAccess(true)
+            state = Self.freePreviewEnabled ? .free : .pro
+            entitlement.setProAccess(!Self.freePreviewEnabled)
         } else {
             guard configuration.isConfigured else {
                 state = .notConfigured
@@ -67,7 +75,7 @@ final class LicenseManager: ObservableObject {
 
     var hasProAccess: Bool { entitlement.isPro }
 
-    var isDevelopmentPreview: Bool { Self.developmentPreviewEnabled }
+    var isDevelopmentPreview: Bool { Self.developmentPreviewEnabled && !Self.freePreviewEnabled }
 
     var isBusy: Bool {
         switch state {
@@ -77,12 +85,16 @@ final class LicenseManager: ObservableObject {
     }
 
     func start() {
-        guard !isDevelopmentPreview, configuration.isConfigured, record != nil else { return }
+        guard !Self.developmentPreviewEnabled, configuration.isConfigured, record != nil else {
+            return
+        }
         validateStoredLicense()
     }
 
     func validateStoredLicense() {
-        guard !isDevelopmentPreview, configuration.isConfigured, let record else { return }
+        guard !Self.developmentPreviewEnabled, configuration.isConfigured, let record else {
+            return
+        }
         cancelTask()
         message = nil
         if record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod) {
@@ -105,7 +117,12 @@ final class LicenseManager: ObservableObject {
     }
 
     func activate(key: String) {
-        guard !isDevelopmentPreview, configuration.isConfigured else { return }
+        if Self.freePreviewEnabled {
+            message =
+                "License activation is unavailable in this preview. Relaunch without --free-preview to use the Debug Pro preview."
+            return
+        }
+        guard !Self.developmentPreviewEnabled, configuration.isConfigured else { return }
         let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else {
             message = "Paste a license key to continue."
@@ -168,7 +185,7 @@ final class LicenseManager: ObservableObject {
     }
 
     func deactivate() {
-        guard !isDevelopmentPreview else { return }
+        guard !Self.developmentPreviewEnabled else { return }
         guard configuration.isConfigured, let record else {
             clearLocalLicense()
             return

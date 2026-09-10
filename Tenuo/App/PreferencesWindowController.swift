@@ -76,8 +76,11 @@ private struct PreferencesView: View {
                 AppMark(size: 32)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Settings").font(.system(size: 22, weight: .semibold, design: .rounded))
-                    Text(AppIdentity.displayName)
-                        .font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                    HStack(spacing: 7) {
+                        Text(AppIdentity.displayName)
+                            .font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                        if model.license.hasProAccess { ProBadge() }
+                    }
                 }
                 Spacer()
             }

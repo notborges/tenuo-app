@@ -10,7 +10,7 @@ enum MappingOutput: String, CaseIterable {
     var symbol: String {
         switch self {
         case .key: return "keyboard"
-        case .application: return "app"
+        case .application: return "app.dashed"
         case .open: return "folder"
         case .shortcut: return "square.stack.3d.up"
         }
@@ -38,14 +38,17 @@ struct MappingOutputPicker: View {
                 } label: {
                     VStack(spacing: 5) {
                         Image(systemName: output.symbol).font(.system(size: 15))
-                        Text(output.rawValue).font(DS.Typography.footnote)
-                        if !hasPro && output != .key {
-                            Text("Pro").font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(DS.Ink.tertiary)
+                        HStack(spacing: 4) {
+                            Text(output.rawValue).font(DS.Typography.footnote)
+                            if !hasPro && output != .key {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 8, weight: .medium))
+                                    .foregroundStyle(DS.Ink.tertiary)
+                            }
                         }
                     }
                     .foregroundStyle(selection == output ? DS.Ink.primary : DS.Ink.secondary)
-                    .frame(maxWidth: .infinity).frame(height: hasPro ? 50 : 62)
+                    .frame(maxWidth: .infinity).frame(height: 52)
                     .background(
                         selection == output ? DS.Selection.fill : .clear,
                         in: RoundedRectangle(cornerRadius: DS.Radius.small)
@@ -82,7 +85,7 @@ struct MacActionEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.medium) {
-            Text(title).sectionLabel()
+            if hasPro { Text(title).sectionLabel() }
             if let destination {
                 HStack(spacing: 12) {
                     if case let .application(target) = destination {
@@ -104,11 +107,13 @@ struct MacActionEditor: View {
                 }
                 .padding(14).frame(maxWidth: .infinity, alignment: .leading).glassCard()
             }
-            Text(description).font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if hasPro {
+                Text(description).font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !hasPro {
                 ProFeaturePrompt(
-                    title: "Included in Tenuo Pro", detail: example, activate: activate)
+                    title: title, detail: description, visual: output.symbol, activate: activate)
             } else {
                 controls
             }
@@ -202,15 +207,6 @@ struct MacActionEditor: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(ApplicationControlStyle())
-    }
-
-    private var example: String {
-        switch output {
-        case .application: return "For example, hold your layer key and press S to open Safari."
-        case .open: return "For example, open your project folder with a single layer shortcut."
-        case .shortcut: return "For example, start your focus routine with a single layer shortcut."
-        case .key: return ""
-        }
     }
 
     private var title: String {
@@ -367,24 +363,5 @@ private struct ShortcutPicker: View {
     private func select(_ item: NamedActionTarget) {
         choose(item)
         dismiss()
-    }
-}
-
-struct ProFeaturePrompt: View {
-    let title: String
-    let detail: String
-    let activate: () -> Void
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(DS.Typography.body.weight(.semibold))
-            Text(detail).font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            PrimaryButton(title: "Get Tenuo Pro") {
-                openURL(URL(string: "https://tenuo.app/#pricing")!)
-            }
-            QuietButton(title: "Activate license", action: activate)
-        }
     }
 }

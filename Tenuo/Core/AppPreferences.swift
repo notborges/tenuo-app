@@ -4,6 +4,7 @@ final class AppPreferences {
     private enum Key {
         static let isEnabled = "TenuoEnabled"
         static let showsCheatSheet = "TenuoShowsCheatSheet"
+        static let usesProDockIcon = "TenuoUsesProDockIcon"
         static let checksForUpdates = "TenuoChecksForUpdates"
     }
 
@@ -33,6 +34,15 @@ final class AppPreferences {
         set {
             guard newValue != showsCheatSheet else { return }
             defaults.set(newValue, forKey: Key.showsCheatSheet)
+            onChange?()
+        }
+    }
+
+    var usesProDockIcon: Bool {
+        get { defaults.bool(forKey: Key.usesProDockIcon) }
+        set {
+            guard newValue != usesProDockIcon else { return }
+            defaults.set(newValue, forKey: Key.usesProDockIcon)
             onChange?()
         }
     }

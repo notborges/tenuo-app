@@ -1,0 +1,50 @@
+{
+  "fill": {
+    "automatic-gradient": "srgb:0.055,0.055,0.063,1.000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "pro.svg",
+          "name": "Silver Pro detail"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.25
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "glyph.png",
+          "name": "Keycaps"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": [
+      "iOS",
+      "macOS"
+    ]
+  }
+}

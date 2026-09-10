@@ -53,7 +53,10 @@ struct MenuPanelView: View {
                 .opacity(model.isActive ? 1 : 0.45)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(AppIdentity.displayName).font(DS.Typography.title)
+                HStack(spacing: 8) {
+                    Text(AppIdentity.displayName).font(DS.Typography.title)
+                    if model.license.hasProAccess { ProBadge() }
+                }
                 Text(statusText)
                     .font(DS.Typography.label)
                     .foregroundStyle(DS.Ink.tertiary)

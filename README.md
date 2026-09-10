@@ -95,6 +95,21 @@ Developer ID release must include its CloudKit provisioning profile, preserve
 the Production entitlements through Xcode export, and have its container's
 schema deployed to Production.
 
+## Preview the Free interface
+
+Debug builds normally enable Pro. To inspect the Free editor and its upgrade
+prompts without changing your regular profiles or license, launch:
+
+```sh
+"/path/to/Tenuo Dev.app/Contents/MacOS/Tenuo Dev" --ui-preview --free-preview
+```
+
+The UI preview uses separate sample profiles and does not start keyboard
+remapping or sync. Settings can be opened from the editor. Free preview does
+not read or write a saved license or contact Polar; its license form is for
+visual review only. Quit and omit `--free-preview` to return to the Pro preview.
+The flag has no effect in Release builds.
+
 ## Permissions and privacy
 
 Tenuo installs a system-wide `CGEventTap` so it can pass, suppress, or rewrite

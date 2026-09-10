@@ -3,6 +3,7 @@ import SwiftUI
 
 @MainActor
 final class AppModel: ObservableObject {
+    private let standardDockIcon = NSApp.applicationIconImage
     private let controller: TenuoController
     private var profileStore: ProfileStore { controller.profileStore }
 
@@ -41,6 +42,7 @@ final class AppModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] state in
                 self?.licenseState = state
+                self?.updateDockIcon()
             }
         edits.onFailure = { [weak self] in
             self?.errorMessage = "Tenuo could not undo or redo this change."
@@ -53,7 +55,29 @@ final class AppModel: ObservableObject {
             }
             objectWillChange.send()
         }
+        updateDockIcon()
         refresh()
+    }
+
+    var usesProDockIcon: Bool {
+        get { controller.preferences.usesProDockIcon }
+        set {
+            guard license.hasProAccess else { return }
+            controller.preferences.usesProDockIcon = newValue
+            updateDockIcon()
+            objectWillChange.send()
+        }
+    }
+
+    private func updateDockIcon() {
+        if license.hasProAccess, controller.preferences.usesProDockIcon,
+            let url = Bundle.main.url(forResource: "TenuoPro", withExtension: "icns"),
+            let icon = NSImage(contentsOf: url)
+        {
+            NSApp.applicationIconImage = icon
+        } else {
+            NSApp.applicationIconImage = standardDockIcon
+        }
     }
 
     var profile: Profile {

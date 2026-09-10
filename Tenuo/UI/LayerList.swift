@@ -120,12 +120,13 @@ struct LayerList: View {
                 ProFeaturePrompt(
                     title: "Profile history",
                     detail:
-                        "Included in Tenuo Pro. Compare saved versions and restore a layout when you want to undo a change."
+                        "Compare earlier versions and return to a setup you liked. Your current version is kept before you restore.",
+                    visual: "clock.arrow.circlepath", presentation: .popover
                 ) {
                     showsHistoryProInfo = false
                     model.onOpenProSettings?()
                 }
-                .padding(20).frame(width: 300)
+                .frame(width: 300)
             }
         }
         .padding(.horizontal, 10)
@@ -139,6 +140,7 @@ struct LayerList: View {
 
                 Text(AppIdentity.displayName)
                     .font(DS.Typography.title)
+                if model.license.hasProAccess { ProBadge() }
 
                 Spacer(minLength: 8)
 
