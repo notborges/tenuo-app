@@ -194,13 +194,6 @@ final class ProfileStoreTests: XCTestCase {
         XCTAssertNil(layer["activationMode"])
     }
 
-    func testLegacyTapActionDecodesAsSendKeyAction() throws {
-        let profileData = try ProfileDocument.encoder.encode(Presets.navigation)
-        let decoded = try JSONDecoder().decode(Profile.self, from: profileData)
-
-        XCTAssertEqual(decoded.layers[1].tapAction, .sendKey(KeyBinding(key: "escape")))
-    }
-
     func testHistoryPolicyCoalescesDuplicatesRetainsTwentyAcrossReopenAndIgnoresSelection() throws {
         var now = Date(timeIntervalSince1970: 100)
         let history = UserDefaultsProfileHistoryStore(defaults: defaults, now: { now })

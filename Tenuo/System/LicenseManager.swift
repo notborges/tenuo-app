@@ -28,6 +28,7 @@ final class LicenseManager: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var displayKey: String?
 
+    private let developmentPreview: Bool
     private let store: LicenseStore
     private let client: PolarLicenseClient
     private let now: () -> Date
@@ -38,15 +39,17 @@ final class LicenseManager: ObservableObject {
         configuration: PolarConfiguration = PolarConfiguration(bundle: .main),
         store: LicenseStore? = nil,
         client: PolarLicenseClient? = nil,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        allowsDevelopmentPreview: Bool = true
     ) {
+        developmentPreview = Self.developmentPreviewEnabled && allowsDevelopmentPreview
         self.configuration = configuration
         entitlement = LicenseEntitlement()
         self.store = store ?? KeychainLicenseStore()
         self.client = client ?? PolarLicenseClient(configuration: configuration)
         self.now = now
 
-        if Self.developmentPreviewEnabled {
+        if developmentPreview {
             state = Self.freePreviewEnabled ? .free : .pro
             entitlement.setProAccess(!Self.freePreviewEnabled)
         } else {
@@ -75,7 +78,7 @@ final class LicenseManager: ObservableObject {
 
     var hasProAccess: Bool { entitlement.isPro }
 
-    var isDevelopmentPreview: Bool { Self.developmentPreviewEnabled && !Self.freePreviewEnabled }
+    var isDevelopmentPreview: Bool { developmentPreview && !Self.freePreviewEnabled }
 
     var isBusy: Bool {
         switch state {
@@ -85,14 +88,14 @@ final class LicenseManager: ObservableObject {
     }
 
     func start() {
-        guard !Self.developmentPreviewEnabled, configuration.isConfigured, record != nil else {
+        guard !developmentPreview, configuration.isConfigured, record != nil else {
             return
         }
         validateStoredLicense()
     }
 
     func validateStoredLicense() {
-        guard !Self.developmentPreviewEnabled, configuration.isConfigured, let record else {
+        guard !developmentPreview, configuration.isConfigured, let record else {
             return
         }
         cancelTask()
@@ -117,12 +120,12 @@ final class LicenseManager: ObservableObject {
     }
 
     func activate(key: String) {
-        if Self.freePreviewEnabled {
+        if developmentPreview && Self.freePreviewEnabled {
             message =
                 "License activation is unavailable in this preview. Relaunch without --free-preview to use the Debug Pro preview."
             return
         }
-        guard !Self.developmentPreviewEnabled, configuration.isConfigured else { return }
+        guard !developmentPreview, configuration.isConfigured else { return }
         let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else {
             message = "Paste a license key to continue."
@@ -185,7 +188,7 @@ final class LicenseManager: ObservableObject {
     }
 
     func deactivate() {
-        guard !Self.developmentPreviewEnabled else { return }
+        guard !developmentPreview else { return }
         guard configuration.isConfigured, let record else {
             clearLocalLicense()
             return
@@ -242,8 +245,22 @@ final class LicenseManager: ObservableObject {
     private func applyValidationFailure(_ error: Error, for record: LicenseRecord) {
         if let error = error as? PolarLicenseError, error == .invalidLicense {
             entitlement.setProAccess(false)
+            let invalidated = LicenseRecord(
+                key: record.key, activationID: record.activationID,
+                displayKey: record.displayKey, lastValidatedAt: nil)
+            self.record = invalidated
             state = .invalid
             message = error.localizedDescription
+            do {
+                try store.save(invalidated)
+            } catch {
+                do {
+                    try store.remove()
+                } catch {
+                    message =
+                        "This license is invalid. Tenuo could not clear its saved validation from Keychain."
+                }
+            }
             return
         }
 

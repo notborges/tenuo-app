@@ -9,9 +9,5 @@
 CODE_SIGN_IDENTITY = Apple Development
 DEVELOPMENT_TEAM = TEAMID
 
-// Enable after associating both app IDs with your CloudKit container.
-// CODE_SIGN_STYLE = Automatic
-// TENUO_CODE_SIGN_ENTITLEMENTS = Tenuo/Resources/TenuoCloud.entitlements
-
 TENUO_POLAR_ORGANIZATION_ID =
 TENUO_POLAR_BENEFIT_ID =

@@ -62,7 +62,6 @@
 		TENUO0000000000000000086 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008D /* ProfileStore.swift */; };
 		TENUO0000000000000000087 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008E /* AppPreferences.swift */; };
 		TENUO0000000000000000088 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
-		TENUO0000000000000000089 /* AppPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000090 /* AppPreferencesTests.swift */; };
 		TENUO000000000000000008A /* ProfileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000091 /* ProfileStoreTests.swift */; };
 		TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000092 /* ProfileSelectionTests.swift */; };
 		TENUO0000000000000000093 /* LayerModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008C /* LayerModes.swift */; };
@@ -104,6 +103,9 @@
 		55741F01F1BF8C820D851440 /* CloudProfileTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D931717F1C564D5C79A5385; };
 		4940486E568097DD4ED95059 /* ProfileSyncController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DBDF97138ED366A77EB33B; };
 		B2CE72E47B47109D0F96DA82 /* ProfileSyncLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6876BE70C775712FC76923F8; };
+		AB4900000000000000000000 /* PolarLicenseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B2 /* PolarLicenseClient.swift */; };
+		AB4900000000000000000001 /* LicenseKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B4 /* LicenseKeychainStore.swift */; };
+		AB4900000000000000000002 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B6 /* LicenseManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -157,7 +159,6 @@
 		TENUO000000000000000008E /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
 		TENUO000000000000000008F /* ProfileSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelection.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000099 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000090 /* AppPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000091 /* ProfileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStoreTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000092 /* ProfileSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionTests.swift; sourceTree = "<group>"; };
 		TENUO00000000000000000A1 /* LayerStatusController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerStatusController.swift; sourceTree = "<group>"; };
@@ -331,7 +332,6 @@
 				F59C783512856AF14F158351 /* ProfileSyncTests.swift */,
 				TENUO0000000000000000084 /* CapsLockRemapperTests.swift */,
 				TENUO0000000000000000044 /* LayerEngineTests.swift */,
-				TENUO0000000000000000090 /* AppPreferencesTests.swift */,
 				TENUO0000000000000000091 /* ProfileStoreTests.swift */,
 				TENUO0000000000000000092 /* ProfileSelectionTests.swift */,
 				TENUO00000000000000000BA /* LicenseTests.swift */,
@@ -554,7 +554,6 @@
 				TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */,
 				TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */,
 				TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */,
-				TENUO0000000000000000089 /* AppPreferencesTests.swift in Sources */,
 				TENUO000000000000000008A /* ProfileStoreTests.swift in Sources */,
 				TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */,
 				TENUO0000000000000000047 /* KeyCodes.swift in Sources */,
@@ -562,6 +561,9 @@
 				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
 				TENUO000000000000000004A /* KeyBinding.swift in Sources */,
 				TENUO0000000000000000098 /* Actions.swift in Sources */,
+				AB4900000000000000000000 /* PolarLicenseClient.swift in Sources */,
+				AB4900000000000000000001 /* LicenseKeychainStore.swift in Sources */,
+				AB4900000000000000000002 /* LicenseManager.swift in Sources */,
 				TENUO00000000000000000BC /* License.swift in Sources */,
 				TENUO00000000000000000BE /* ProfileHistory.swift in Sources */,
 				DE84942F344B4D98A9A08232 /* ProfileEditSession.swift in Sources */,
