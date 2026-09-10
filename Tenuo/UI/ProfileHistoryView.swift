@@ -5,10 +5,25 @@ struct ProfileHistoryView: View {
     let profileID: UUID
     let onClose: () -> Void
 
+    @State private var history: Result<[ProfileHistoryEntry], ProfileHistoryError>
+
+    init(
+        model: AppModel, profileID: UUID,
+        initialHistory: Result<[ProfileHistoryEntry], ProfileHistoryError>,
+        onClose: @escaping () -> Void
+    ) {
+        self.model = model
+        self.profileID = profileID
+        self.onClose = onClose
+        _history = State(initialValue: initialHistory)
+    }
+
+    private var profile: Profile? { model.profiles.first { $0.id == profileID } }
+
     var body: some View {
         ProfileHistoryBrowser(
-            profile: model.profiles.first { $0.id == profileID },
-            history: model.profileHistory(for: profileID),
+            profile: profile,
+            history: history,
             canRestore: model.license.hasProAccess,
             onRestore: { entry in
                 guard model.restore(entry) else {
@@ -20,7 +35,14 @@ struct ProfileHistoryView: View {
                 }
                 return nil
             },
-            onClose: onClose)
+            onClose: onClose
+        )
+        .onChange(of: profile) { _, _ in
+            history = model.profileHistory(for: profileID)
+        }
+        .onChange(of: model.licenseState) { _, _ in
+            history = model.profileHistory(for: profileID)
+        }
     }
 }
 
@@ -37,6 +59,7 @@ struct ProfileHistoryBrowser: View {
         case saved(UUID)
     }
 
+    @State private var comparisons: [UUID: [ProfileHistoryChange]] = [:]
     @State private var selection: Selection? = .current
     @State private var selectedApplicationID: String?
     @State private var selectedLayerID: UUID?
@@ -63,8 +86,8 @@ struct ProfileHistoryBrowser: View {
     }
 
     private var changes: [ProfileHistoryChange] {
-        guard let profile, let preview else { return [] }
-        return ProfileHistoryComparison.changes(from: profile, to: preview)
+        guard let selectedEntry else { return [] }
+        return comparisons[selectedEntry.id] ?? []
     }
 
     private var matchesCurrent: Bool { preview == profile }
@@ -85,6 +108,8 @@ struct ProfileHistoryBrowser: View {
         .background(DS.Surface.window)
         .foregroundStyle(DS.Ink.primary)
         .tint(DS.Selection.accent)
+        .onChange(of: profile, initial: true) { _, _ in updateComparisons() }
+        .onChange(of: entries) { _, _ in updateComparisons() }
         .onAppear {
             if let id = initialEntryID ?? entries.first?.id { selection = .saved(id) }
             selectedLayerID = selectedLayer?.id
@@ -306,55 +331,29 @@ struct ProfileHistoryBrowser: View {
 
     private var previewContent: some View {
         GeometryReader { geometry in
-            VStack(spacing: 0) {
-                if let preview, let selectedLayer {
-                    VStack(spacing: 14) {
-                        HStack(spacing: 10) {
-                            Text("Keyboard preview")
-                                .font(.system(size: 12, weight: .medium))
-                            Spacer()
-                            InspectorPicker(
-                                title: selectedLayer.name,
-                                selection: Binding(
-                                    get: { self.selectedLayer?.id ?? selectedLayer.id },
-                                    set: {
-                                        selectedLayerID = $0; selectedKey = nil;
-                                        selectedApplicationID = nil
-                                    })
-                            ) {
-                                ForEach(preview.layers) { layer in Text(layer.name).tag(layer.id) }
-                            }
-                            .frame(width: Inspector.controlWidth)
-                            .accessibilityLabel("Preview layer")
-                        }
-                        if !selectedLayer.applications.isEmpty || selectedApplicationID != nil {
-                            Picker(
-                                "Application",
-                                selection: Binding(
-                                    get: { selectedApplicationID },
-                                    set: {
-                                        selectedApplicationID = $0; selectedKey = nil
-                                    })
-                            ) {
-                                Text("Default").tag(nil as String?)
-                                ForEach(selectedLayer.applications.keys.sorted(), id: \.self) {
-                                    id in
-                                    Text(selectedLayer.applications[id]?.name ?? id).tag(
-                                        Optional(id))
-                                }
-                                if let id = selectedApplicationID,
-                                    selectedLayer.applications[id] == nil
-                                {
-                                    Text("Removed app · Default mappings").tag(Optional(id))
-                                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.Space.medium) {
+                    if let preview, let selectedLayer {
+                        HStack(spacing: DS.Space.small) {
+                            if !selectedLayer.applications.isEmpty || selectedApplicationID != nil {
+                                layerStrip(in: preview)
+                                    .frame(width: min(260, (geometry.size.width - 48) * 0.35))
+                                Divider().frame(height: 22)
+                                applicationStrip(for: selectedLayer)
+                            } else {
+                                layerStrip(in: preview)
                             }
                         }
+                        .frame(height: 44)
                         KeyboardLayoutView(
                             mappings: selectedLayer.mappings(for: selectedApplicationID),
                             inherited: inheritedMappings(for: selectedLayer, in: preview),
                             selected: selectedKey,
                             triggerName: selectedLayer.trigger?.displayLabel ?? "Base",
                             triggerKey: selectedLayer.trigger?.key,
+                            width: min(
+                                680, geometry.size.width - 48,
+                                max(480, (geometry.size.height - 270) * 2.2)),
                             isReadOnly: true,
                             changedKeys: Set(
                                 changes.filter {
@@ -362,22 +361,98 @@ struct ProfileHistoryBrowser: View {
                                         && $0.applicationID == selectedApplicationID
                                 }.compactMap(\.key))
                         ) { key in selectedKey = selectedKey == key ? nil : key }
-                        .frame(height: min(260, max(140, geometry.size.height - 320)))
-                        .frame(maxWidth: 610)
+                        .frame(maxWidth: 720)
                         .frame(maxWidth: .infinity)
-
                         keyDetail(in: preview, layer: selectedLayer)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
+                    comparison
                 }
-                comparison
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 8)
-                    .padding(.bottom, 12)
-
+                .padding(DS.Space.large)
+                .frame(maxWidth: 960)
+                .frame(maxWidth: .infinity)
+                .background {
+                    Color.clear.contentShape(Rectangle())
+                        .onTapGesture { selectedKey = nil }
+                }
             }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    private func layerStrip(in profile: Profile) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: 6) {
+                    ForEach(profile.layers) { layer in
+                        Button {
+                            selectedLayerID = layer.id
+                            selectedApplicationID = nil
+                            selectedKey = nil
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(layer.trigger?.displayLabel ?? "·")
+                                    .frame(width: 24, height: 24)
+                                    .background(
+                                        DS.Surface.raised, in: RoundedRectangle(cornerRadius: 7))
+                                Text(layer.name).lineLimit(1)
+                            }
+                            .font(DS.Typography.label)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(
+                                selectedLayer?.id == layer.id ? DS.Selection.fill : .clear,
+                                in: RoundedRectangle(cornerRadius: DS.Radius.small)
+                            )
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(ApplicationControlStyle())
+                        .accessibilityAddTraits(selectedLayer?.id == layer.id ? .isSelected : [])
+                        .id(layer.id)
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+            .onChange(of: selectedLayer?.id) { _, id in
+                if let id { proxy.scrollTo(id) }
+            }
+        }
+        .accessibilityLabel("Preview layer")
+    }
+
+    private func applicationStrip(for layer: Layer) -> some View {
+        HStack(spacing: 4) {
+            applicationButton(id: nil, name: "Default")
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    HStack(spacing: 4) {
+                        ForEach(
+                            layer.applications.keys.sorted {
+                                (layer.applications[$0]?.name ?? $0).localizedStandardCompare(
+                                    layer.applications[$1]?.name ?? $1) == .orderedAscending
+                            }, id: \.self
+                        ) { id in
+                            applicationButton(id: id, name: layer.applications[id]?.name ?? id)
+                                .id(id)
+                        }
+                        if let id = selectedApplicationID, layer.applications[id] == nil {
+                            applicationButton(id: id, name: "Removed app").id(id)
+                        }
+                    }
+                    .padding(.vertical, 3)
+                }
+                .scrollIndicators(.hidden)
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(height: 44)
+                .onChange(of: selectedApplicationID) { _, id in
+                    if let id { proxy.scrollTo(id) }
+                }
+            }
+        }
+    }
+
+    private func applicationButton(id: String?, name: String) -> some View {
+        ApplicationContextButton(id: id, name: name, isSelected: selectedApplicationID == id) {
+            selectedApplicationID = id
+            selectedKey = nil
         }
     }
 
@@ -394,6 +469,8 @@ struct ProfileHistoryBrowser: View {
                         layer.mappings(for: selectedApplicationID)[selectedKey] ?? inherited,
                         in: profile)
                 )
+                .lineLimit(1)
+                .truncationMode(.middle)
                 .textSelection(.enabled)
                 Spacer(minLength: 4)
                 Text(
@@ -435,23 +512,10 @@ struct ProfileHistoryBrowser: View {
                 Label("No differences from your current profile", systemImage: "checkmark.circle")
                     .foregroundStyle(DS.Ink.secondary)
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(changes) { change in
-                                changeRow(change).id(change.id)
-                                if change.id != changes.last?.id { Divider().opacity(0.5) }
-                            }
-                        }
-                    }
-                    .frame(maxHeight: CGFloat(changes.count) * 64)
-                    .scrollBounceBehavior(.basedOnSize)
-                    .onChange(of: selectedKey) { _, key in
-                        if let change = changes.first(where: {
-                            $0.key == key && $0.layerID == selectedLayerID
-                        }) {
-                            proxy.scrollTo(change.id)
-                        }
+                LazyVStack(spacing: 0) {
+                    ForEach(changes) { change in
+                        changeRow(change).id(change.id)
+                        if change.id != changes.last?.id { Divider().opacity(0.5) }
                     }
                 }
             }
@@ -466,23 +530,36 @@ struct ProfileHistoryBrowser: View {
         let description = changeDescription(change)
         let row = HStack(alignment: .top, spacing: 12) {
             if change.key != nil {
-                Keycap(label: change.title, width: 30, height: 30, legendSize: 11, isLit: true)
-                    .accessibilityHidden(true)
+                Keycap(
+                    label: change.key.map { KeyCatalog.label(for: KeyCatalog.code(for: $0) ?? 0) }
+                        ?? change.title, width: 30, height: 30, legendSize: 11, isLit: true
+                )
+                .accessibilityHidden(true)
             } else {
                 Image(systemName: "slider.horizontal.3")
                     .frame(width: 30, height: 30)
                     .foregroundStyle(DS.Ink.secondary)
                     .accessibilityHidden(true)
             }
-            VStack(alignment: .leading, spacing: 5) {
-                Text(description.title)
-                    .font(DS.Typography.body.weight(.medium))
-                    .foregroundStyle(DS.Ink.primary)
-                Text(description.detail)
-                    .font(DS.Typography.footnote)
-                    .foregroundStyle(DS.Ink.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                if change.key != nil {
+                    Text(changeScope(change))
+                        .font(DS.Typography.footnote)
+                        .foregroundStyle(DS.Ink.tertiary)
+                    changeValue("Now", value: change.before)
+                    changeValue("After restore", value: change.after, emphasized: true)
+                } else {
+                    Text(description.title)
+                        .font(DS.Typography.body.weight(.medium))
+                        .foregroundStyle(DS.Ink.primary)
+                        .lineLimit(1).truncationMode(.middle).help(description.title)
+                    Text(description.detail)
+                        .font(DS.Typography.footnote)
+                        .foregroundStyle(DS.Ink.secondary)
+                        .lineLimit(1).truncationMode(.middle).help(description.detail)
+                }
             }
-            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
         }
         .padding(.vertical, 12)
@@ -502,7 +579,8 @@ struct ProfileHistoryBrowser: View {
             }
             .buttonStyle(.plain)
             .background(
-                selectedKey == key && selectedLayerID == layerID ? DS.Selection.fill : .clear,
+                selectedKey == key && selectedLayerID == layerID
+                    && selectedApplicationID == change.applicationID ? DS.Selection.fill : .clear,
                 in: RoundedRectangle(cornerRadius: 6)
             )
             .accessibilityLabel(
@@ -514,55 +592,55 @@ struct ProfileHistoryBrowser: View {
         }
     }
 
+    private func changeScope(_ change: ProfileHistoryChange) -> String {
+        var parts = [change.layerName ?? "Profile"]
+        if let id = change.applicationID {
+            let name =
+                preview?.layers.first { $0.id == change.layerID }?.applications[id]?.name
+                ?? profile?.layers.first { $0.id == change.layerID }?.applications[id]?.name
+                ?? id
+            parts.append(name)
+        } else if change.key != nil {
+            parts.append("Default")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func changeValue(_ title: String, value: String, emphasized: Bool = false) -> some View
+    {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(DS.Typography.footnote)
+                .foregroundStyle(DS.Ink.tertiary)
+                .frame(width: 72, alignment: .leading)
+            Text(value)
+                .font(DS.Typography.body)
+                .foregroundStyle(emphasized ? DS.Ink.primary : DS.Ink.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(value)
+        }
+    }
+
     private func changeDescription(_ change: ProfileHistoryChange) -> (
         title: String, detail: String
     ) {
-        if change.applicationID != nil {
+        if change.key != nil {
             return (
-                "\(change.title): \(change.before) → \(change.after)", change.layerName ?? "Profile"
+                "\(change.title) · \(changeScope(change))",
+                "Now: \(change.before). After restore: \(change.after)"
             )
         }
-        let scope = change.layerName.map { "\($0) layer" } ?? "Profile"
-        guard let key = change.key, let layerID = change.layerID else {
-            if change.title == "Add layer" {
-                return ("Add the “\(change.after)” layer", "Not in your current profile")
-            }
-            if change.title == "Remove layer" {
-                return ("Remove the “\(change.before)” layer", "Its mappings will be removed too")
-            }
-            return (
-                "Set \(change.title.lowercased()) to \(change.after)",
-                "\(scope) · Currently: \(change.before)"
-            )
+        if change.title == "Add layer" {
+            return ("Add the “\(change.after)” layer", "Not in your current profile")
         }
-        let before = profile?.layers.first { $0.id == layerID }?.mappings[key]
-        let after = preview?.layers.first { $0.id == layerID }?.mappings[key]
-        func label(_ mapping: LayerMapping?, in profile: Profile?) -> String {
-            if let binding = mapping?.binding {
-                let parts =
-                    binding.modifiers.map { $0.rawValue.capitalized }
-                    + [KeyCatalog.key(named: binding.key)?.displayName ?? binding.key]
-                return parts.joined(separator: " + ")
-            }
-            guard let profile else { return "Unassigned" }
-            return ProfileHistoryComparison.mappingLabel(mapping, in: profile)
+        if change.title == "Remove layer" {
+            return ("Remove the “\(change.before)” layer", "Its mappings will be removed too")
         }
-        guard let after else {
-            return (
-                "Remove the mapping for \(change.title)",
-                "\(scope) · Currently: \(label(before, in: profile))"
-            )
-        }
-        let title: String
-        switch after {
-        case .blocked: title = "Block \(change.title)"
-        case .transparent: title = "Let \(change.title) pass through to lower layers"
-        case .action: title = "Map \(change.title) to \(label(after, in: preview))"
-        }
-        let detail =
-            before == nil
-            ? "No mapping assigned here yet" : "Currently: \(label(before, in: profile))"
-        return (title, "\(scope) · \(detail)")
+        return (
+            "\(change.title): \(change.after)",
+            "\(changeScope(change)) · Currently: \(change.before)"
+        )
     }
 
     private var footer: some View {
@@ -606,9 +684,17 @@ struct ProfileHistoryBrowser: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func updateComparisons() {
+        guard let profile else { comparisons = [:]; return }
+        comparisons = Dictionary(
+            uniqueKeysWithValues: entries.map {
+                ($0.id, ProfileHistoryComparison.changes(from: profile, to: $0.profile))
+            })
+    }
+
     private func entrySummary(_ entry: ProfileHistoryEntry) -> String {
-        guard let profile else { return "Saved version" }
-        let differences = ProfileHistoryComparison.changes(from: profile, to: entry.profile)
+        guard profile != nil else { return "Saved version" }
+        let differences = comparisons[entry.id] ?? []
         guard !differences.isEmpty else { return "Matches current profile" }
         let keys = differences.filter { $0.key != nil }.count
         let settings = differences.count - keys
@@ -641,7 +727,9 @@ struct ProfileHistoryBrowser: View {
                 mappings[key] = mapping
             }
         }
-        for key in layer.mappings.keys { mappings.removeValue(forKey: key) }
+        for key in layer.mappings(for: selectedApplicationID).keys {
+            mappings.removeValue(forKey: key)
+        }
         return mappings
     }
 
@@ -670,13 +758,34 @@ struct ProfileHistoryBrowser: View {
 
 #if DEBUG
     struct ProfileHistoryPreview: View {
-        @State private var profile = Presets.navigation
+        private static var sample: Profile {
+            var profile = Presets.navigation
+            profile.layers[1].applications = [
+                "com.apple.Safari": ApplicationOverride(
+                    name: "Safari",
+                    mappings: [
+                        "h": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.command])))
+                    ]),
+                "com.apple.finder": ApplicationOverride(name: "Finder", mappings: [:]),
+            ]
+            return profile
+        }
+
+        @State private var profile = sample
         @State private var entries: [ProfileHistoryEntry] = {
-            var older = Presets.navigation
+            var older = sample
             older.layers[1].mappings["h"] = .action(
                 .sendKey(KeyBinding(key: "leftArrow", modifiers: [.option])))
             older.layers[1].mappings["l"] = .action(
                 .sendKey(KeyBinding(key: "rightArrow", modifiers: [.option])))
+            older.layers[1].mappings["r"] = .action(
+                .macAction(
+                    .file(
+                        FileActionTarget(
+                            bookmark: Data(),
+                            name:
+                                "Tenuo-keyboard-reference-with-app-overrides-and-navigation-shortcuts-final-revision.webp"
+                        ))))
             let latest = ProfileHistoryEntry(
                 profile: older, savedAt: .now.addingTimeInterval(-1200))
             older.layers[1].tapAction = nil

@@ -315,3 +315,33 @@ extension MacAction {
         }
     }
 }
+
+struct ApplicationContextButton: View {
+    let id: String?
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                if let id {
+                    ApplicationIcon(bundleID: id, size: 22)
+                } else {
+                    Image(systemName: "keyboard").frame(width: 22, height: 22)
+                }
+                Text(name).lineLimit(1)
+            }
+            .font(DS.Typography.label)
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(
+                isSelected ? DS.Selection.fill : .clear,
+                in: RoundedRectangle(cornerRadius: DS.Radius.small)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.small))
+        }
+        .buttonStyle(ApplicationControlStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .fixedSize()
+    }
+}

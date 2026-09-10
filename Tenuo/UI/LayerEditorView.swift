@@ -4,6 +4,8 @@ struct LayerEditorView: View {
     @ObservedObject var model: AppModel
     var onOpenSettings: () -> Void
     @State private var historyProfileID: UUID?
+    @State private var historySnapshot: Result<[ProfileHistoryEntry], ProfileHistoryError> =
+        .success([])
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -11,7 +13,7 @@ struct LayerEditorView: View {
             HStack(spacing: 8) {
                 LayerList(
                     model: model, onOpenSettings: onOpenSettings,
-                    onOpenHistory: { historyProfileID = $0 }
+                    onOpenHistory: openHistory
                 )
                 .frame(width: DS.Metrics.sidebarWidth)
                 .windowPanel()
@@ -28,7 +30,9 @@ struct LayerEditorView: View {
             .accessibilityHidden(historyProfileID != nil)
 
             if let historyProfileID {
-                ProfileHistoryView(model: model, profileID: historyProfileID) {
+                ProfileHistoryView(
+                    model: model, profileID: historyProfileID, initialHistory: historySnapshot
+                ) {
                     self.historyProfileID = nil
                 }
                 .id(historyProfileID)
@@ -45,7 +49,7 @@ struct LayerEditorView: View {
                 if ProcessInfo.processInfo.arguments.contains("--ui-preview"),
                     ProcessInfo.processInfo.arguments.contains("--editor-history")
                 {
-                    historyProfileID = model.profile.id
+                    openHistory(model.profile.id)
                 }
             #endif
         }
@@ -60,6 +64,11 @@ struct LayerEditorView: View {
             Text(model.errorMessage ?? "")
         }
     }
+    private func openHistory(_ profileID: UUID) {
+        historySnapshot = model.profileHistory(for: profileID)
+        historyProfileID = profileID
+    }
+
 }
 
 struct ColumnDivider: View {

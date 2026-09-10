@@ -211,6 +211,7 @@ struct LayersPage: View {
     private var inspector: some View {
         VStack(spacing: 0) {
             ColumnHeader { inspectorTitle }
+                .padding(.bottom, DS.Space.small)
                 .padding(.horizontal, DS.Space.medium)
 
             rule
@@ -749,40 +750,24 @@ private struct ApplicationContextStrip: View {
             .fixedSize()
             .popover(isPresented: $showsProInfo) {
                 ProFeaturePrompt(
-                    title: "App-specific layers",
+                    title: "One key, different jobs",
                     detail:
-                        "Included in Tenuo Pro. Give the same key a different job in Safari, Finder, or any other app."
+                        "Give the same key a different job in Safari, Finder, or any other app.",
+                    visual: "app.dashed", presentation: .popover
                 ) {
                     showsProInfo = false
                     model.onOpenProSettings?()
                 }
-                .padding(20).frame(width: 300)
+                .frame(width: 300)
             }
         }
     }
 
     private func contextButton(id: String?, name: String) -> some View {
-        Button {
+        ApplicationContextButton(
+            id: id, name: name, isSelected: model.selectedApplicationID == id
+        ) {
             model.selectedApplicationID = id
-        } label: {
-            HStack(spacing: 7) {
-                if let id {
-                    ApplicationIcon(bundleID: id, size: 22)
-                } else {
-                    Image(systemName: "keyboard").frame(width: 22, height: 22)
-                }
-                Text(name).lineLimit(1)
-            }
-            .font(DS.Typography.label)
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(
-                model.selectedApplicationID == id ? DS.Selection.fill : .clear,
-                in: RoundedRectangle(cornerRadius: DS.Radius.small)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: DS.Radius.small))
         }
-        .buttonStyle(ApplicationControlStyle())
-        .accessibilityAddTraits(model.selectedApplicationID == id ? .isSelected : [])
-        .fixedSize()
     }
 }
