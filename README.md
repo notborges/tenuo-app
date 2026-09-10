@@ -166,3 +166,31 @@ Tenuo's source code is released under the [MIT License](LICENSE).
 
 The Tenuo name and logos are covered separately by the
 [trademark policy](TRADEMARKS.md).
+
+## Check sync on one Mac
+
+Build a signed Debug app with Development CloudKit provisioning, sign into
+an Apple Account in macOS, then run:
+
+```sh
+python3 scripts/check-sync.py --app "/path/to/Tenuo Dev.app"
+```
+
+The runner compiles the production storage, sync controller, and CloudKit
+transport into a temporary diagnostic app using the supplied build's signing
+identity and provisioning profile. It requires the matching private signing
+key in your Keychain. It creates two isolated SQLite clients and a unique zone
+in the private **Development** database. Your normal profiles are untouched.
+Production-provisioned apps are rejected.
+
+Checks cover the Free access gate, connection review before upload, edits,
+paused edits, conflicts and resolution, deletion, Pro loss, and pending edits
+surviving a database reopen. The test controls each CloudKit engine's scheduling
+to simulate two devices deterministically; the shipping app retains automatic
+sync. This follows [Apple's CKSyncEngine testing approach](https://github.com/apple/sample-cloudkit-sync-engine).
+The runner removes its cloud zone and temporary files afterward. If cloud
+cleanup fails, it reports the exact Development zone to remove.
+
+This verifies real CloudKit round trips on one Mac. Background push delivery
+between physical Macs, Production schema configuration, and Release license
+activation still require separate release checks.
