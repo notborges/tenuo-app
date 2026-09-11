@@ -34,6 +34,8 @@
 	<string>public.app-category.utilities</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
 	<key>SUFeedURL</key>
 	<string>$(TENUO_FEED_URL)</string>
 	<key>SUPublicEDKey</key>

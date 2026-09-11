@@ -239,7 +239,7 @@ private struct PreferencesView: View {
                     settingsDivider
                     InspectorStatusRow(text: updateStatus, ink: updateStatusInk) {
                         if case let .available(version) = updates.status {
-                            Button("Update to \(version)") { updates.install() }
+                            Button("View update \(version)…") { updates.check() }
                                 .buttonStyle(RoundedActionStyle(prominent: true))
                         } else {
                             Button("Check now") { updates.check() }
@@ -289,8 +289,6 @@ private struct PreferencesView: View {
         case .checking: return "Checking…"
         case .upToDate: return "Up to date"
         case let .available(version): return "Version \(version) is available"
-        case let .downloading(done): return "Downloading \(Int(done * 100))%"
-        case .installing: return "Installing…"
         case let .failed(message): return message
         }
     }

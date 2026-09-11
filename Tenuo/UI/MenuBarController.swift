@@ -79,6 +79,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         } onOpenPreferences: { [weak self] in
             self?.closePanel()
             self?.onOpenPreferences?()
+        } onViewUpdate: { [weak self] in
+            self?.closePanel()
+            self?.model.updates.check()
         }
     }
 

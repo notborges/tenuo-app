@@ -5,6 +5,7 @@ struct MenuPanelView: View {
     @ObservedObject var updates: UpdateController
     var onOpenEditor: () -> Void
     var onOpenPreferences: () -> Void
+    var onViewUpdate: () -> Void
 
     private static let width: CGFloat = 460
 
@@ -181,7 +182,7 @@ struct MenuPanelView: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Ink.primary)
             Spacer(minLength: 8)
-            PrimaryButton(title: "Install update") { updates.install() }
+            PrimaryButton(title: "View update…", action: onViewUpdate)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
