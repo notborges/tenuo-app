@@ -3,27 +3,91 @@ import SwiftUI
 
 @MainActor
 final class AppModel: ObservableObject {
+    private let standardDockIcon = NSApp.applicationIconImage
     private let controller: TenuoController
+    private var profileStore: ProfileStore { controller.profileStore }
 
     @Published private(set) var isTrusted: Bool = false
     @Published private(set) var isActive: Bool = false
     @Published private(set) var launchesAtLogin: Bool = false
     @Published private(set) var launchNeedsApproval: Bool = false
+    @Published private(set) var licenseState: LicenseState
 
-    @Published var selectedLayerID: UUID?
+    @Published var selectedApplicationID: String?
+    @Published var selectedLayerID: UUID? {
+        didSet {
+            selectedApplicationID = nil
+            if oldValue != selectedLayerID { profileStore.history.endSession() }
+        }
+    }
+
+    var onOpenProSettings: (() -> Void)?
+
+    var sync: ProfileSyncController { controller.sync }
+
+    let license: LicenseManager
+    let edits: ProfileEditSession
+    private var licenseObserver: AnyCancellable?
 
     init(controller: TenuoController) {
         self.controller = controller
+        license = controller.license
+        licenseState = controller.license.state
+        let store = controller.profileStore
+        edits = ProfileEditSession(store: store)
         selectedLayerID =
-            controller.settings.activeProfile.triggeredLayers.first?.id
-            ?? controller.settings.activeProfile.layers.first?.id
+            store.manualProfile.triggeredLayers.first?.id
+            ?? store.manualProfile.layers.first?.id
+        licenseObserver = license.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                self?.licenseState = state
+                self?.updateDockIcon()
+            }
+        edits.onFailure = { [weak self] in
+            self?.errorMessage = "Tenuo could not undo or redo this change."
+        }
+        edits.onChange = { [weak self] in
+            guard let self else { return }
+            if !layers.contains(where: { $0.id == self.selectedLayerID }) { selectInitialLayer() }
+            if let id = selectedApplicationID, selectedLayer.applications[id] == nil {
+                selectedApplicationID = nil
+            }
+            objectWillChange.send()
+        }
+        updateDockIcon()
         refresh()
     }
 
-    var profile: Profile {
-        get { controller.settings.activeProfile }
+    var usesProDockIcon: Bool {
+        get { controller.preferences.usesProDockIcon }
         set {
-            controller.settings.activeProfile = newValue
+            guard license.hasProAccess else { return }
+            controller.preferences.usesProDockIcon = newValue
+            updateDockIcon()
+            objectWillChange.send()
+        }
+    }
+
+    private func updateDockIcon() {
+        if license.hasProAccess, controller.preferences.usesProDockIcon,
+            let url = Bundle.main.url(forResource: "TenuoPro", withExtension: "icns"),
+            let icon = NSImage(contentsOf: url)
+        {
+            NSApp.applicationIconImage = icon
+        } else {
+            NSApp.applicationIconImage = standardDockIcon
+        }
+    }
+
+    var profile: Profile {
+        get { profileStore.manualProfile }
+        set {
+            guard newValue != profile else { return }
+            guard edits.perform("Edit Profile", { profileStore.updateProfile(newValue) }) else {
+                errorMessage = "Tenuo could not save the profile or its history."
+                return
+            }
             objectWillChange.send()
         }
     }
@@ -46,26 +110,107 @@ final class AppModel: ObservableObject {
         }
     }
 
-    var selectedMappings: [String: KeyAction] { selectedLayer.mappings }
+    var selectedMappings: [String: LayerMapping] {
+        get {
+            guard let id = selectedApplicationID else { return selectedLayer.mappings }
+            return selectedLayer.applications[id]?.mappings ?? [:]
+        }
+        set {
+            if let id = selectedApplicationID {
+                guard license.hasProAccess, selectedLayer.applications[id] != nil else { return }
+                selectedLayer.applications[id]?.mappings = newValue
+            } else {
+                selectedLayer.mappings = newValue
+            }
+        }
+    }
 
-    var inheritedMappings: [String: KeyAction] {
-        var result: [String: KeyAction] = [:]
+    var editingApplicationName: String? {
+        selectedApplicationID.flatMap { selectedLayer.applications[$0]?.name }
+    }
+
+    func addApplication(url: URL) {
+        guard license.hasProAccess, let bundle = Bundle(url: url),
+            let id = bundle.bundleIdentifier
+        else { return }
+        let name =
+            (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? url.deletingPathExtension().lastPathComponent
+        if selectedLayer.applications[id] == nil {
+            selectedLayer.applications[id] = ApplicationOverride(name: name, mappings: [:])
+        }
+        if selectedLayer.applications[id] != nil { selectedApplicationID = id }
+    }
+
+    var liveApplication: NSRunningApplication? { NSWorkspace.shared.frontmostApplication }
+
+    func liveMappings(for layer: Layer) -> [String: LayerMapping] {
+        layer.mappings(for: license.hasProAccess ? liveApplication?.bundleIdentifier : nil)
+    }
+
+    var inheritedMappings: [String: LayerMapping] {
+        var result: [String: LayerMapping] = [:]
         for layer in profile.layers.prefix(selectedIndex) {
-            for (key, action) in layer.mappings where action != .transparent {
+            for (key, action) in layer.mappings(for: selectedApplicationID)
+            where action != .transparent {
                 result[key] = action
             }
         }
-        for key in selectedLayer.mappings.keys { result.removeValue(forKey: key) }
+        if selectedApplicationID != nil {
+            result.merge(selectedLayer.mappings) { _, mapping in mapping }
+        }
+        for key in selectedMappings.keys { result.removeValue(forKey: key) }
         return result
     }
 
-    var sortedMappings: [(source: String, action: KeyAction)] {
+    var sortedMappings: [(source: String, action: LayerMapping)] {
         selectedMappings
             .map { (source: $0.key, action: $0.value) }
             .sorted { $0.source < $1.source }
     }
 
     var canAddLayer: Bool { profile.canAddLayer }
+
+    func canUse(_ kind: ActionKind) -> Bool {
+        controller.actionAvailability.canUse(kind)
+    }
+
+    func profileHistory(for profileID: UUID) -> Result<[ProfileHistoryEntry], ProfileHistoryError> {
+        guard license.hasProAccess else { return .success([]) }
+        return profileStore.history.entries(for: profileID)
+    }
+
+    @discardableResult
+    func restore(_ entry: ProfileHistoryEntry) -> Bool {
+        guard license.hasProAccess,
+            let current = profiles.first(where: { $0.id == entry.profile.id }),
+            current != entry.profile
+        else { return false }
+
+        guard edits.perform("Restore Profile", { profileStore.restore(entry) }) else {
+            errorMessage = "Tenuo could not restore this profile version."
+            return false
+        }
+
+        if entry.profile.id == activeProfileID {
+            selectInitialLayer()
+        }
+        objectWillChange.send()
+        return true
+    }
+
+    func activateLicense(_ key: String) {
+        license.activate(key: key)
+    }
+
+    func checkLicense() {
+        license.validateStoredLicense()
+    }
+
+    func deactivateLicense() {
+        license.deactivate()
+    }
 
     func addLayer() {
         guard canAddLayer else { return }
@@ -81,8 +226,17 @@ final class AppModel: ObservableObject {
     func duplicateLayer(_ layer: Layer) {
         guard canAddLayer else { return }
         var copy = layer
+        let originalID = copy.id
         copy.id = UUID()
         copy.name = "Copy of \(layer.name)"
+        let copiedLayerIDs = [originalID: copy.id]
+        copy.tapAction = copy.tapAction?.remappingLayerIDs(copiedLayerIDs)
+        copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) }
+        copy.applications = copy.applications.mapValues { app in
+            ApplicationOverride(
+                name: app.name,
+                mappings: app.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) })
+        }
         guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
         copy.trigger = trigger
         profile.layers.append(copy)
@@ -106,21 +260,25 @@ final class AppModel: ObservableObject {
         }
     }
 
-    var profiles: [Profile] { controller.settings.profiles }
+    var profiles: [Profile] { profileStore.profiles }
 
-    var activeProfileID: UUID { controller.settings.activeProfileID }
+    var activeProfileID: UUID { profileStore.manualProfileID }
 
     func selectProfile(_ id: UUID) {
-        guard id != controller.settings.activeProfileID else { return }
-        controller.settings.activeProfileID = id
+        guard profileStore.selectManualProfile(id) else { return }
         selectInitialLayer()
         objectWillChange.send()
     }
 
     func addProfile(from source: Profile, named name: String) {
-        let created = source.copy(named: controller.settings.uniqueName(name))
-        controller.settings.profiles = controller.settings.profiles + [created]
-        controller.settings.activeProfileID = created.id
+        let created = source.copy(named: profileStore.uniqueName(name))
+        guard
+            edits.perform(
+                "Add Profile",
+                { profileStore.replaceProfiles(profiles + [created], selecting: created.id) })
+        else {
+            return
+        }
         selectInitialLayer()
         objectWillChange.send()
     }
@@ -141,8 +299,20 @@ final class AppModel: ObservableObject {
             var updated = profiles.first(where: { $0.id == id }),
             trimmed != updated.name
         else { return }
-        updated.name = controller.settings.uniqueName(trimmed)
-        controller.settings.profiles = profiles.map { $0.id == id ? updated : $0 }
+        updated.name = profileStore.uniqueName(trimmed)
+        guard
+            edits.perform(
+                "Rename Profile",
+                {
+                    profileStore.replaceProfiles(
+                        profiles.map { $0.id == id ? updated : $0 },
+                        selecting: activeProfileID
+                    )
+                })
+        else {
+            errorMessage = "Tenuo could not save the profile or its history."
+            return
+        }
         objectWillChange.send()
     }
 
@@ -150,7 +320,16 @@ final class AppModel: ObservableObject {
 
     func removeProfile(_ id: UUID) {
         guard canRemoveProfile else { return }
-        controller.settings.profiles = profiles.filter { $0.id != id }
+        let remaining = profiles.filter { $0.id != id }
+        let selectedID = id == activeProfileID ? remaining[0].id : activeProfileID
+        guard
+            edits.perform(
+                "Delete Profile", { profileStore.replaceProfiles(remaining, selecting: selectedID) }
+            )
+        else {
+            errorMessage = "Tenuo could not delete the profile or its history."
+            return
+        }
         selectInitialLayer()
         objectWillChange.send()
     }
@@ -160,7 +339,7 @@ final class AppModel: ObservableObject {
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(profile.name).json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { try Settings.encoder.encode(profile).write(to: url) } catch {
+        do { try profileStore.exportProfile(profile).write(to: url) } catch {
             errorMessage = error.localizedDescription
         }
     }
@@ -172,7 +351,7 @@ final class AppModel: ObservableObject {
         panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "\(profile.name).json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do { try controller.settings.exportJSON().write(to: url) } catch {
+        do { try profileStore.exportProfile(profile).write(to: url) } catch {
             errorMessage = error.localizedDescription
         }
     }
@@ -183,7 +362,15 @@ final class AppModel: ObservableObject {
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try controller.settings.importJSON(Data(contentsOf: url))
+            let data = try Data(contentsOf: url)
+            guard
+                try edits.perform(
+                    "Import Profile",
+                    {
+                        _ = try profileStore.importProfile(data)
+                        return true
+                    })
+            else { throw ProfileStoreError.unableToSave }
             selectInitialLayer()
             objectWillChange.send()
         } catch {
@@ -207,9 +394,9 @@ final class AppModel: ObservableObject {
     }
 
     var isEnabled: Bool {
-        get { controller.settings.isEnabled }
+        get { controller.preferences.isEnabled }
         set {
-            controller.settings.isEnabled = newValue
+            controller.preferences.isEnabled = newValue
             refresh()
         }
     }
@@ -219,30 +406,36 @@ final class AppModel: ObservableObject {
     var updatesAvailable: Bool { UpdateController.isConfigured }
 
     var checksForUpdates: Bool {
-        get { controller.settings.checksForUpdates }
+        get { controller.preferences.checksForUpdates }
         set {
-            controller.settings.checksForUpdates = newValue
+            controller.preferences.checksForUpdates = newValue
             updates.checksAutomatically = newValue
             refresh()
         }
     }
 
     func startUpdater() {
-        updates.start(checksAutomatically: controller.settings.checksForUpdates)
+        updates.start(checksAutomatically: controller.preferences.checksForUpdates)
     }
 
     var showsCheatSheet: Bool {
-        get { controller.settings.showsCheatSheet }
+        get { controller.preferences.showsCheatSheet }
         set {
-            controller.settings.showsCheatSheet = newValue
+            controller.preferences.showsCheatSheet = newValue
             refresh()
         }
     }
 
     func refresh() {
+        if !profile.layers.contains(where: { $0.id == selectedLayerID }) {
+            selectedLayerID = profile.triggeredLayers.first?.id ?? profile.layers.first?.id
+        }
+        if let selectedApplicationID, selectedLayer.applications[selectedApplicationID] == nil {
+            self.selectedApplicationID = nil
+        }
         isTrusted = controller.isTrusted
         isActive = controller.isActive
-        launchesAtLogin = controller.launchAtLogin.isEnabled
+        launchesAtLogin = controller.launchAtLogin.isRegistered
         launchNeedsApproval = controller.launchAtLogin.requiresApproval
         objectWillChange.send()
     }

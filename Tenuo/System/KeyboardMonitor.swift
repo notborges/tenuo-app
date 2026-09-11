@@ -3,7 +3,7 @@ import Foundation
 import os
 
 final class KeyboardMonitor {
-    private static let syntheticMarker: Int64 = 0x4E56_5348  // "TENU"
+    private static let syntheticMarker: Int64 = 0x4E56_5348
 
     private let log = Logger(subsystem: "app.tenuo", category: "tap")
 
@@ -13,15 +13,35 @@ final class KeyboardMonitor {
 
     private let eventSource = CGEventSource(stateID: .privateState)
 
+    private var pressedKeys: Set<UInt16> = []
+    private var physicalModifiers: CGEventFlags = []
+    private static let heldModifierMask: CGEventFlags = [
+        .maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn,
+    ]
+
+    var isQuiescent: Bool {
+        !isRunning || (engine.isQuiescent && pressedKeys.isEmpty && physicalModifiers.isEmpty)
+    }
+    var onIdle: (() -> Void)?
+
+    var onAction: ((MacAction) -> Void)?
+
     var onTapInvalidated: (() -> Void)?
 
-    var onActiveLayerChanged: ((Int?) -> Void)?
-    private var lastActiveLayer: Int?
+    var onActiveLayersChanged: (([LayerActivity]) -> Void)?
+    private var lastActiveLayerStates: [LayerActivity] = []
 
     var isRunning: Bool { tap != nil }
 
-    init(profile: Profile, isEnabled: Bool) {
-        engine = LayerEngine(profile: profile, isEnabled: isEnabled)
+    init(
+        profile: Profile,
+        isEnabled: Bool,
+        actionAvailability: any ActionAvailability = DefaultActionAvailability.current
+    ) {
+        engine = LayerEngine(
+            profile: profile,
+            isEnabled: isEnabled,
+            actionAvailability: actionAvailability)
     }
 
     @discardableResult
@@ -56,6 +76,10 @@ final class KeyboardMonitor {
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: port, enable: true)
 
+        pressedKeys = Set(
+            (UInt16(0)..<128).filter { CGEventSource.keyState(.combinedSessionState, key: $0) })
+        physicalModifiers = CGEventSource.flagsState(.combinedSessionState).intersection(
+            Self.heldModifierMask)
         tap = port
         runLoopSource = source
         log.info("Event tap installed")
@@ -70,12 +94,19 @@ final class KeyboardMonitor {
         CFMachPortInvalidate(tap)
         self.tap = nil
         self.runLoopSource = nil
+        pressedKeys.removeAll(keepingCapacity: true)
+        physicalModifiers = []
         log.info("Event tap removed")
+    }
+
+    func updateApplication(_ applicationID: String?) {
+        engine.updateApplication(applicationID)
     }
 
     func update(profile: Profile) {
         flushHeldKeys()
         engine.apply(profile: profile)
+        publishActiveLayerIfNeeded()
     }
 
     func update(isEnabled: Bool) {
@@ -85,10 +116,11 @@ final class KeyboardMonitor {
     }
 
     func flushHeldKeys() {
-        let hadActiveLayer = engine.activeLayerIndex != nil || lastActiveLayer != nil
+        let hadActiveLayer = engine.isLayerActive || !lastActiveLayerStates.isEmpty
         engine.reset { [weak self] key in self?.post(key) }
-        lastActiveLayer = nil
-        if hadActiveLayer { onActiveLayerChanged?(nil) }
+        lastActiveLayerStates = []
+        if hadActiveLayer { onActiveLayersChanged?([]) }
+        onIdle?()
     }
 
     private func process(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -122,13 +154,16 @@ final class KeyboardMonitor {
             timestamp: event.timestamp
         )
 
-        let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
-
-        let active = engine.activeLayerIndex
-        if active != lastActiveLayer {
-            lastActiveLayer = active
-            onActiveLayerChanged?(active)
+        let wasIdle = isQuiescent
+        if !input.isSynthetic {
+            if type == .keyDown { pressedKeys.insert(input.keyCode) }
+            if type == .keyUp { pressedKeys.remove(input.keyCode) }
+            physicalModifiers = event.flags.intersection(Self.heldModifierMask)
         }
+        let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
+        if !wasIdle && isQuiescent { onIdle?() }
+        for action in engine.takePendingActions() { onAction?(action) }
+        publishActiveLayerIfNeeded()
 
         switch disposition {
         case .passThrough:
@@ -154,6 +189,13 @@ final class KeyboardMonitor {
         event.flags = CGEventFlags(rawValue: key.flags.rawValue)
         event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
         event.post(tap: .cgSessionEventTap)
+    }
+
+    private func publishActiveLayerIfNeeded() {
+        let active = engine.activeLayerStates
+        guard active != lastActiveLayerStates else { return }
+        lastActiveLayerStates = active
+        onActiveLayersChanged?(active)
     }
 
     deinit {

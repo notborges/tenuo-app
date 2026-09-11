@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(TENUO_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconFile</key>
@@ -17,7 +19,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>$(TENUO_DISPLAY_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -32,6 +34,8 @@
 	<string>public.app-category.utilities</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
 	<key>SUFeedURL</key>
 	<string>$(TENUO_FEED_URL)</string>
 	<key>SUPublicEDKey</key>
@@ -42,5 +46,11 @@
 	<false/>
 	<key>SUSendProfileInfo</key>
 	<false/>
+	<key>TenuoPolarAPIURL</key>
+	<string>$(TENUO_POLAR_API_URL)</string>
+	<key>TenuoPolarOrganizationID</key>
+	<string>$(TENUO_POLAR_ORGANIZATION_ID)</string>
+	<key>TenuoPolarBenefitID</key>
+	<string>$(TENUO_POLAR_BENEFIT_ID)</string>
 </dict>
 </plist>

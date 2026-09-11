@@ -11,13 +11,11 @@ final class UpdateController: NSObject, ObservableObject {
         case checking
         case upToDate
         case available(version: String)
-        case downloading(fraction: Double)
-        case installing
         case failed(String)
 
         var isBusy: Bool {
             switch self {
-            case .checking, .downloading, .installing: return true
+            case .checking: return true
             default: return false
             }
         }
@@ -45,10 +43,6 @@ final class UpdateController: NSObject, ObservableObject {
         category: "updates")
     private var updater: SPUUpdater?
 
-    private var wantsInstall = false
-    private var expectedLength: UInt64 = 0
-    private var receivedLength: UInt64 = 0
-
     func start(checksAutomatically: Bool) {
         guard updater == nil else { return }
         guard Self.isConfigured else {
@@ -59,8 +53,8 @@ final class UpdateController: NSObject, ObservableObject {
         let updater = SPUUpdater(
             hostBundle: .main,
             applicationBundle: .main,
-            userDriver: self,
-            delegate: nil)
+            userDriver: SPUStandardUserDriver(hostBundle: .main, delegate: nil),
+            delegate: self)
         updater.automaticallyDownloadsUpdates = false
         updater.automaticallyChecksForUpdates = checksAutomatically
         updater.sendsSystemProfile = false
@@ -75,112 +69,37 @@ final class UpdateController: NSObject, ObservableObject {
     }
 
     func check() {
-        guard let updater, !status.isBusy else { return }
-        wantsInstall = false
-        status = .checking
-        updater.checkForUpdates()
-    }
-
-    func install() {
-        guard let updater, !status.isBusy else { return }
-        wantsInstall = true
-        status = .checking
+        guard let updater else { return }
+        if !updater.sessionInProgress { status = .checking }
         updater.checkForUpdates()
     }
 }
 
-extension UpdateController: SPUUserDriver {
-
-    func show(
-        _ request: SPUUpdatePermissionRequest,
-        reply: @escaping (SUUpdatePermissionResponse) -> Void
-    ) {
-        reply(
-            SUUpdatePermissionResponse(
-                automaticUpdateChecks: checksAutomatically,
-                sendSystemProfile: false))
-    }
-
-    func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {
-        status = .checking
-    }
-
-    func showUpdateFound(
-        with appcastItem: SUAppcastItem,
-        state: SPUUserUpdateState,
-        reply: @escaping (SPUUserUpdateChoice) -> Void
-    ) {
+extension UpdateController: SPUUpdaterDelegate {
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         lastChecked = Date()
-        status = .available(version: appcastItem.displayVersionString)
-        reply(wantsInstall ? .install : .dismiss)
+        status = .available(version: item.displayVersionString)
     }
 
-    func showUpdateReleaseNotes(with downloadData: SPUDownloadData) {}
-
-    func showUpdateReleaseNotesFailedToDownloadWithError(_ error: any Error) {}
-
-    func showUpdateNotFoundWithError(
-        _ error: any Error,
-        acknowledgement: @escaping () -> Void
-    ) {
+    func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
         lastChecked = Date()
         status = .upToDate
-        acknowledgement()
     }
 
-    func showUpdaterError(_ error: any Error, acknowledgement: @escaping () -> Void) {
-        log.error("Update failed: \(error.localizedDescription, privacy: .public)")
-        status = .failed(error.localizedDescription)
-        acknowledgement()
-    }
-
-    func showDownloadInitiated(cancellation: @escaping () -> Void) {
-        expectedLength = 0
-        receivedLength = 0
-        status = .downloading(fraction: 0)
-    }
-
-    func showDownloadDidReceiveExpectedContentLength(_ expectedContentLength: UInt64) {
-        expectedLength = expectedContentLength
-    }
-
-    func showDownloadDidReceiveData(ofLength length: UInt64) {
-        receivedLength += length
-        guard expectedLength > 0 else { return }
-        status = .downloading(fraction: min(1, Double(receivedLength) / Double(expectedLength)))
-    }
-
-    func showDownloadDidStartExtractingUpdate() {
-        status = .installing
-    }
-
-    func showExtractionReceivedProgress(_ progress: Double) {
-        status = .installing
-    }
-
-    func showReady(toInstallAndRelaunch reply: @escaping (SPUUserUpdateChoice) -> Void) {
-        status = .installing
-        reply(.install)
-    }
-
-    func showInstallingUpdate(
-        withApplicationTerminated applicationTerminated: Bool,
-        retryTerminatingApplication: @escaping () -> Void
+    func updater(
+        _ updater: SPUUpdater,
+        didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
+        error: Error?
     ) {
-        status = .installing
-    }
-
-    func showUpdateInstalledAndRelaunched(
-        _ relaunched: Bool,
-        acknowledgement: @escaping () -> Void
-    ) {
-        acknowledgement()
-    }
-
-    func showUpdateInFocus() {}
-
-    func dismissUpdateInstallation() {
-        wantsInstall = false
-        if status.isBusy { status = .idle }
+        if let error = error as NSError?,
+            error.domain != SUSparkleErrorDomain
+                || (error.code != SUError.noUpdateError.rawValue
+                    && error.code != SUError.installationCanceledError.rawValue)
+        {
+            log.error("Update failed: \(error.localizedDescription, privacy: .public)")
+            status = .failed(error.localizedDescription)
+        } else if status != .upToDate {
+            status = .idle
+        }
     }
 }

@@ -20,7 +20,6 @@
 		TENUO0000000000000000015 /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
 		TENUO0000000000000000017 /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
 		TENUO0000000000000000019 /* KeyboardGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001A /* KeyboardGeometry.swift */; };
-		TENUO000000000000000001B /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
 		TENUO000000000000000001D /* KeyboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001E /* KeyboardMonitor.swift */; };
 		TENUO000000000000000001F /* CapsLockRemapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000020 /* CapsLockRemapper.swift */; };
 		TENUO0000000000000000021 /* AccessibilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000022 /* AccessibilityManager.swift */; };
@@ -41,7 +40,6 @@
 		TENUO000000000000000003F /* ProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000040 /* ProfileSwitcher.swift */; };
 		TENUO0000000000000000041 /* CheatSheetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000042 /* CheatSheetController.swift */; };
 		TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000044 /* LayerEngineTests.swift */; };
-		TENUO0000000000000000045 /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000046 /* SettingsTests.swift */; };
 		TENUO0000000000000000047 /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000C /* KeyCodes.swift */; };
 		TENUO0000000000000000048 /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
 		TENUO0000000000000000049 /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
@@ -49,9 +47,9 @@
 		TENUO000000000000000004B /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Profile.swift */; };
 		TENUO000000000000000004C /* Presets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000016 /* Presets.swift */; };
 		TENUO000000000000000004D /* LayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000018 /* LayerEngine.swift */; };
-		TENUO000000000000000004F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000001C /* Settings.swift */; };
 		TENUO0000000000000000050 /* Assets.car in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000051 /* Assets.car */; };
 		TENUO0000000000000000052 /* Tenuo.icns in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000053 /* Tenuo.icns */; };
+		AB224AD678124AB879676501 /* TenuoPro.icns in Resources */ = {isa = PBXBuildFile; fileRef = AB224AD678124AB879676502 /* TenuoPro.icns */; };
 		TENUO0000000000000000054 /* TenuoTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000055 /* TenuoTemplate.png */; };
 		TENUO0000000000000000056 /* TenuoTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000057 /* TenuoTemplate@2x.png */; };
 		TENUO0000000000000000058 /* TenuoMark.png in Resources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000059 /* TenuoMark.png */; };
@@ -60,6 +58,54 @@
 		TENUO0000000000000000080 /* HIDMappingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000081 /* HIDMappingParser.swift */; };
 		TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000081 /* HIDMappingParser.swift */; };
 		TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000084 /* CapsLockRemapperTests.swift */; };
+		TENUO0000000000000000085 /* LayerModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008C /* LayerModes.swift */; };
+		TENUO0000000000000000086 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008D /* ProfileStore.swift */; };
+		TENUO0000000000000000087 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008E /* AppPreferences.swift */; };
+		TENUO0000000000000000088 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
+		TENUO000000000000000008A /* ProfileStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000091 /* ProfileStoreTests.swift */; };
+		TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000092 /* ProfileSelectionTests.swift */; };
+		TENUO0000000000000000093 /* LayerModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008C /* LayerModes.swift */; };
+		TENUO0000000000000000094 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008D /* ProfileStore.swift */; };
+		TENUO0000000000000000095 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008E /* AppPreferences.swift */; };
+		TENUO0000000000000000096 /* ProfileSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000008F /* ProfileSelection.swift */; };
+		TENUO0000000000000000097 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000099 /* Actions.swift */; };
+		TENUO0000000000000000098 /* Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000099 /* Actions.swift */; };
+		TENUO00000000000000000A0 /* LayerStatusController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000A1 /* LayerStatusController.swift */; };
+		TENUO00000000000000000B1 /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B0 /* License.swift */; };
+		TENUO00000000000000000B3 /* PolarLicenseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B2 /* PolarLicenseClient.swift */; };
+		TENUO00000000000000000B5 /* LicenseKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B4 /* LicenseKeychainStore.swift */; };
+		TENUO00000000000000000B7 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B6 /* LicenseManager.swift */; };
+		TENUO00000000000000000B9 /* LicenseSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B8 /* LicenseSettingsView.swift */; };
+		TENUO00000000000000000BB /* LicenseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BA /* LicenseTests.swift */; };
+		TENUO00000000000000000BC /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B0 /* License.swift */; };
+		TENUO00000000000000000BD /* ProfileHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BF /* ProfileHistory.swift */; };
+		DE84942F344B4D98A9A08231 /* ProfileEditSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */; };
+		TENUO00000000000000000BE /* ProfileHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000BF /* ProfileHistory.swift */; };
+		DE84942F344B4D98A9A08232 /* ProfileEditSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */; };
+		TENUO00000000000000000C0 /* ProfileHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000C1 /* ProfileHistoryView.swift */; };
+		AC7200000000000000000000 /* MacActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000000 /* MacActionRunner.swift */; };
+		AC7200000000000000000001 /* ApplicationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000001 /* ApplicationPicker.swift */; };
+		AC7200000000000000000002 /* MacActionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000002 /* MacActionEditor.swift */; };
+		305A01DB65DC87DB57C82792 /* ProPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3874E7D1F31D90BDE062B333 /* ProPresentation.swift */; };
+		AC7200000000000000000003 /* ActionFeedbackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC7100000000000000000003 /* ActionFeedbackController.swift */; };
+		2C4C21B54B30F230D10A18CF /* ProfileDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D969FFD523DF8F403902B4; };
+		7732B1C889DAB1E49822FD63 /* ProfileDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D969FFD523DF8F403902B4; };
+		C1CC43059B7BBF9AB2895472 /* ProfileSyncState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3C6B002F18F4C5A2472CB; };
+		32F1148E67F208D97F1814B9 /* ProfileSyncState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A3C6B002F18F4C5A2472CB; };
+		A492BEC328799A615C7911B3 /* SQLiteProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50E299441B06633FDA6FEEB; };
+		33649BD1CB939D30402D874F /* SQLiteProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50E299441B06633FDA6FEEB; };
+		F84160E19765579A0F4B50C2 /* LocalActionTargets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC3551E7A57A269A063A2BC; };
+		042B915D85609CF990A556F3 /* LocalActionTargets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC3551E7A57A269A063A2BC; };
+		5C5777D7D9752077F7666C17 /* ProfileSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59C783512856AF14F158351; };
+		1430FD359E48B5CFBE484A8E /* CloudProfileTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D931717F1C564D5C79A5385; };
+		73C959CF365754CF84620789 /* ProfileSyncController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DBDF97138ED366A77EB33B; };
+		42FCB7511D5B8FF05E55688B /* ProfileSyncSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B804A6BC4A169E7EF1CE968; };
+		55741F01F1BF8C820D851440 /* CloudProfileTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D931717F1C564D5C79A5385; };
+		4940486E568097DD4ED95059 /* ProfileSyncController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DBDF97138ED366A77EB33B; };
+		B2CE72E47B47109D0F96DA82 /* ProfileSyncLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6876BE70C775712FC76923F8; };
+		AB4900000000000000000000 /* PolarLicenseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B2 /* PolarLicenseClient.swift */; };
+		AB4900000000000000000001 /* LicenseKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B4 /* LicenseKeychainStore.swift */; };
+		AB4900000000000000000002 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B6 /* LicenseManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -76,7 +122,6 @@
 		TENUO0000000000000000016 /* Presets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presets.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000018 /* LayerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngine.swift; sourceTree = "<group>"; };
 		TENUO000000000000000001A /* KeyboardGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardGeometry.swift; sourceTree = "<group>"; };
-		TENUO000000000000000001C /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		TENUO000000000000000001E /* KeyboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardMonitor.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000020 /* CapsLockRemapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockRemapper.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000022 /* AccessibilityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityManager.swift; sourceTree = "<group>"; };
@@ -97,11 +142,11 @@
 		TENUO0000000000000000040 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000042 /* CheatSheetController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheatSheetController.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000044 /* LayerEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerEngineTests.swift; sourceTree = "<group>"; };
-		TENUO0000000000000000046 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		TENUO000000000000000005E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		TENUO000000000000000005F /* Tenuo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Tenuo.entitlements; sourceTree = "<group>"; };
 		TENUO0000000000000000051 /* Assets.car */ = {isa = PBXFileReference; lastKnownFileType = archive.binhex; path = Assets.car; sourceTree = "<group>"; };
 		TENUO0000000000000000053 /* Tenuo.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Tenuo.icns; sourceTree = "<group>"; };
+		AB224AD678124AB879676502 /* TenuoPro.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = TenuoPro.icns; sourceTree = "<group>"; };
 		TENUO0000000000000000055 /* TenuoTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoTemplate.png; sourceTree = "<group>"; };
 		TENUO0000000000000000057 /* TenuoTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "TenuoTemplate@2x.png"; sourceTree = "<group>"; };
 		TENUO0000000000000000059 /* TenuoMark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TenuoMark.png; sourceTree = "<group>"; };
@@ -109,8 +154,40 @@
 		TENUO0000000000000000060 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		TENUO0000000000000000081 /* HIDMappingParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIDMappingParser.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000084 /* CapsLockRemapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockRemapperTests.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008C /* LayerModes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerModes.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008D /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008E /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		TENUO000000000000000008F /* ProfileSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelection.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000099 /* Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Actions.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000091 /* ProfileStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStoreTests.swift; sourceTree = "<group>"; };
+		TENUO0000000000000000092 /* ProfileSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionTests.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000A1 /* LayerStatusController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerStatusController.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000B0 /* License.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = License.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000B2 /* PolarLicenseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarLicenseClient.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000B4 /* LicenseKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseKeychainStore.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000B6 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000B8 /* LicenseSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseSettingsView.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000BA /* LicenseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseTests.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000BF /* ProfileHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileHistory.swift; sourceTree = "<group>"; };
+		DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditSession.swift; sourceTree = "<group>"; };
+		TENUO00000000000000000C1 /* ProfileHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileHistoryView.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000061 /* Tenuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tenuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TENUO0000000000000000062 /* TenuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TenuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC7100000000000000000000 /* MacActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacActionRunner.swift; sourceTree = "<group>"; };
+		AC7100000000000000000001 /* ApplicationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationPicker.swift; sourceTree = "<group>"; };
+		AC7100000000000000000002 /* MacActionEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacActionEditor.swift; sourceTree = "<group>"; };
+		3874E7D1F31D90BDE062B333 /* ProPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProPresentation.swift; sourceTree = "<group>"; };
+		AC7100000000000000000003 /* ActionFeedbackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionFeedbackController.swift; sourceTree = "<group>"; };
+		61D969FFD523DF8F403902B4 /* ProfileDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDatabase.swift; sourceTree = "<group>"; };
+		F9A3C6B002F18F4C5A2472CB /* ProfileSyncState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncState.swift; sourceTree = "<group>"; };
+		B50E299441B06633FDA6FEEB /* SQLiteProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteProfileStore.swift; sourceTree = "<group>"; };
+		CCC3551E7A57A269A063A2BC /* LocalActionTargets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalActionTargets.swift; sourceTree = "<group>"; };
+		F59C783512856AF14F158351 /* ProfileSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncTests.swift; sourceTree = "<group>"; };
+		7D931717F1C564D5C79A5385 /* CloudProfileTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProfileTransport.swift; sourceTree = "<group>"; };
+		F8DBDF97138ED366A77EB33B /* ProfileSyncController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncController.swift; sourceTree = "<group>"; };
+		8B804A6BC4A169E7EF1CE968 /* ProfileSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncSettingsView.swift; sourceTree = "<group>"; };
+		6876BE70C775712FC76923F8 /* ProfileSyncLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncLifecycleTests.swift; sourceTree = "<group>"; };
+		A08B8203B8CC58EE137310AA /* TenuoCloud.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TenuoCloud.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,15 +224,26 @@
 		TENUO0000000000000000066 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				CCC3551E7A57A269A063A2BC /* LocalActionTargets.swift */,
+				B50E299441B06633FDA6FEEB /* SQLiteProfileStore.swift */,
+				F9A3C6B002F18F4C5A2472CB /* ProfileSyncState.swift */,
+				61D969FFD523DF8F403902B4 /* ProfileDatabase.swift */,
 				TENUO0000000000000000081 /* HIDMappingParser.swift */,
 				TENUO000000000000000000C /* KeyCodes.swift */,
 				TENUO000000000000000000E /* TriggerKey.swift */,
 				TENUO0000000000000000010 /* KeyCatalog.swift */,
 				TENUO0000000000000000012 /* KeyBinding.swift */,
+				TENUO0000000000000000099 /* Actions.swift */,
+				TENUO00000000000000000B0 /* License.swift */,
+				TENUO00000000000000000BF /* ProfileHistory.swift */,
+				DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */,
 				TENUO0000000000000000014 /* Profile.swift */,
 				TENUO0000000000000000016 /* Presets.swift */,
 				TENUO0000000000000000018 /* LayerEngine.swift */,
-				TENUO000000000000000001C /* Settings.swift */,
+				TENUO000000000000000008C /* LayerModes.swift */,
+				TENUO000000000000000008D /* ProfileStore.swift */,
+				TENUO000000000000000008E /* AppPreferences.swift */,
+				TENUO000000000000000008F /* ProfileSelection.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -163,12 +251,18 @@
 		TENUO0000000000000000067 /* System */ = {
 			isa = PBXGroup;
 			children = (
+				F8DBDF97138ED366A77EB33B /* ProfileSyncController.swift */,
+				7D931717F1C564D5C79A5385 /* CloudProfileTransport.swift */,
+				AC7100000000000000000000 /* MacActionRunner.swift */,
 				TENUO000000000000000001E /* KeyboardMonitor.swift */,
 				TENUO0000000000000000020 /* CapsLockRemapper.swift */,
 				TENUO0000000000000000022 /* AccessibilityManager.swift */,
 				TENUO0000000000000000024 /* LaunchAtLoginManager.swift */,
 				TENUO0000000000000000026 /* SystemEventObserver.swift */,
 				TENUO0000000000000000028 /* UpdateController.swift */,
+				TENUO00000000000000000B2 /* PolarLicenseClient.swift */,
+				TENUO00000000000000000B4 /* LicenseKeychainStore.swift */,
+				TENUO00000000000000000B6 /* LicenseManager.swift */,
 			);
 			path = System;
 			sourceTree = "<group>";
@@ -176,6 +270,11 @@
 		TENUO0000000000000000068 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				8B804A6BC4A169E7EF1CE968 /* ProfileSyncSettingsView.swift */,
+				AC7100000000000000000003 /* ActionFeedbackController.swift */,
+				AC7100000000000000000002 /* MacActionEditor.swift */,
+				3874E7D1F31D90BDE062B333 /* ProPresentation.swift */,
+				AC7100000000000000000001 /* ApplicationPicker.swift */,
 				TENUO000000000000000001A /* KeyboardGeometry.swift */,
 				TENUO000000000000000002A /* DesignSystem.swift */,
 				TENUO000000000000000002C /* Controls.swift */,
@@ -190,6 +289,9 @@
 				TENUO000000000000000003E /* LayerList.swift */,
 				TENUO0000000000000000040 /* ProfileSwitcher.swift */,
 				TENUO0000000000000000042 /* CheatSheetController.swift */,
+				TENUO00000000000000000A1 /* LayerStatusController.swift */,
+				TENUO00000000000000000B8 /* LicenseSettingsView.swift */,
+				TENUO00000000000000000C1 /* ProfileHistoryView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -199,8 +301,10 @@
 			children = (
 				TENUO000000000000000005E /* Info.plist */,
 				TENUO000000000000000005F /* Tenuo.entitlements */,
+				A08B8203B8CC58EE137310AA /* TenuoCloud.entitlements */,
 				TENUO0000000000000000051 /* Assets.car */,
 				TENUO0000000000000000053 /* Tenuo.icns */,
+				AB224AD678124AB879676502 /* TenuoPro.icns */,
 				TENUO0000000000000000055 /* TenuoTemplate.png */,
 				TENUO0000000000000000057 /* TenuoTemplate@2x.png */,
 				TENUO0000000000000000059 /* TenuoMark.png */,
@@ -224,9 +328,13 @@
 		TENUO000000000000000006B /* TenuoTests */ = {
 			isa = PBXGroup;
 			children = (
+				6876BE70C775712FC76923F8 /* ProfileSyncLifecycleTests.swift */,
+				F59C783512856AF14F158351 /* ProfileSyncTests.swift */,
 				TENUO0000000000000000084 /* CapsLockRemapperTests.swift */,
 				TENUO0000000000000000044 /* LayerEngineTests.swift */,
-				TENUO0000000000000000046 /* SettingsTests.swift */,
+				TENUO0000000000000000091 /* ProfileStoreTests.swift */,
+				TENUO0000000000000000092 /* ProfileSelectionTests.swift */,
+				TENUO00000000000000000BA /* LicenseTests.swift */,
 			);
 			path = TenuoTests;
 			sourceTree = "<group>";
@@ -296,7 +404,13 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					TENUO0000000000000000070 = { CreatedOnToolsVersion = 26.0; };
+					TENUO0000000000000000070 = {
+						CreatedOnToolsVersion = 26.0;
+						SystemCapabilities = {
+							com.apple.iCloud = { enabled = 1; };
+							com.apple.Push = { enabled = 1; };
+						};
+					};
 					TENUO0000000000000000073 = { CreatedOnToolsVersion = 26.0; };
 				};
 			};
@@ -348,6 +462,7 @@
 			files = (
 				TENUO0000000000000000050 /* Assets.car in Resources */,
 				TENUO0000000000000000052 /* Tenuo.icns in Resources */,
+				AB224AD678124AB879676501 /* TenuoPro.icns in Resources */,
 				TENUO0000000000000000054 /* TenuoTemplate.png in Resources */,
 				TENUO0000000000000000056 /* TenuoTemplate@2x.png in Resources */,
 				TENUO0000000000000000058 /* TenuoMark.png in Resources */,
@@ -362,6 +477,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				42FCB7511D5B8FF05E55688B /* ProfileSyncSettingsView.swift in Sources */,
+				73C959CF365754CF84620789 /* ProfileSyncController.swift in Sources */,
+				1430FD359E48B5CFBE484A8E /* CloudProfileTransport.swift in Sources */,
+				F84160E19765579A0F4B50C2 /* LocalActionTargets.swift in Sources */,
+				A492BEC328799A615C7911B3 /* SQLiteProfileStore.swift in Sources */,
+				C1CC43059B7BBF9AB2895472 /* ProfileSyncState.swift in Sources */,
+				2C4C21B54B30F230D10A18CF /* ProfileDatabase.swift in Sources */,
+				AC7200000000000000000003 /* ActionFeedbackController.swift in Sources */,
+				AC7200000000000000000002 /* MacActionEditor.swift in Sources */,
+				305A01DB65DC87DB57C82792 /* ProPresentation.swift in Sources */,
+				AC7200000000000000000001 /* ApplicationPicker.swift in Sources */,
+				AC7200000000000000000000 /* MacActionRunner.swift in Sources */,
 				TENUO0000000000000000080 /* HIDMappingParser.swift in Sources */,
 				TENUO0000000000000000001 /* TenuoApp.swift in Sources */,
 				TENUO0000000000000000003 /* MainMenu.swift in Sources */,
@@ -372,17 +499,25 @@
 				TENUO000000000000000000D /* TriggerKey.swift in Sources */,
 				TENUO000000000000000000F /* KeyCatalog.swift in Sources */,
 				TENUO0000000000000000011 /* KeyBinding.swift in Sources */,
+				TENUO0000000000000000097 /* Actions.swift in Sources */,
+				TENUO00000000000000000B1 /* License.swift in Sources */,
 				TENUO0000000000000000013 /* Profile.swift in Sources */,
 				TENUO0000000000000000015 /* Presets.swift in Sources */,
 				TENUO0000000000000000017 /* LayerEngine.swift in Sources */,
 				TENUO0000000000000000019 /* KeyboardGeometry.swift in Sources */,
-				TENUO000000000000000001B /* Settings.swift in Sources */,
+				TENUO0000000000000000085 /* LayerModes.swift in Sources */,
+				TENUO0000000000000000086 /* ProfileStore.swift in Sources */,
+				TENUO0000000000000000087 /* AppPreferences.swift in Sources */,
+				TENUO0000000000000000088 /* ProfileSelection.swift in Sources */,
 				TENUO000000000000000001D /* KeyboardMonitor.swift in Sources */,
 				TENUO000000000000000001F /* CapsLockRemapper.swift in Sources */,
 				TENUO0000000000000000021 /* AccessibilityManager.swift in Sources */,
 				TENUO0000000000000000023 /* LaunchAtLoginManager.swift in Sources */,
 				TENUO0000000000000000025 /* SystemEventObserver.swift in Sources */,
 				TENUO0000000000000000027 /* UpdateController.swift in Sources */,
+				TENUO00000000000000000B3 /* PolarLicenseClient.swift in Sources */,
+				TENUO00000000000000000B5 /* LicenseKeychainStore.swift in Sources */,
+				TENUO00000000000000000B7 /* LicenseManager.swift in Sources */,
 				TENUO0000000000000000029 /* DesignSystem.swift in Sources */,
 				TENUO000000000000000002B /* Controls.swift in Sources */,
 				TENUO000000000000000002D /* GlassStyle.swift in Sources */,
@@ -396,6 +531,11 @@
 				TENUO000000000000000003D /* LayerList.swift in Sources */,
 				TENUO000000000000000003F /* ProfileSwitcher.swift in Sources */,
 				TENUO0000000000000000041 /* CheatSheetController.swift in Sources */,
+				TENUO00000000000000000A0 /* LayerStatusController.swift in Sources */,
+				TENUO00000000000000000B9 /* LicenseSettingsView.swift in Sources */,
+				TENUO00000000000000000BD /* ProfileHistory.swift in Sources */,
+				DE84942F344B4D98A9A08231 /* ProfileEditSession.swift in Sources */,
+				TENUO00000000000000000C0 /* ProfileHistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -403,18 +543,38 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2CE72E47B47109D0F96DA82 /* ProfileSyncLifecycleTests.swift in Sources */,
+				4940486E568097DD4ED95059 /* ProfileSyncController.swift in Sources */,
+				55741F01F1BF8C820D851440 /* CloudProfileTransport.swift in Sources */,
+				5C5777D7D9752077F7666C17 /* ProfileSyncTests.swift in Sources */,
+				042B915D85609CF990A556F3 /* LocalActionTargets.swift in Sources */,
+				33649BD1CB939D30402D874F /* SQLiteProfileStore.swift in Sources */,
+				32F1148E67F208D97F1814B9 /* ProfileSyncState.swift in Sources */,
+				7732B1C889DAB1E49822FD63 /* ProfileDatabase.swift in Sources */,
 				TENUO0000000000000000082 /* HIDMappingParser.swift in Sources */,
 				TENUO0000000000000000083 /* CapsLockRemapperTests.swift in Sources */,
 				TENUO0000000000000000043 /* LayerEngineTests.swift in Sources */,
-				TENUO0000000000000000045 /* SettingsTests.swift in Sources */,
+				TENUO000000000000000008A /* ProfileStoreTests.swift in Sources */,
+				TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */,
 				TENUO0000000000000000047 /* KeyCodes.swift in Sources */,
 				TENUO0000000000000000048 /* TriggerKey.swift in Sources */,
 				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
 				TENUO000000000000000004A /* KeyBinding.swift in Sources */,
+				TENUO0000000000000000098 /* Actions.swift in Sources */,
+				AB4900000000000000000000 /* PolarLicenseClient.swift in Sources */,
+				AB4900000000000000000001 /* LicenseKeychainStore.swift in Sources */,
+				AB4900000000000000000002 /* LicenseManager.swift in Sources */,
+				TENUO00000000000000000BC /* License.swift in Sources */,
+				TENUO00000000000000000BE /* ProfileHistory.swift in Sources */,
+				DE84942F344B4D98A9A08232 /* ProfileEditSession.swift in Sources */,
 				TENUO000000000000000004B /* Profile.swift in Sources */,
 				TENUO000000000000000004C /* Presets.swift in Sources */,
 				TENUO000000000000000004D /* LayerEngine.swift in Sources */,
-				TENUO000000000000000004F /* Settings.swift in Sources */,
+				TENUO0000000000000000093 /* LayerModes.swift in Sources */,
+				TENUO0000000000000000094 /* ProfileStore.swift in Sources */,
+				TENUO0000000000000000095 /* AppPreferences.swift in Sources */,
+				TENUO0000000000000000096 /* ProfileSelection.swift in Sources */,
+				TENUO00000000000000000BB /* LicenseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -517,17 +677,20 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Tenuo/Resources/Tenuo.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TENUO_CODE_SIGN_ENTITLEMENTS)";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Tenuo/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				LM_SKIP_METADATA_EXTRACTION = YES;
-				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = app.tenuo;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 1.1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = app.tenuo.dev;
+				TENUO_ICLOUD_ENVIRONMENT = Development;
+				TENUO_APNS_ENVIRONMENT = development;
+				PRODUCT_NAME = "Tenuo Dev";
+				TENUO_DISPLAY_NAME = "Tenuo Dev";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
@@ -536,17 +699,20 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Tenuo/Resources/Tenuo.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TENUO_CODE_SIGN_ENTITLEMENTS)";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Tenuo/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				LM_SKIP_METADATA_EXTRACTION = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.tenuo;
+				TENUO_ICLOUD_ENVIRONMENT = Production;
+				TENUO_APNS_ENVIRONMENT = production;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TENUO_DISPLAY_NAME = Tenuo;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
@@ -555,10 +721,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				LM_SKIP_METADATA_EXTRACTION = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.tenuo.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -569,10 +735,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = TENUO0000000000000000060 /* Config.xcconfig */;
 			buildSettings = {
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				LM_SKIP_METADATA_EXTRACTION = YES;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.tenuo.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;

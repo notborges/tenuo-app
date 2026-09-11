@@ -6,7 +6,7 @@ enum Presets {
     }
 
     private static func base() -> Layer {
-        Layer(id: id(0), name: "Base", holdMode: .layer)
+        Layer(id: id(0), name: "Base", outputMode: .layer)
     }
 
     static let navigation = Profile(
@@ -17,13 +17,13 @@ enum Presets {
                 id: id(1),
                 name: "Navigation",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .injectAndLayer,
-                tapAction: KeyBinding(key: "escape"),
+                outputMode: .layer,
+                tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow")),
-                    "j": .key(KeyBinding(key: "downArrow")),
-                    "k": .key(KeyBinding(key: "upArrow")),
-                    "l": .key(KeyBinding(key: "rightArrow")),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow"))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow"))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow"))),
                 ]
             ),
         ])
@@ -36,22 +36,22 @@ enum Presets {
                 id: id(1),
                 name: "Motion",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .injectAndLayer,
-                tapAction: KeyBinding(key: "escape"),
+                outputMode: .layer,
+                tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow")),
-                    "j": .key(KeyBinding(key: "downArrow")),
-                    "k": .key(KeyBinding(key: "upArrow")),
-                    "l": .key(KeyBinding(key: "rightArrow")),
-                    "b": .key(KeyBinding(key: "leftArrow", modifiers: [.option])),
-                    "w": .key(KeyBinding(key: "rightArrow", modifiers: [.option])),
-                    "a": .key(KeyBinding(key: "leftArrow", modifiers: [.command])),
-                    "e": .key(KeyBinding(key: "rightArrow", modifiers: [.command])),
-                    "g": .key(KeyBinding(key: "upArrow", modifiers: [.command])),
-                    "n": .key(KeyBinding(key: "downArrow", modifiers: [.command])),
-                    "u": .key(KeyBinding(key: "pageUp")),
-                    "d": .key(KeyBinding(key: "pageDown")),
-                    "x": .key(KeyBinding(key: "forwardDelete")),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow"))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow"))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow"))),
+                    "b": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.option]))),
+                    "w": .action(.sendKey(KeyBinding(key: "rightArrow", modifiers: [.option]))),
+                    "a": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.command]))),
+                    "e": .action(.sendKey(KeyBinding(key: "rightArrow", modifiers: [.command]))),
+                    "g": .action(.sendKey(KeyBinding(key: "upArrow", modifiers: [.command]))),
+                    "n": .action(.sendKey(KeyBinding(key: "downArrow", modifiers: [.command]))),
+                    "u": .action(.sendKey(KeyBinding(key: "pageUp"))),
+                    "d": .action(.sendKey(KeyBinding(key: "pageDown"))),
+                    "x": .action(.sendKey(KeyBinding(key: "forwardDelete"))),
                 ]
             ),
         ])
@@ -64,27 +64,29 @@ enum Presets {
                 id: id(1),
                 name: "Move",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .injectAndLayer,
-                tapAction: KeyBinding(key: "escape"),
+                outputMode: .layer,
+                tapAction: .sendKey(KeyBinding(key: "escape")),
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow")),
-                    "j": .key(KeyBinding(key: "downArrow")),
-                    "k": .key(KeyBinding(key: "upArrow")),
-                    "l": .key(KeyBinding(key: "rightArrow")),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow"))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow"))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow"))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow"))),
                 ]
             ),
             Layer(
                 id: id(2),
                 name: "Select",
                 trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
-                holdMode: .layer,
+                outputMode: .layer,
                 mappings: [
-                    "h": .key(KeyBinding(key: "leftArrow", modifiers: [.shift])),
-                    "j": .key(KeyBinding(key: "downArrow", modifiers: [.shift])),
-                    "k": .key(KeyBinding(key: "upArrow", modifiers: [.shift])),
-                    "l": .key(KeyBinding(key: "rightArrow", modifiers: [.shift])),
-                    "w": .key(KeyBinding(key: "rightArrow", modifiers: [.shift, .option])),
-                    "b": .key(KeyBinding(key: "leftArrow", modifiers: [.shift, .option])),
+                    "h": .action(.sendKey(KeyBinding(key: "leftArrow", modifiers: [.shift]))),
+                    "j": .action(.sendKey(KeyBinding(key: "downArrow", modifiers: [.shift]))),
+                    "k": .action(.sendKey(KeyBinding(key: "upArrow", modifiers: [.shift]))),
+                    "l": .action(.sendKey(KeyBinding(key: "rightArrow", modifiers: [.shift]))),
+                    "w": .action(
+                        .sendKey(KeyBinding(key: "rightArrow", modifiers: [.shift, .option]))),
+                    "b": .action(
+                        .sendKey(KeyBinding(key: "leftArrow", modifiers: [.shift, .option]))),
                 ]
             ),
         ])
@@ -97,8 +99,8 @@ enum Presets {
                 id: id(1),
                 name: "Hyper",
                 trigger: LayerTrigger(key: .capsLock),
-                holdMode: .inject,
-                tapAction: KeyBinding(key: "escape")
+                outputMode: .injectAndLayer,
+                tapAction: .sendKey(KeyBinding(key: "escape"))
             ),
         ])
 
@@ -113,13 +115,13 @@ enum Presets {
     )
 
     static func emptyBase() -> Layer {
-        Layer(name: "Base", holdMode: .layer)
+        Layer(name: "Base", outputMode: .layer)
     }
 
     static func newLayer(index: Int) -> Layer {
         Layer(
             name: "Layer \(index)",
             trigger: LayerTrigger(key: .capsLock, modifiers: [.leftShift]),
-            holdMode: .layer)
+            outputMode: .layer)
     }
 }

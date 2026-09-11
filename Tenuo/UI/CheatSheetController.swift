@@ -42,7 +42,10 @@ final class CheatSheetController {
         guard window == nil else { return }
         model.refresh()
 
-        let view = CheatSheetView(model: model, activeLayerIndex: activeLayer)
+        let screen = NSScreen.main
+        let keyboardWidth = min(480, (screen?.visibleFrame.width ?? 640) - 72)
+        let view = CheatSheetView(
+            model: model, activeLayerIndex: activeLayer, keyboardWidth: keyboardWidth)
             .glassPanel()
             .padding(10)
 
@@ -65,7 +68,7 @@ final class CheatSheetController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.becomesKeyOnlyIfNeeded = true
 
-        if let screen = NSScreen.main {
+        if let screen {
             let frame = screen.visibleFrame
             let size = panel.frame.size
             panel.setFrameOrigin(
@@ -78,7 +81,7 @@ final class CheatSheetController {
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.18
+            context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.18
             panel.animator().alphaValue = 1
         }
         window = panel
@@ -89,7 +92,7 @@ final class CheatSheetController {
         guard let panel = window else { return }
         window = nil
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
+            context.duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 0.12
             panel.animator().alphaValue = 0
         } completionHandler: {
             panel.orderOut(nil)
@@ -104,6 +107,7 @@ final class CheatSheetController {
 struct CheatSheetView: View {
     @ObservedObject var model: AppModel
     var activeLayerIndex: Int?
+    var keyboardWidth: CGFloat = 480
 
     private var layer: Layer? {
         if let index = activeLayerIndex, model.layers.indices.contains(index) {
@@ -112,18 +116,22 @@ struct CheatSheetView: View {
         return model.profile.triggeredLayers.first
     }
 
-    private var mappings: [String: KeyAction] { layer?.mappings ?? [:] }
+    private var mappings: [String: LayerMapping] {
+        layer.map { model.liveMappings(for: $0) } ?? [:]
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.small) {
+        VStack(alignment: .leading, spacing: DS.Space.medium) {
             HStack(spacing: DS.Space.tight) {
                 Keycap(
                     label: layer?.trigger?.displayLabel ?? "·",
                     width: 30, height: 28, legendSize: 11, isRinged: true)
                 Text(layer?.name ?? "")
                     .font(DS.Typography.title)
+                    .foregroundStyle(DS.Ink.primary)
+                    .lineLimit(1)
                 Spacer(minLength: DS.Space.medium)
-                Text(layer?.holdMode.displayName ?? "")
+                Text("\(mappings.count) mapped \(mappings.count == 1 ? "key" : "keys")")
                     .font(DS.Typography.label)
                     .foregroundStyle(DS.Ink.tertiary)
             }
@@ -131,16 +139,21 @@ struct CheatSheetView: View {
             KeyboardLayoutView(
                 mappings: mappings,
                 triggerKey: layer?.trigger?.key,
-                width: 420,
+                width: keyboardWidth,
                 isInteractive: false
             )
 
             if let layer {
-                Text(layer.holdMode.summary)
-                    .font(DS.Typography.body)
-                    .foregroundStyle(DS.Ink.secondary)
+                HStack(spacing: DS.Space.tight) {
+                    Text("Other keys")
+                    Spacer()
+                    Text(layer.outputMode.injectsHyper ? "⌃ ⌥ ⌘ ⇧  Hyper shortcuts" : "Use normally")
+                }
+                .font(DS.Typography.label)
+                .foregroundStyle(DS.Ink.secondary)
             }
         }
+        .frame(width: keyboardWidth)
         .padding(DS.Space.medium)
     }
 }

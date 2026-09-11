@@ -6,21 +6,24 @@ struct LayerList: View {
     @State private var pendingRemoval: Layer?
     @State private var renamingProfile: Profile?
     @State private var deletingProfile: Profile?
+    var onOpenHistory: (UUID) -> Void
+    @State private var isHistoryHovering = false
+    @State private var showsHistoryProInfo = false
+    @FocusState private var isHistoryFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
 
-            Rectangle().fill(DS.Line.hairline).frame(height: 1)
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    SectionHeader(title: "Profiles")
+                    profilesHeader
                         .padding(.bottom, 5)
                     ProfileSection(
                         model: model,
                         renaming: $renamingProfile,
-                        deleting: $deletingProfile)
+                        deleting: $deletingProfile,
+                        onOpenHistory: onOpenHistory)
 
                     SectionHeader(
                         title: "Layers",
@@ -31,8 +34,8 @@ struct LayerList: View {
                     .padding(.bottom, 5)
                     layers
                 }
-                .padding(.horizontal, 6)
-                .padding(.top, DS.Space.small)
+                .padding(.horizontal, 10)
+                .padding(.top, DS.Space.medium)
                 .padding(.bottom, DS.Space.medium)
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -40,7 +43,7 @@ struct LayerList: View {
             footer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(DS.Surface.sidebar)
+        .navigationSurface()
         .sheet(item: $renamingProfile) { profile in
             RenameProfileSheet(model: model, profile: profile)
         }
@@ -73,28 +76,90 @@ struct LayerList: View {
         }
     }
 
+    private var profilesHeader: some View {
+        HStack(spacing: DS.Space.tight) {
+            Text("Profiles").sectionLabel()
+            Spacer(minLength: 0)
+            Button {
+                if model.license.hasProAccess {
+                    onOpenHistory(model.profile.id)
+                } else {
+                    showsHistoryProInfo = true
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                    Text("History")
+                    if !model.license.hasProAccess {
+                        Text("Pro").font(.system(size: 9, weight: .medium))
+                    }
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(
+                    isHistoryHovering || isHistoryFocused
+                        ? DS.Ink.primary : DS.Ink.tertiary
+                )
+                .padding(.horizontal, 6)
+                .frame(height: 22)
+                .background {
+                    RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+                        .fill(
+                            isHistoryHovering || isHistoryFocused
+                                ? DS.Selection.hover : .clear)
+                }
+                .frame(height: DS.Metrics.controlHeight)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focused($isHistoryFocused)
+            .onHover { isHistoryHovering = $0 }
+            .animation(DS.Motion.hover, value: isHistoryHovering || isHistoryFocused)
+            .accessibilityLabel("View history for \(model.profile.name)")
+            .tooltip("Profile history")
+            .popover(isPresented: $showsHistoryProInfo) {
+                ProFeaturePrompt(
+                    title: "Profile history",
+                    detail:
+                        "Compare earlier versions and return to a setup you liked. Your current version is kept before you restore.",
+                    visual: "clock.arrow.circlepath", presentation: .popover
+                ) {
+                    showsHistoryProInfo = false
+                    model.onOpenProSettings?()
+                }
+                .frame(width: 300)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var header: some View {
-        ColumnHeader {
+        ColumnHeader(reservesWindowControls: true) {
             HStack(spacing: 8) {
                 AppMark(size: 24)
 
-                Text("Tenuo")
+                Text(AppIdentity.displayName)
                     .font(DS.Typography.title)
+                if model.license.hasProAccess { ProBadge() }
 
                 Spacer(minLength: 8)
 
-                StatusPill(color: statusColor, title: statusText)
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 7, height: 7)
+                    .help(statusText)
+                    .accessibilityLabel(statusText)
             }
         }
-        .padding(.leading, 14)
-        .padding(.trailing, 12)
+        .padding(.leading, DS.Metrics.panelInset)
+        .padding(.trailing, DS.Metrics.panelInset)
     }
 
     private var footer: some View {
         VStack(spacing: 0) {
             Rectangle().fill(DS.Line.hairline).frame(height: 1)
 
-            FooterRow(title: "Settings…", action: onOpenSettings) {
+            FooterRow(title: "Settings…", height: DS.Metrics.row, action: onOpenSettings) {
                 Image(systemName: "gearshape")
                     .font(.system(size: DS.Icon.regular))
                     .frame(width: 15)

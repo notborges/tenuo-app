@@ -28,3 +28,9 @@ Local.xcconfig
 
 # Generated icon previews
 tools/icon/preview/
+
+# Local agent workspace
+.maestri/
+
+# Local documentation
+/docs/

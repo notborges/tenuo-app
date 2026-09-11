@@ -16,9 +16,11 @@ enum MainMenu {
     private static func appMenu(target: AnyObject) -> NSMenuItem {
         let item = NSMenuItem()
         let menu = NSMenu()
+        let name = AppIdentity.displayName
+        item.title = name
 
         menu.addItem(
-            withTitle: "About Tenuo",
+            withTitle: "About \(name)",
             action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
             keyEquivalent: "")
         menu.addItem(.separator())
@@ -29,7 +31,7 @@ enum MainMenu {
         menu.addItem(.separator())
 
         menu.addItem(
-            withTitle: "Hide Tenuo",
+            withTitle: "Hide \(name)",
             action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthers = menu.addItem(
             withTitle: "Hide Others",
@@ -44,7 +46,7 @@ enum MainMenu {
         menu.addItem(.separator())
 
         menu.addItem(
-            withTitle: "Quit Tenuo",
+            withTitle: "Quit \(name)",
             action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         item.submenu = menu

@@ -1,9 +1,9 @@
 import SwiftUI
 
 enum Inspector {
-    static let controlWidth: CGFloat = 132
-    static let rowInset: CGFloat = 11
-    static let rowHeight: CGFloat = 34
+    static let controlWidth: CGFloat = 148
+    static let rowInset: CGFloat = 12
+    static let rowHeight: CGFloat = 48
 }
 
 struct InspectorCard<Content: View>: View {
@@ -16,7 +16,7 @@ struct InspectorCard<Content: View>: View {
             if let title {
                 Text(title)
                     .sectionLabel()
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, Inspector.rowInset)
             }
 
             VStack(spacing: 0) { content }
@@ -34,7 +34,7 @@ struct InspectorCard<Content: View>: View {
                     .font(DS.Typography.footnote)
                     .foregroundStyle(DS.Ink.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, Inspector.rowInset)
             }
         }
     }
@@ -54,8 +54,9 @@ struct InspectorRow<Control: View>: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 control
-                    .controlSize(.small)
+                    .controlSize(.regular)
                     .labelsHidden()
+                    .accessibilityLabel(label)
                     .frame(width: Inspector.controlWidth, alignment: .trailing)
             }
             .padding(.horizontal, Inspector.rowInset)
@@ -106,11 +107,11 @@ struct InspectorWideRow<Content: View>: View {
                 Text(label)
                     .font(DS.Typography.body)
                     .foregroundStyle(DS.Ink.primary)
-                content.controlSize(.small)
+                content.controlSize(.regular)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Inspector.rowInset)
-            .padding(.vertical, 9)
+            .padding(.vertical, 10)
 
             if divider {
                 Divider().opacity(0.35).padding(.leading, Inspector.rowInset)
@@ -134,7 +135,7 @@ struct InspectorDestructiveButton: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(isHovering ? DS.Signal.destructive : DS.Ink.secondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 28)
+                .frame(height: DS.Metrics.controlHeight)
                 .background {
                     RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
                         .fill(isHovering ? DS.Signal.destructive.opacity(0.12) : DS.Surface.raised)
@@ -211,7 +212,7 @@ struct KeyChooser: View {
                     .font(DS.Typography.body)
             }
             .padding(.horizontal, 8)
-            .frame(height: 26)
+            .frame(height: DS.Metrics.controlHeight)
             .background {
                 RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
                     .fill(DS.Surface.raised)
@@ -278,6 +279,25 @@ struct KeyChooser: View {
     }
 }
 
+struct InspectorPicker<Selection: Hashable, Content: View>: View {
+    var title: String
+    @Binding var selection: Selection
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) { content }
+                .pickerStyle(.inline)
+        } label: {
+            PopupFieldLabel(title: title)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 struct PopupFieldLabel: View {
     var title: String
 
@@ -290,17 +310,17 @@ struct PopupFieldLabel: View {
                 .truncationMode(.middle)
             Spacer(minLength: 2)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: DS.Icon.tiny))
+                .font(.system(size: DS.Icon.small, weight: .medium))
                 .foregroundStyle(DS.Ink.tertiary)
         }
-        .padding(.horizontal, 7)
-        .frame(height: 22)
+        .padding(.horizontal, 10)
+        .frame(height: DS.Metrics.controlHeight)
         .background {
-            RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
-                .fill(DS.Surface.raised)
+            RoundedRectangle(cornerRadius: DS.Radius.field, style: .continuous)
+                .fill(DS.Surface.raisedHover)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+            RoundedRectangle(cornerRadius: DS.Radius.field, style: .continuous)
                 .strokeBorder(DS.Line.hairline, lineWidth: 0.5)
         }
         .contentShape(Rectangle())
@@ -341,8 +361,8 @@ struct TriggerKeyField: View {
     }
 
     var body: some View {
-        Picker(
-            "",
+        InspectorPicker(
+            title: trigger.displayName,
             selection: Binding<Choice>(
                 get: { .use(trigger) },
                 set: { choice in

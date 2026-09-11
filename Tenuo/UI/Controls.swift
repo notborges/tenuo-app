@@ -5,31 +5,14 @@ struct AppSwitch: View {
     var label: String
     var isEnabled: Bool = true
 
-    private static let size = CGSize(width: 30, height: 18)
-    private static let knob: CGFloat = 14
-
     var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            Capsule()
-                .fill(isOn ? DS.Selection.solid : Color.white.opacity(0.14))
-                .frame(width: Self.size.width, height: Self.size.height)
-                .overlay(alignment: isOn ? .trailing : .leading) {
-                    Circle()
-                        .fill(isOn ? DS.Selection.solidInk : Color.white.opacity(0.55))
-                        .frame(width: Self.knob, height: Self.knob)
-                        .padding(.horizontal, 2)
-                }
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.4)
-        .animation(DS.Motion.fill, value: isOn)
-        .accessibilityLabel(label)
-        .accessibilityValue(isOn ? "On" : "Off")
-        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+        Toggle(label, isOn: $isOn)
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .controlSize(.small)
+            .tint(DS.Selection.solid)
+            .disabled(!isEnabled)
+            .accessibilityLabel(label)
     }
 }
 
@@ -39,55 +22,12 @@ struct AppSlider: View {
     var step: Double
     var label: String
 
-    private var fraction: CGFloat {
-        let span = range.upperBound - range.lowerBound
-        guard span > 0 else { return 0 }
-        return CGFloat((value - range.lowerBound) / span)
-    }
-
     var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.14)).frame(height: 3)
-                Capsule().fill(DS.Selection.solid)
-                    .frame(width: max(0, fraction * width), height: 3)
-                Circle()
-                    .fill(.white)
-                    .frame(width: 13, height: 13)
-                    .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
-                    .offset(x: fraction * width - 6.5)
-            }
-            .frame(height: 20)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { commit(at: $0.location.x, width: width) }
-            )
-        }
-        .frame(height: 20)
-        .accessibilityElement()
-        .accessibilityLabel(label)
-        .accessibilityValue("\(Int(value))")
-        .accessibilityAdjustableAction { direction in
-            switch direction {
-            case .increment: set(value + step)
-            case .decrement: set(value - step)
-            @unknown default: break
-            }
-        }
-    }
-
-    private func commit(at x: CGFloat, width: CGFloat) {
-        guard width > 0 else { return }
-        let span = range.upperBound - range.lowerBound
-        set(range.lowerBound + Double(min(max(x / width, 0), 1)) * span)
-    }
-
-    private func set(_ raw: Double) {
-        let clamped = min(max(raw, range.lowerBound), range.upperBound)
-        let stepped = (clamped / step).rounded() * step
-        value = min(max(stepped, range.lowerBound), range.upperBound)
+        Slider(value: $value, in: range, step: step) { Text(label) }
+            .labelsHidden()
+            .controlSize(.small)
+            .tint(DS.Selection.solid)
+            .accessibilityLabel(label)
     }
 }
 
@@ -102,6 +42,7 @@ struct SidebarRow<Leading: View, Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
 
     @State private var isHovering = false
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         Button {
@@ -123,10 +64,26 @@ struct SidebarRow<Leading: View, Trailing: View>: View {
             .background {
                 RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
                     .fill(fill)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: DS.Radius.small, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? DS.Line.strong.opacity(0.5) : .clear, lineWidth: 0.5)
+                    }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .focused($isFocused)
+        .overlay {
+            if isFocused {
+                RoundedRectangle(cornerRadius: DS.Radius.small)
+                    .strokeBorder(DS.Selection.accent, lineWidth: 2)
+                    .allowsHitTesting(false)
+            }
+        }
+        .help(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .opacity(isEnabled ? 1 : 0.45)
         .onHover { isHovering = $0 }
         .animation(DS.Motion.hover, value: isHovering)
@@ -181,6 +138,7 @@ struct SidebarAddRow: View {
 
 struct FooterRow<Leading: View>: View {
     var title: String
+    var height: CGFloat = 32
     var action: () -> Void
     @ViewBuilder var leading: Leading
 
@@ -196,7 +154,7 @@ struct FooterRow<Leading: View>: View {
             .foregroundStyle(isHovering ? DS.Ink.primary : DS.Ink.secondary)
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
-            .frame(height: DS.Metrics.row + 8)
+            .frame(height: height)
             .background(isHovering ? DS.Selection.hover : .clear)
             .contentShape(Rectangle())
         }
@@ -315,7 +273,7 @@ struct PrimaryButton: View {
                 .font(DS.Typography.body.weight(.medium))
                 .foregroundStyle(DS.Selection.solidInk)
                 .padding(.horizontal, 14)
-                .frame(height: 28)
+                .frame(height: DS.Metrics.controlHeight)
                 .background {
                     RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
                         .fill(DS.Selection.solid.opacity(isHovering ? 1 : 0.92))
@@ -330,22 +288,35 @@ struct PrimaryButton: View {
 struct QuietButton: View {
     var title: String
     var action: () -> Void
-    @State private var isHovering = false
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(DS.Typography.body)
-                .foregroundStyle(DS.Ink.primary)
-                .padding(.horizontal, 12)
-                .frame(height: 26)
-                .background {
-                    RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
-                        .fill(isHovering ? DS.Surface.raisedHover : DS.Surface.raised)
-                }
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovering = $0 }
-        .animation(DS.Motion.hover, value: isHovering)
+        Button(title, action: action)
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .font(DS.Typography.body)
+    }
+}
+
+struct RoundedActionStyle: ButtonStyle {
+    var prominent = false
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(DS.Typography.label)
+            .padding(.horizontal, 16)
+            .frame(height: DS.Metrics.controlHeight)
+            .foregroundStyle(prominent ? DS.Selection.solidInk : DS.Ink.primary)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(prominent ? DS.Selection.solid : DS.Surface.raisedHover)
+                    .overlay {
+                        Capsule().strokeBorder(DS.Line.strong.opacity(0.4), lineWidth: 0.5)
+                    }
+            }
+            .opacity(isEnabled ? 1 : 0.4)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(reduceMotion ? nil : DS.Motion.travel, value: configuration.isPressed)
     }
 }

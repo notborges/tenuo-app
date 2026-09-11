@@ -5,6 +5,7 @@ struct MenuPanelView: View {
     @ObservedObject var updates: UpdateController
     var onOpenEditor: () -> Void
     var onOpenPreferences: () -> Void
+    var onViewUpdate: () -> Void
 
     private static let width: CGFloat = 460
 
@@ -53,7 +54,10 @@ struct MenuPanelView: View {
                 .opacity(model.isActive ? 1 : 0.45)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text("Tenuo").font(DS.Typography.title)
+                HStack(spacing: 8) {
+                    Text(AppIdentity.displayName).font(DS.Typography.title)
+                    if model.license.hasProAccess { ProBadge() }
+                }
                 Text(statusText)
                     .font(DS.Typography.label)
                     .foregroundStyle(DS.Ink.tertiary)
@@ -65,7 +69,7 @@ struct MenuPanelView: View {
                 isOn: Binding(
                     get: { model.isEnabled },
                     set: { model.isEnabled = $0 }),
-                label: "Enable Tenuo",
+                label: "Enable \(AppIdentity.displayName)",
                 isEnabled: model.isTrusted)
         }
         .padding(.horizontal, 12)
@@ -90,7 +94,7 @@ struct MenuPanelView: View {
             }
 
             KeyboardLayoutView(
-                mappings: layer.mappings,
+                mappings: model.liveMappings(for: layer),
                 triggerKey: layer.trigger?.key,
                 width: Self.width - 24,
                 isInteractive: false
@@ -122,7 +126,7 @@ struct MenuPanelView: View {
 
     private func detail(for layer: Layer) -> String {
         guard !layer.mappings.isEmpty else {
-            return layer.holdMode.injectsHyper ? "Hyper" : "Pass through"
+            return layer.outputMode.injectsHyper ? "Hyper" : "Normal keys"
         }
         return "\(layer.mappings.count) key\(layer.mappings.count == 1 ? "" : "s")"
     }
@@ -156,7 +160,7 @@ struct MenuPanelView: View {
                 .foregroundStyle(DS.Signal.warning)
 
             Text(
-                "Tenuo needs Accessibility access to remap keys. Enable it in System Settings to start using your profiles."
+                "\(AppIdentity.displayName) needs Accessibility access to remap keys. Enable it in System Settings to start using your profiles."
             )
             .font(DS.Typography.label)
             .foregroundStyle(DS.Ink.secondary)
@@ -178,7 +182,7 @@ struct MenuPanelView: View {
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Ink.primary)
             Spacer(minLength: 8)
-            PrimaryButton(title: "Install update") { updates.install() }
+            PrimaryButton(title: "View update…", action: onViewUpdate)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -188,7 +192,7 @@ struct MenuPanelView: View {
         VStack(spacing: 0) {
             FooterRow(title: "Edit layers…", action: onOpenEditor)
             FooterRow(title: "Settings…", action: onOpenPreferences)
-            FooterRow(title: "Quit Tenuo", action: model.quit)
+            FooterRow(title: "Quit \(AppIdentity.displayName)", action: model.quit)
         }
     }
 }

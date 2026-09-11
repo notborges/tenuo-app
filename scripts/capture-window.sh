@@ -5,10 +5,10 @@ OUT="${1:-/tmp/tenuo-window.png}"
 MIN_WIDTH="${2:-800}"
 MIN_HEIGHT="${3:-300}"
 
-PID="$(pgrep -f 'Tenuo --ui-preview' | head -1 || true)"
+PID="$(pgrep -f 'Tenuo( Dev)?\.app/Contents/MacOS/Tenuo( Dev)? --ui-preview' | head -1 || true)"
 if [[ -z "$PID" ]]; then
     echo "No Tenuo preview is running. Start one with:" >&2
-    echo "  <build-dir>/Tenuo.app/Contents/MacOS/Tenuo --ui-preview" >&2
+    echo '  "<build-dir>/Tenuo Dev.app/Contents/MacOS/Tenuo Dev" --ui-preview' >&2
     exit 1
 fi
 

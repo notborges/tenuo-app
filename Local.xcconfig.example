@@ -8,3 +8,6 @@
 // Developer ID Application identity when it archives the app.
 CODE_SIGN_IDENTITY = Apple Development
 DEVELOPMENT_TEAM = TEAMID
+
+TENUO_POLAR_ORGANIZATION_ID =
+TENUO_POLAR_BENEFIT_ID =

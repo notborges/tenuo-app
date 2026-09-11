@@ -6,8 +6,8 @@ final class LaunchAtLoginManager {
     private let log = Logger(subsystem: "app.tenuo", category: "login")
     private let service = SMAppService.mainApp
 
-    var isEnabled: Bool {
-        service.status == .enabled
+    var isRegistered: Bool {
+        service.status == .enabled || service.status == .requiresApproval
     }
 
     var requiresApproval: Bool {
@@ -18,10 +18,10 @@ final class LaunchAtLoginManager {
     func setEnabled(_ enabled: Bool) -> Bool {
         do {
             if enabled {
-                guard service.status != .enabled else { return true }
+                guard !isRegistered else { return true }
                 try service.register()
             } else {
-                guard service.status != .notRegistered else { return true }
+                guard isRegistered else { return true }
                 try service.unregister()
             }
             return true

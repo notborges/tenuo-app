@@ -2,8 +2,9 @@ import Foundation
 
 enum HIDMappingParser {
     static func parse(_ data: Data) -> [[String: Any]]? {
-        guard let text = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard
+            let text = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         else { return nil }
 
         if text == "(null)" { return [] }

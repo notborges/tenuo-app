@@ -1,8 +1,7 @@
 import Foundation
 import os
 
-// CoreGraphics cannot reliably observe Caps Lock as a momentary trigger. The
-// HID mapping makes it arrive at the event tap as F18 while Tenuo is running.
+// Caps Lock is remapped to F18 so it can act as a momentary trigger.
 final class CapsLockRemapper {
     private static let capsLockUsage: UInt64 = 0x700000039
     private static let f18Usage: UInt64 = 0x70000006D

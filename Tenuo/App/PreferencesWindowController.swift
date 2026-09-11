@@ -3,38 +3,61 @@ import SwiftUI
 
 @MainActor
 final class PreferencesWindowController {
-    private var window: NSWindow?
+    private(set) var window: NSWindow?
     private let model: AppModel
+    private let navigation = PreferencesNavigation()
 
     init(model: AppModel) {
         self.model = model
     }
 
-    func show() {
+    func show(page: PreferencesPage? = nil) {
+        if let page { navigation.page = page }
         if let window {
             window.showOnActiveSpace()
             return
         }
 
         let hosting = NSHostingController(
-            rootView: PreferencesView(model: model, updates: model.updates)
+            rootView: PreferencesView(model: model, updates: model.updates, navigation: navigation)
         )
         hosting.safeAreaRegions = []
-        let created = NSWindow(contentViewController: hosting)
+        let created = EditorWindow(contentViewController: hosting)
         created.title = "Settings"
-        created.styleMask = [.titled, .closable, .fullSizeContentView]
+        created.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         created.titleVisibility = .hidden
         created.titlebarAppearsTransparent = true
+        created.configureEditorChrome()
         created.isMovableByWindowBackground = true
         created.isReleasedWhenClosed = false
         created.backgroundColor = NSColor(DS.Surface.sidebar)
         created.isRestorable = false
         hosting.view.layoutSubtreeIfNeeded()
-        created.setContentSize(hosting.view.fittingSize)
+        created.setContentSize(NSSize(width: 560, height: 620))
         created.center()
         created.showOnActiveSpace()
         window = created
     }
+}
+
+enum PreferencesPage: String, CaseIterable {
+    case general = "General", sync = "Sync", pro = "Tenuo Pro", about = "About & Updates"
+}
+
+@MainActor
+private final class PreferencesNavigation: ObservableObject {
+    @Published var page: PreferencesPage = {
+        #if DEBUG
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("--ui-preview") {
+                if arguments.contains("--settings-sync") { return .sync }
+                if arguments.contains("--settings-pro") { return .pro }
+                if arguments.contains("--settings-about") { return .about }
+            }
+        #endif
+        return .general
+    }()
+
 }
 
 private struct PreferencesView: View {
@@ -45,22 +68,93 @@ private struct PreferencesView: View {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
 
+    @ObservedObject var navigation: PreferencesNavigation
+
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.medium) {
-            group(
-                "General",
-                footer: model.launchNeedsApproval
-                    ? "Allow Tenuo in System Settings → General → Login Items."
-                    : nil
-            ) {
-                InspectorRow(label: "Enable Tenuo") {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                AppMark(size: 32)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Settings").font(.system(size: 22, weight: .semibold, design: .rounded))
+                    HStack(spacing: 7) {
+                        Text(AppIdentity.displayName)
+                            .font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                        if model.license.hasProAccess { ProBadge() }
+                    }
+                }
+                Spacer()
+            }
+            .padding(.top, 52)
+            .padding(.bottom, 20)
+
+            HStack(spacing: 4) {
+                ForEach(PreferencesPage.allCases, id: \.self) { item in
+                    Button {
+                        navigation.page = item
+                    } label: {
+                        Text(item.rawValue)
+                            .font(DS.Typography.label)
+                            .foregroundStyle(
+                                navigation.page == item ? DS.Ink.primary : DS.Ink.secondary
+                            )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 32)
+                            .background(
+                                navigation.page == item ? DS.Selection.fill : .clear,
+                                in: RoundedRectangle(
+                                    cornerRadius: DS.Radius.field, style: .continuous)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(navigation.page == item ? .isSelected : [])
+                }
+            }
+            .padding(4)
+            .background(DS.Surface.sidebar, in: RoundedRectangle(cornerRadius: 12))
+            .padding(.bottom, 20)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    switch navigation.page {
+                    case .general: general
+                    case .sync:
+                        ProfileSyncSettingsView(sync: model.sync, license: model.license) {
+                            navigation.page = .pro
+                        }
+                    case .pro: LicenseSettingsView(model: model, license: model.license)
+                    case .about: about
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 24)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .padding(.horizontal, 24)
+        .frame(minWidth: 520, maxWidth: .infinity, minHeight: 560, maxHeight: .infinity)
+        .background(DS.Surface.window)
+        .foregroundStyle(DS.Ink.primary)
+        .tint(DS.Selection.solid)
+    }
+
+    private var general: some View {
+        Group {
+            group("Everyday") {
+                SettingsPreferenceRow(
+                    title: "Enable Tenuo", detail: "Apply your keyboard mappings."
+                ) {
                     AppSwitch(
-                        isOn: Binding(
-                            get: { model.isEnabled },
-                            set: { model.isEnabled = $0 }),
+                        isOn: Binding(get: { model.isEnabled }, set: { model.isEnabled = $0 }),
                         label: "Enable Tenuo")
                 }
-                InspectorRow(label: "Launch at login", divider: false) {
+                settingsDivider
+                SettingsPreferenceRow(
+                    title: "Launch at login",
+                    detail: model.launchNeedsApproval
+                        ? "Allow Tenuo in System Settings → General → Login Items."
+                        : "Ready when you sign in to your Mac."
+                ) {
                     AppSwitch(
                         isOn: Binding(
                             get: { model.launchesAtLogin },
@@ -68,108 +162,123 @@ private struct PreferencesView: View {
                         label: "Launch at login")
                 }
             }
-
-            group(
-                "Active layer",
-                footer:
-                    "Show the active layer after you hold its trigger for a moment."
-            ) {
-                InspectorRow(label: "Show active layer while holding", divider: false) {
+            group("Keyboard") {
+                SettingsPreferenceRow(
+                    title: "Show active layer",
+                    detail: "Preview the layer while holding its trigger."
+                ) {
                     AppSwitch(
                         isOn: Binding(
-                            get: { model.showsCheatSheet },
-                            set: { model.showsCheatSheet = $0 }),
-                        label: "Show the active layer while holding a trigger")
+                            get: { model.showsCheatSheet }, set: { model.showsCheatSheet = $0 }),
+                        label: "Show active layer while holding its trigger")
                 }
-            }
-
-            group(
-                "Timing",
-                footer:
-                    "How long you can hold a trigger before Tenuo treats it as a hold instead of a tap."
-            ) {
-                InspectorRow(label: "Tap window", divider: false) {
-                    HStack(spacing: DS.Space.small) {
-                        AppSlider(
-                            value: Binding(
-                                get: { Double(model.profile.tapThresholdMilliseconds) },
-                                set: { model.profile.tapThresholdMilliseconds = Int($0) }
-                            ),
-                            range: 80...500, step: 10, label: "Tap window"
-                        )
+                settingsDivider
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Tap or hold").font(DS.Typography.body)
+                        Spacer()
                         Text("\(model.profile.tapThresholdMilliseconds) ms")
                             .font(DS.Typography.label.monospacedDigit())
-                            .foregroundStyle(DS.Ink.secondary)
-                            .frame(width: 46, alignment: .trailing)
+                            .foregroundStyle(DS.Ink.primary)
                     }
+                    AppSlider(
+                        value: Binding(
+                            get: { Double(model.profile.tapThresholdMilliseconds) },
+                            set: { model.profile.tapThresholdMilliseconds = Int($0) }),
+                        range: 80...500, step: 10, label: "Tap window for \(model.profile.name)")
+                    Text(
+                        "Release within this time to count as a tap. Applies to “\(model.profile.name)”."
+                    )
+                    .font(DS.Typography.footnote)
+                    .foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+            }
+            HStack(spacing: 8) {
+                Image(systemName: model.isTrusted ? "checkmark.shield" : "exclamationmark.shield")
+                    .foregroundStyle(model.isTrusted ? DS.Ink.secondary : DS.Signal.warning)
+                Text(
+                    model.isTrusted
+                        ? "Accessibility access granted" : "Accessibility access is required"
+                )
+                .font(DS.Typography.footnote)
+                .foregroundStyle(DS.Ink.secondary)
+                Spacer(minLength: 4)
+                if !model.isTrusted {
+                    Button("Open Settings", action: model.openAccessibilitySettings)
+                        .buttonStyle(RoundedActionStyle())
                 }
             }
+            .padding(.horizontal, 12)
+        }
+    }
 
+    private var about: some View {
+        Group {
+            group("App") {
+                SettingsPreferenceRow(
+                    title: AppIdentity.displayName, detail: "Keyboard layers for your Mac."
+                ) {
+                    Text("Version \(version)").font(DS.Typography.label).foregroundStyle(
+                        DS.Ink.secondary)
+                }
+            }
             if model.updatesAvailable {
                 group("Updates", footer: updatesFooter) {
-                    InspectorRow(label: "Check for updates automatically") {
+                    SettingsPreferenceRow(
+                        title: "Automatic checks",
+                        detail: "Look for new versions in the background."
+                    ) {
                         AppSwitch(
                             isOn: Binding(
                                 get: { model.checksForUpdates },
                                 set: { model.checksForUpdates = $0 }),
                             label: "Check for updates automatically")
                     }
+                    settingsDivider
                     InspectorStatusRow(text: updateStatus, ink: updateStatusInk) {
-                        if case let .available(version) = model.updates.status {
-                            PrimaryButton(title: "Update to \(version)") {
-                                model.updates.install()
-                            }
+                        if case let .available(version) = updates.status {
+                            Button("View update \(version)…") { updates.check() }
+                                .buttonStyle(RoundedActionStyle(prominent: true))
                         } else {
-                            QuietButton(title: "Check now") { model.updates.check() }
-                                .opacity(model.updates.status.isBusy ? 0.4 : 1)
+                            Button("Check now") { updates.check() }
+                                .buttonStyle(RoundedActionStyle())
+                                .disabled(updates.status.isBusy)
                         }
                     }
                 }
             }
-
             group(
-                "Permission",
-                footer:
-                    "Tenuo only needs Accessibility access to remap keys. It does not need Input Monitoring."
+                "Permissions",
+                footer: "Accessibility lets Tenuo remap keys. Input Monitoring is not required."
             ) {
-                InspectorRow(label: "Accessibility", divider: false) {
+                SettingsPreferenceRow(
+                    title: "Accessibility",
+                    detail: model.isTrusted
+                        ? "Tenuo can remap your keyboard."
+                        : "Allow access to enable keyboard mappings."
+                ) {
                     if model.isTrusted {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                            Text("Granted")
-                        }
-                        .font(DS.Typography.label)
-                        .foregroundStyle(DS.Signal.ok)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        Label("Granted", systemImage: "checkmark.circle.fill")
+                            .font(DS.Typography.label).foregroundStyle(DS.Signal.ok)
                     } else {
-                        QuietButton(
-                            title: "Open System Settings", action: model.openAccessibilitySettings
-                        )
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        Button("Open Settings", action: model.openAccessibilitySettings)
+                            .buttonStyle(RoundedActionStyle())
                     }
-                }
-            }
-
-            group("About") {
-                InspectorRow(label: "Version", divider: false) {
-                    Text(version)
-                        .font(DS.Typography.body)
-                        .foregroundStyle(DS.Ink.secondary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
-        .padding(.horizontal, DS.Space.large)
-        .padding(.top, DS.Metrics.titlebar)
-        .padding(.bottom, DS.Space.large)
-        .frame(width: 460)
-        .background(DS.Surface.sidebar)
+    }
+
+    private var settingsDivider: some View {
+        Divider().opacity(0.35).padding(.horizontal, 16)
     }
 
     private var updatesFooter: String {
         model.checksForUpdates
-            ? "Tenuo checks tenuo.app in the background for new versions. It does not collect usage data or install updates without asking you."
-            : "Tenuo checks tenuo.app only when you ask it to look for a new version. It does not collect usage data."
+            ? "\(AppIdentity.displayName) checks tenuo.app in the background for new versions. It does not collect usage data or install updates without asking you."
+            : "\(AppIdentity.displayName) checks tenuo.app only when you ask it to look for a new version. It does not collect usage data."
     }
 
     private var updateStatus: String {
@@ -180,8 +289,6 @@ private struct PreferencesView: View {
         case .checking: return "Checking…"
         case .upToDate: return "Up to date"
         case let .available(version): return "Version \(version) is available"
-        case let .downloading(done): return "Downloading \(Int(done * 100))%"
-        case .installing: return "Installing…"
         case let .failed(message): return message
         }
     }
@@ -202,5 +309,26 @@ private struct PreferencesView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         InspectorCard(title: title, footer: footer, content: content)
+    }
+}
+
+private struct SettingsPreferenceRow<Control: View>: View {
+    var title: String
+    var detail: String
+    @ViewBuilder var control: Control
+
+    var body: some View {
+        HStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(DS.Typography.body).foregroundStyle(DS.Ink.primary)
+                Text(detail).font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            control.fixedSize()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(minHeight: 60)
     }
 }

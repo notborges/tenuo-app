@@ -21,6 +21,9 @@ update feed by default.
   or send Hyper (Control + Option + Command + Shift).
 - An optional tap action for a layer key, such as sending Escape when Caps Lock
   is tapped.
+- Hold, toggle, and one-shot layers are free.
+- Pro adds Mac actions, app-specific mapping overrides, profile history, and
+  optional iCloud profile sync between Macs.
 - A visual editor, an optional active-layer view while holding a trigger, and
   JSON profile import and export.
 - Launch at login.
@@ -62,6 +65,13 @@ xcodebuild \
   build test
 ```
 
+The Debug build uses the separate `app.tenuo.dev` bundle identifier and is
+shown as Tenuo Dev. Its Accessibility permission and local preferences are
+separate from the official Release build, which uses `app.tenuo`. Both apps
+can be installed on the Mac at the same time, but only one should be running
+at a time because keyboard event handling and the Caps Lock remap are
+system-wide.
+
 The default source configuration uses ad-hoc signing. macOS may ask for
 Accessibility access again after an ad-hoc rebuild because the app's code
 signature changes. For a stable local identity:
@@ -72,6 +82,34 @@ cp Local.xcconfig.example Local.xcconfig
 
 Then set `CODE_SIGN_IDENTITY` and `DEVELOPMENT_TEAM` in the ignored file.
 
+Debug builds enable Pro features for local development. iCloud sync also needs
+CloudKit provisioning; the default source build leaves it unavailable.
+To develop sync, register app IDs and an iCloud container under your Apple
+Developer team, enable CloudKit and Push Notifications, and set your container
+identifier in `Tenuo/Resources/TenuoCloud.entitlements`. Enable the CloudKit
+signing options shown in `Local.xcconfig.example`, then let Xcode manage the
+matching provisioning profiles.
+
+Debug uses CloudKit's Development environment; Release uses Production. A
+Developer ID release must include its CloudKit provisioning profile, preserve
+the Production entitlements through Xcode export, and have its container's
+schema deployed to Production.
+
+## Preview the Free interface
+
+Debug builds normally enable Pro. To inspect the Free editor and its upgrade
+prompts without changing your regular profiles or license, launch:
+
+```sh
+"/path/to/Tenuo Dev.app/Contents/MacOS/Tenuo Dev" --ui-preview --free-preview
+```
+
+The UI preview uses separate sample profiles and does not start keyboard
+remapping or sync. Settings can be opened from the editor. Free preview does
+not read or write a saved license or contact Polar; its license form is for
+visual review only. Quit and omit `--free-preview` to return to the Pro preview.
+The flag has no effect in Release builds.
+
 ## Permissions and privacy
 
 Tenuo installs a system-wide `CGEventTap` so it can pass, suppress, or rewrite
@@ -79,8 +117,14 @@ keyboard events. It is intentionally not sandboxed and needs Accessibility
 access; it does not need Input Monitoring.
 
 Keyboard events are processed locally. Tenuo does not record or transmit
-keystrokes, and profiles and settings stay on the Mac unless you export a
-profile yourself.
+keystrokes. Profiles stay local unless you export them or enable Pro's iCloud
+sync. Sync stores profile definitions in your private iCloud database. Active
+profile selection, app preferences, profile history, file-access bookmarks,
+and local target replacements stay on each Mac.
+
+Official builds can contact Polar when a Pro license is activated or checked.
+The license record stays in the macOS Keychain; keyboard events and profiles
+are not sent.
 
 When Caps Lock is used as a layer trigger, Tenuo temporarily maps it to F18
 with `hidutil` while it is running, then restores the previous mapping when it
@@ -89,6 +133,12 @@ shuts down. Other trigger keys do not use this remapping.
 Source builds have no update feed configured and do not check for updates. An
 official build can be configured to use Sparkle for updates; update checks are
 off until a feed is provided.
+
+Source builds leave official Polar licensing unconfigured. Debug builds enable
+a local Pro preview; Release builds require configured Polar licensing and an
+active entitlement. All Pro code is included in this repository. Apple's
+authorization to use a CloudKit container comes from signing and provisioning,
+not from enabling the Pro preview.
 
 ## Development
 
@@ -131,3 +181,31 @@ Tenuo's source code is released under the [MIT License](LICENSE).
 
 The Tenuo name and logos are covered separately by the
 [trademark policy](TRADEMARKS.md).
+
+## Check sync on one Mac
+
+Build a signed Debug app with Development CloudKit provisioning, sign into
+an Apple Account in macOS, then run:
+
+```sh
+python3 scripts/check-sync.py --app "/path/to/Tenuo Dev.app"
+```
+
+The runner compiles the production storage, sync controller, and CloudKit
+transport into a temporary diagnostic app using the supplied build's signing
+identity and provisioning profile. It requires the matching private signing
+key in your Keychain. It creates two isolated SQLite clients and a unique zone
+in the private **Development** database. Your normal profiles are untouched.
+Production-provisioned apps are rejected.
+
+Checks cover the Free access gate, connection review before upload, edits,
+paused edits, conflicts and resolution, deletion, Pro loss, and pending edits
+surviving a database reopen. The test controls each CloudKit engine's scheduling
+to simulate two devices deterministically; the shipping app retains automatic
+sync. This follows [Apple's CKSyncEngine testing approach](https://github.com/apple/sample-cloudkit-sync-engine).
+The runner removes its cloud zone and temporary files afterward. If cloud
+cleanup fails, it reports the exact Development zone to remove.
+
+This verifies real CloudKit round trips on one Mac. Background push delivery
+between physical Macs, Production schema configuration, and Release license
+activation still require separate release checks.

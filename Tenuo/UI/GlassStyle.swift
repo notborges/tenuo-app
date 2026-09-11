@@ -53,6 +53,7 @@ struct MappingRow: View {
     let source: String
     let destination: String
     var caption: String?
+    var macAction: MacAction?
 
     var body: some View {
         HStack(spacing: DS.Space.tight) {
@@ -60,6 +61,15 @@ struct MappingRow: View {
             Image(systemName: "arrow.right")
                 .font(.system(size: DS.Icon.tiny, weight: .semibold))
                 .foregroundStyle(DS.Ink.tertiary)
+            if let macAction {
+                if let icon = macAction.icon {
+                    Image(nsImage: icon).resizable().frame(width: 18, height: 18)
+                        .accessibilityHidden(true)
+                } else {
+                    Image(systemName: macAction.symbol).foregroundStyle(DS.Ink.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
             Text(caption ?? destination)
                 .font(DS.Typography.body)
                 .foregroundStyle(DS.Ink.primary)

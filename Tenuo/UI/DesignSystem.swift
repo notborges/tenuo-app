@@ -1,93 +1,107 @@
+import AppKit
 import SwiftUI
 
 enum DS {
 
+    private static func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                let value =
+                    appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+                return NSColor(
+                    srgbRed: CGFloat((value >> 16) & 255) / 255,
+                    green: CGFloat((value >> 8) & 255) / 255,
+                    blue: CGFloat(value & 255) / 255, alpha: 1)
+            })
+    }
+
     enum Surface {
-        static let window = Color(red: 0.059, green: 0.059, blue: 0.071)
-        static let sidebar = Color(red: 0.082, green: 0.082, blue: 0.098)
-
-        static let raised = Color.white.opacity(0.055)
-        static let raisedHover = Color.white.opacity(0.090)
-
-        static let deck = Color(red: 0.204, green: 0.204, blue: 0.227)
+        static let window = adaptive(0xF5F6F8, 0x111114)
+        static let sidebar = adaptive(0xECEEF2, 0x1A1A1F)
+        static let raised = adaptive(0xFFFFFF, 0x25252B)
+        static let raisedHover = adaptive(0xE7EAF0, 0x303037)
+        static let deck = adaptive(0xE5E8EE, 0x303036)
     }
 
     enum Line {
-        static let hairline = Color.white.opacity(0.090)
-        static let strong = Color.white.opacity(0.160)
+        static let hairline = adaptive(0xDCDFE6, 0x37373E)
+        static let strong = adaptive(0xBDC4CE, 0x5A5A64)
     }
 
     enum Ink {
-        static let primary = Color.white.opacity(0.95)
-        static let secondary = Color.white.opacity(0.60)
-        static let tertiary = Color.white.opacity(0.36)
+        static let primary = adaptive(0x222731, 0xF3F3F5)
+        static let secondary = adaptive(0x566071, 0xB9B9C2)
+        static let tertiary = adaptive(0x626D7D, 0x93939F)
     }
 
     enum Selection {
-        static let fill = Color.white.opacity(0.10)
-        static let hover = Color.white.opacity(0.055)
-        static let solid = Color.white.opacity(0.92)
-        static let solidInk = Color(red: 0.063, green: 0.063, blue: 0.075)
+        static let accent = adaptive(0x0868D9, 0xE5E5ED)
+        static let fill = adaptive(0xDCEAFF, 0x323239)
+        static let hover = adaptive(0xE3E7EE, 0x29292F)
+        static let solid = adaptive(0x303038, 0xECECF2)
+        static let solidInk = adaptive(0xFFFFFF, 0x202026)
     }
 
     enum Signal {
-        static let destructive = Color(red: 1.0, green: 0.42, blue: 0.376)
-        static let warning = Color(red: 1.0, green: 0.635, blue: 0.227)
-        static let ok = Color(red: 0.306, green: 0.820, blue: 0.486)
+        static let destructive = Color(nsColor: .systemRed)
+        static let warning = Color(nsColor: .systemOrange)
+        static let ok = Color(nsColor: .systemGreen)
     }
 
     enum Cap {
-        static let face = Color(red: 0.118, green: 0.118, blue: 0.137)
-        static let wall = Color(red: 0.051, green: 0.051, blue: 0.063)
-        static let edge = Color.white.opacity(0.10)
-        static let ink = Color.white.opacity(0.85)
-        static let inkDim = Color.white.opacity(0.30)
-        static let sub = Color.white.opacity(0.34)
-
-        static let faceInactive = Color(red: 0.086, green: 0.086, blue: 0.102)
-        static let edgeInactive = Color.white.opacity(0.05)
-        static let inkInactive = Color.white.opacity(0.24)
-
-        static let inherited = Color.white.opacity(0.26)
-
-        static let faceLit = Color(red: 0.949, green: 0.957, blue: 0.973)
-        static let wallLit = Color(red: 0.573, green: 0.588, blue: 0.627)
-        static let edgeLit = Color.white.opacity(0.85)
-        static let inkLit = Color(red: 0.078, green: 0.078, blue: 0.094)
-        static let subLit = Color.black.opacity(0.52)
+        static let face = adaptive(0xFFFFFF, 0x24242A)
+        static let wall = adaptive(0xC7CDD7, 0x101013)
+        static let edge = adaptive(0xCDD3DD, 0x41414A)
+        static let ink = adaptive(0x3C4657, 0xDFDFE5)
+        static let inkDim = adaptive(0x747F91, 0x8D8D9A)
+        static let sub = adaptive(0x59667A, 0xB9B9C4)
+        static let faceInactive = adaptive(0xDCE1E9, 0x1B1B20)
+        static let edgeInactive = adaptive(0xCDD3DD, 0x303037)
+        static let inkInactive = adaptive(0x748094, 0x858591)
+        static let inherited = adaptive(0x465A75, 0xB9B9C8)
+        static let faceLit = adaptive(0xDCEAFF, 0xECECF2)
+        static let wallLit = adaptive(0xA9C6EF, 0x9999A6)
+        static let edgeLit = adaptive(0xA2C3EF, 0xFFFFFF)
+        static let inkLit = adaptive(0x124987, 0x25252D)
+        static let subLit = adaptive(0x124987, 0x25252D)
     }
 
     enum Radius {
-        static let small: CGFloat = 6
+        static let small: CGFloat = 12
         static let key: CGFloat = 7
-        static let chip: CGFloat = 7
-        static let card: CGFloat = 10
-        static let panel: CGFloat = 14
+        static let chip: CGFloat = 14
+        static let card: CGFloat = 20
+        static let field: CGFloat = 8
+        static let panel: CGFloat = 24
     }
 
     enum Space {
         static let tight: CGFloat = 6
         static let small: CGFloat = 10
         static let medium: CGFloat = 16
-        static let large: CGFloat = 22
+        static let large: CGFloat = 24
     }
 
     enum Metrics {
-        static let row: CGFloat = 26
-        static let sidebarWidth: CGFloat = 244
+        static let windowInset: CGFloat = 12
+        static let panelInset: CGFloat = 16
+        static let footerHeight: CGFloat = 64
+        static let row: CGFloat = 38
+        static let sidebarWidth: CGFloat = 220
         static let inspectorWidth: CGFloat = 320
         static let header: CGFloat = 44
-        static let titlebar: CGFloat = 28
+        static let titlebar: CGFloat = 36
+        static let controlHeight: CGFloat = 32
     }
 
     enum Typography {
-        static let display = Font.system(size: 17, weight: .semibold)
-        static let title = Font.system(size: 13, weight: .semibold)
-        static let body = Font.system(size: 12, weight: .regular)
-        static let label = Font.system(size: 11, weight: .medium)
-        static let caption = Font.system(size: 10, weight: .semibold)
-        static let footnote = Font.system(size: 10, weight: .regular)
-        static let mono = Font.system(size: 10).monospacedDigit()
+        static let display = Font.system(size: 19, weight: .semibold, design: .rounded)
+        static let title = Font.system(size: 14, weight: .semibold)
+        static let body = Font.system(size: 13, weight: .regular)
+        static let label = Font.system(size: 12, weight: .medium)
+        static let caption = Font.system(size: 11, weight: .semibold)
+        static let footnote = Font.system(size: 11, weight: .regular)
+        static let mono = Font.system(size: 11).monospacedDigit()
     }
 
     enum Icon {
@@ -103,70 +117,275 @@ enum DS {
     }
 }
 
+private struct WindowPanel: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            let shape = ConcentricRectangle(corners: .concentric(minimum: .fixed(8)))
+            content.clipShape(shape)
+                .overlay { shape.stroke(DS.Line.hairline.opacity(0.6), lineWidth: 0.5) }
+        } else {
+            let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+            content.clipShape(shape)
+                .overlay { shape.strokeBorder(DS.Line.hairline.opacity(0.6), lineWidth: 0.5) }
+        }
+    }
+}
+
 extension View {
+    func windowPanel() -> some View { modifier(WindowPanel()) }
+
+    func navigationSurface() -> some View {
+        background(DS.Surface.sidebar)
+    }
+
     func sectionLabel() -> some View {
         font(DS.Typography.caption)
-            .tracking(0.7)
-            .foregroundStyle(DS.Ink.tertiary)
-            .textCase(.uppercase)
+            .foregroundStyle(DS.Ink.secondary)
     }
 }
 
 struct TooltipModifier: ViewModifier {
     let title: String?
 
-    @State private var isVisible = false
-    @State private var isHovering = false
-    @State private var generation = 0
-
-    private static let delay: Duration = .milliseconds(200)
-    private static let bubbleHeight: CGFloat = 24
+    @State private var tooltipReference = TooltipReference()
 
     func body(content: Content) -> some View {
         content
+            .overlay {
+                if title != nil {
+                    TooltipAnchorRepresentable(reference: tooltipReference)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(false)
+                }
+            }
             .onHover { hovering in
-                isHovering = hovering
-                guard title != nil else { return }
+                guard let title else { return }
                 if hovering {
-                    generation &+= 1
-                    let mine = generation
-                    Task { @MainActor in
-                        try? await Task.sleep(for: Self.delay)
-                        guard mine == generation, isHovering else { return }
-                        withAnimation(DS.Motion.hover) { isVisible = true }
-                    }
+                    TooltipWindowController.shared.schedule(
+                        title: title, from: tooltipReference)
                 } else {
-                    generation &+= 1
-                    withAnimation(DS.Motion.hover) { isVisible = false }
+                    TooltipWindowController.shared.hide(from: tooltipReference)
                 }
             }
-            .overlay(alignment: .top) {
-                if isVisible, let title {
-                    bubble(title)
-                        .offset(y: -(Self.bubbleHeight + 6))
-                }
-            }
+            .accessibilityHint(title ?? "")
+    }
+}
+
+private final class TooltipReference {
+    weak var view: TooltipAnchorNSView?
+}
+
+private final class TooltipAnchorNSView: NSView {
+}
+
+private struct TooltipAnchorRepresentable: NSViewRepresentable {
+    let reference: TooltipReference
+
+    func makeNSView(context: Context) -> TooltipAnchorNSView {
+        let view = TooltipAnchorNSView()
+        reference.view = view
+        return view
     }
 
-    private func bubble(_ title: String) -> some View {
+    func updateNSView(_ nsView: TooltipAnchorNSView, context: Context) {
+        reference.view = nsView
+    }
+}
+
+@MainActor
+private final class TooltipWindowController {
+    static let shared = TooltipWindowController()
+
+    private static let delay: TimeInterval = 0.2
+
+    private var generation = 0
+    private var showWorkItem: DispatchWorkItem?
+    private var panel: NSPanel?
+    private var hosting: NSHostingView<TooltipBubble>?
+    private var activeReference: TooltipReference?
+
+    func schedule(title: String, from reference: TooltipReference) {
+        showWorkItem?.cancel()
+        generation &+= 1
+        let currentGeneration = generation
+
+        if activeReference !== reference {
+            dismiss(animated: false)
+        }
+        activeReference = reference
+
+        let workItem = DispatchWorkItem { [weak self, weak reference] in
+            guard let self,
+                self.generation == currentGeneration,
+                let reference,
+                let anchor = reference.view,
+                anchor.window != nil
+            else { return }
+
+            self.present(title: title, from: anchor)
+        }
+
+        showWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + Self.delay,
+            execute: workItem)
+    }
+
+    func hide(from reference: TooltipReference) {
+        guard activeReference === reference else { return }
+        generation &+= 1
+        showWorkItem?.cancel()
+        showWorkItem = nil
+        activeReference = nil
+        dismiss()
+    }
+
+    private func present(title: String, from anchor: TooltipAnchorNSView) {
+        guard anchor.window != nil else { return }
+
+        let hosting: NSHostingView<TooltipBubble>
+        let panel: NSPanel
+
+        if let existingHosting = self.hosting, let existingPanel = self.panel {
+            hosting = existingHosting
+            panel = existingPanel
+        } else {
+            hosting = NSHostingView(rootView: TooltipBubble(title: title))
+            hosting.setFrameSize(hosting.fittingSize)
+
+            panel = NSPanel(
+                contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false)
+            panel.contentView = hosting
+            panel.isFloatingPanel = true
+            panel.level = .statusBar
+            panel.backgroundColor = .clear
+            panel.isOpaque = false
+            panel.hasShadow = false
+            panel.ignoresMouseEvents = true
+            panel.hidesOnDeactivate = false
+            panel.collectionBehavior = [
+                .canJoinAllSpaces,
+                .canJoinAllApplications,
+                .fullScreenAuxiliary,
+                .stationary,
+                .ignoresCycle,
+            ]
+            panel.becomesKeyOnlyIfNeeded = true
+
+            self.hosting = hosting
+            self.panel = panel
+        }
+
+        let size = layout(hosting: hosting, panel: panel, title: title, around: anchor)
+        guard size.width > 0, size.height > 0 else { return }
+
+        panel.orderFrontRegardless()
+
+        if panel.alphaValue == 0 {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.12
+                panel.animator().alphaValue = 1
+            }
+        }
+    }
+
+    private func dismiss(animated: Bool = true) {
+        guard let panel else { return }
+
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.10
+                panel.animator().alphaValue = 0
+            } completionHandler: {
+                panel.orderOut(nil)
+            }
+        } else {
+            panel.orderOut(nil)
+            panel.alphaValue = 0
+        }
+    }
+
+    private func layout(
+        hosting: NSHostingView<TooltipBubble>,
+        panel: NSPanel,
+        title: String,
+        around anchor: TooltipAnchorNSView
+    ) -> CGSize {
+        hosting.rootView = TooltipBubble(title: title)
+        hosting.invalidateIntrinsicContentSize()
+        hosting.layoutSubtreeIfNeeded()
+
+        let size = hosting.fittingSize
+        guard let window = anchor.window else { return size }
+
+        let anchorInWindow = anchor.convert(anchor.bounds, to: nil)
+        let anchorRect = window.convertToScreen(anchorInWindow)
+        let screen =
+            NSScreen.screens.first {
+                $0.frame.contains(NSPoint(x: anchorRect.midX, y: anchorRect.midY))
+            } ?? window.screen ?? NSScreen.main
+        guard let screen else { return size }
+
+        let visibleFrame = screen.visibleFrame.insetBy(dx: 8, dy: 8)
+        let gap: CGFloat = 6
+        let canShowAbove = anchorRect.maxY + gap + size.height <= visibleFrame.maxY
+
+        let proposedX = anchorRect.midX - size.width / 2
+        let x = min(
+            max(proposedX, visibleFrame.minX),
+            max(visibleFrame.minX, visibleFrame.maxX - size.width))
+        let proposedY =
+            canShowAbove
+            ? anchorRect.maxY + gap
+            : anchorRect.minY - gap - size.height
+        let y = min(
+            max(proposedY, visibleFrame.minY),
+            max(visibleFrame.minY, visibleFrame.maxY - size.height))
+        hosting.setFrameSize(size)
+        panel.setContentSize(size)
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        return size
+    }
+}
+
+private struct TooltipBubble: View {
+    let title: String
+
+    private var textWidth: CGFloat {
+        let font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        let measured = (title as NSString).boundingRect(
+            with: NSSize(width: 10_000, height: 10_000),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font]
+        ).width
+        return min(300, max(1, ceil(measured)))
+    }
+
+    var body: some View {
         Text(title)
             .font(DS.Typography.label)
             .foregroundStyle(DS.Ink.primary)
-            .fixedSize()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .multilineTextAlignment(.leading)
+            .lineSpacing(1)
+            .lineLimit(2)
+            .frame(width: textWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
             .background {
                 RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
-                    .fill(.regularMaterial)
-                    .shadow(color: .black.opacity(0.45), radius: 9, y: 3)
+                    .fill(DS.Surface.sidebar)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
+                            .stroke(DS.Line.strong, lineWidth: 0.5)
+                    }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: DS.Radius.chip, style: .continuous)
-                    .strokeBorder(DS.Line.strong, lineWidth: 0.5)
-            }
-            .transition(.opacity)
-            .allowsHitTesting(false)
-            .zIndex(999)
+            .shadow(color: .black.opacity(0.38), radius: 10, y: 4)
+            .accessibilityHidden(true)
     }
 }
 
@@ -177,10 +396,12 @@ extension View {
 }
 
 struct Keycap: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var label: String
     var symbol: String?
     var secondary: String?
     var secondarySymbol: String?
+    var secondaryImage: NSImage?
     var secondaryAbove: Bool = false
     var secondaryIsMapping: Bool = false
     var width: CGFloat = 34
@@ -199,7 +420,7 @@ struct Keycap: View {
     private var legend: CGFloat { legendSize ?? 11 }
     private var radius: CGFloat { cornerRadius ?? max(3, DS.Radius.key * height / 34) }
 
-    private var depth: CGFloat { max(1.2, height * 0.075) }
+    private var depth: CGFloat { max(1, height * 0.075) }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
@@ -215,33 +436,69 @@ struct Keycap: View {
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: radius + 2.5, style: .continuous)
-                        .strokeBorder(DS.Ink.primary, lineWidth: 2)
+                        .strokeBorder(DS.Selection.accent, lineWidth: 2)
                         .padding(-2.5)
                 }
             }
-            .animation(DS.Motion.travel, value: isPressed)
-            .animation(DS.Motion.fill, value: isLit)
+            .animation(reduceMotion ? nil : DS.Motion.travel, value: isPressed)
+            .animation(reduceMotion ? nil : DS.Motion.fill, value: isLit)
     }
 
     private func face(_ shape: RoundedRectangle) -> some View {
-        VStack(alignment: alignment, spacing: legend * 0.08) {
-            if secondaryAbove { secondaryContent }
-
-            Group {
-                if let symbol {
-                    Image(systemName: symbol).font(.system(size: legend * 1.05))
-                } else {
-                    Text(label).font(.system(size: legend, weight: .medium))
+        Group {
+            if secondaryIsMapping,
+                secondary != nil || secondarySymbol != nil || secondaryImage != nil
+            {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(label)
+                        .font(.system(size: max(7, legend * 0.72), weight: .medium))
+                        .foregroundStyle(legendColor.opacity(0.8))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Group {
+                        if let secondaryImage {
+                            Image(nsImage: secondaryImage).resizable().scaledToFit()
+                                .frame(width: legend * 1.6, height: legend * 1.6)
+                        } else if let secondarySymbol {
+                            Image(systemName: secondarySymbol)
+                        } else {
+                            Text(secondary ?? "")
+                        }
+                    }
+                    .font(.system(size: legend * 1.05, weight: .semibold))
+                    .foregroundStyle(secondaryColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 3)
+            } else {
+                VStack(alignment: alignment, spacing: legend * 0.08) {
+                    if secondaryAbove { secondaryContent }
+                    Group {
+                        if let symbol {
+                            Image(systemName: symbol).font(.system(size: legend * 1.05))
+                        } else {
+                            Text(label).font(.system(size: legend, weight: .medium))
+                        }
+                    }
+                    .foregroundStyle(legendColor)
+                    if !secondaryAbove { secondaryContent }
                 }
             }
-            .foregroundStyle(legendColor)
-
-            if !secondaryAbove { secondaryContent }
         }
         .padding(.horizontal, alignment == .center ? 2 : legend * 0.55)
         .frame(width: width, height: height - depth, alignment: frameAlignment)
         .clipped()
-        .background { shape.fill(faceColor) }
+        .background {
+            shape.fill(faceColor)
+                .overlay {
+                    shape.fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.035), .clear, .black.opacity(0.045)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                }
+        }
         .overlay { shape.strokeBorder(edgeColor, lineWidth: 0.5) }
         .overlay(alignment: .topTrailing) {
             if hasIndicator {
@@ -331,7 +588,7 @@ struct Deck<Content: View>: View {
                 )
             }
             .shadow(
-                color: .black.opacity(isElevated ? 0.45 : 0),
+                color: .black.opacity(isElevated ? 0.30 : 0),
                 radius: isElevated ? 18 : 0, y: isElevated ? 8 : 0)
     }
 }
