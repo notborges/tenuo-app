@@ -6,9 +6,10 @@ Lock is the default layer key, but you can choose another supported key.
 
 ## Download
 
-Official signed builds and product information are distributed separately at
-[tenuo.app](https://tenuo.app). This repository contains the source code;
-source builds are not the official signed distribution and do not use its
+Download the official app from [tenuo.app](https://tenuo.app) or
+[GitHub Releases](https://github.com/notborges/tenuo-app/releases/latest).
+Both provide the same signed and notarized DMG, with automatic update support.
+You can also build Tenuo from source; source builds do not use the official
 update feed by default.
 
 ## Features
@@ -130,9 +131,9 @@ When Caps Lock is used as a layer trigger, Tenuo temporarily maps it to F18
 with `hidutil` while it is running, then restores the previous mapping when it
 shuts down. Other trigger keys do not use this remapping.
 
-Source builds have no update feed configured and do not check for updates. An
-official build can be configured to use Sparkle for updates; update checks are
-off until a feed is provided.
+Official builds use Sparkle for updates, whether downloaded from tenuo.app or
+GitHub Releases. Source builds have no update feed configured and do not check
+for updates by default.
 
 Source builds leave official Polar licensing unconfigured. Debug builds enable
 a local Pro preview; Release builds require configured Polar licensing and an
