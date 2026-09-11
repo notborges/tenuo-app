@@ -116,7 +116,8 @@ struct KeyboardLayoutView: View {
             hasIndicator: key.hasIndicator && isTrigger,
             isInactive: !key.isMappable,
             isGhosted: action == nil && inheritedAction != nil,
-            isSelected: key.name != nil && key.name == selected
+            isSelected: key.name != nil && key.name == selected,
+            castsShadow: true
         )
         .overlay(alignment: .topTrailing) {
             if let name = key.name, changedKeys.contains(name) {

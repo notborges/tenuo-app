@@ -416,6 +416,7 @@ struct Keycap: View {
     var isGhosted: Bool = false
     var isSelected: Bool = false
     var isPressed: Bool = false
+    var castsShadow: Bool = false
 
     private var legend: CGFloat { legendSize ?? 11 }
     private var radius: CGFloat { cornerRadius ?? max(3, DS.Radius.key * height / 34) }
@@ -432,6 +433,10 @@ struct Keycap: View {
                 shape.fill(isLit ? DS.Cap.wallLit : DS.Cap.wall)
                     .frame(width: width, height: height)
                     .opacity(isInactive ? 0.55 : 1)
+                    .shadow(
+                        color: .black.opacity(castsShadow ? 0.25 : 0),
+                        radius: castsShadow ? depth * 0.35 : 0,
+                        y: castsShadow && !isPressed ? depth * 0.4 : 0)
             }
             .overlay {
                 if isSelected {
@@ -575,7 +580,22 @@ struct Deck<Content: View>: View {
 
         content
             .padding(padding)
-            .background { shape.fill(DS.Surface.deck) }
+            .background {
+                shape.fill(DS.Surface.deck)
+                    .overlay {
+                        shape.fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .white.opacity(0.08), location: 0),
+                                    .init(color: .clear, location: 0.45),
+                                    .init(color: .black.opacity(0.09), location: 1),
+                                ],
+                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+                    .shadow(
+                        color: .black.opacity(isElevated ? 0.30 : 0),
+                        radius: isElevated ? 18 : 0, y: isElevated ? 8 : 0)
+            }
             .overlay {
                 shape.strokeBorder(
                     LinearGradient(
@@ -587,8 +607,5 @@ struct Deck<Content: View>: View {
                     lineWidth: 1
                 )
             }
-            .shadow(
-                color: .black.opacity(isElevated ? 0.30 : 0),
-                radius: isElevated ? 18 : 0, y: isElevated ? 8 : 0)
     }
 }
