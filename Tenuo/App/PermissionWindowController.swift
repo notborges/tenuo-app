@@ -82,7 +82,7 @@ private struct PermissionView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Welcome to Tenuo")
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    Text("More shortcuts. Right under your fingers.")
+                    Text("Set up your keyboard layers.")
                         .font(DS.Typography.body)
                         .foregroundStyle(DS.Ink.secondary)
                 }

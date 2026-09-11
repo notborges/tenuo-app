@@ -41,10 +41,10 @@ struct ProfileSyncSettingsView: View {
             }
             VStack(alignment: .leading, spacing: 12) {
                 detail(
-                    "square.stack.3d.up", "Profiles travel with you",
+                    "square.stack.3d.up", "Synced profiles",
                     "Layers, app overrides, and actions stay together.")
                 detail(
-                    "laptopcomputer", "This Mac stays yours",
+                    "laptopcomputer", "Settings kept on this Mac",
                     "Your active profile, preferences, and history stay on this Mac. Files and Shortcuts may need to be linked here."
                 )
             }

@@ -12,16 +12,14 @@ struct LicenseSettingsView: View {
                 AppMark(size: 44)
                 VStack(alignment: .leading, spacing: 7) {
                     HStack(spacing: 8) {
-                        Text(license.hasProAccess ? "Tenuo Pro is yours" : "Make every key yours")
+                        Text(license.hasProAccess ? "Tenuo Pro is active" : "Get Tenuo Pro")
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
                         ProBadge()
                     }
-                    Text(
-                        license.hasProAccess
-                            ? "Your tools for a more personal keyboard."
-                            : "More ways to use your keys. One purchase."
-                    )
-                    .font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                    if !license.hasProAccess {
+                        Text("One-time purchase for up to three Macs.")
+                            .font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                    }
                 }
             }
             LazyVGrid(
@@ -30,7 +28,7 @@ struct LicenseSettingsView: View {
             ) {
                 benefit("app.badge", "Mac actions", "Apps, files, links & Shortcuts")
                 benefit(
-                    "square.stack.3d.up", "App-specific mappings", "A different job in every app")
+                    "square.stack.3d.up", "App-specific mappings", "Choose mappings per app")
                 benefit("clock.arrow.circlepath", "Profile history", "Return to an earlier setup")
                 benefit("icloud", "iCloud sync", "Your profiles, on your Macs")
             }

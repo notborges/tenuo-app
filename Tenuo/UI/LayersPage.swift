@@ -750,7 +750,7 @@ private struct ApplicationContextStrip: View {
             .fixedSize()
             .popover(isPresented: $showsProInfo) {
                 ProFeaturePrompt(
-                    title: "One key, different jobs",
+                    title: "App-specific mappings",
                     detail:
                         "Give the same key a different job in Safari, Finder, or any other app.",
                     visual: "app.dashed", presentation: .popover

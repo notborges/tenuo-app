@@ -344,7 +344,8 @@ enum ProfileError: LocalizedError, Equatable {
         case let .unknownDestinationKey(layer, key):
             return "Layer “\(layer)” uses an unsupported destination key: \(key)."
         case let .invalidActionTarget(layer):
-            return "Layer “\(layer)” refers to a layer that does not exist."
+            return
+                "Layer “\(layer)” has an invalid action target. Check its layer, app, file, link, or Shortcut mapping."
         }
     }
 
