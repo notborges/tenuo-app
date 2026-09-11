@@ -181,7 +181,7 @@ actor CloudProfileTransport: CKSyncEngineDelegate, ProfileSyncTransport {
                     } else {
                         await event(
                             .failure(
-                                "iCloud could not save a profile. Your changes are kept on this Mac. Try syncing again."
+                                "iCloud could not save a profile: \(failed.error.localizedDescription) Your changes are kept on this Mac."
                             ))
                     }
                 }

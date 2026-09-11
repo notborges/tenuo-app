@@ -1,6 +1,10 @@
 import Foundation
 import XCTest
 
+private enum SyncCallbackContext {
+    @TaskLocal static var active = false
+}
+
 private actor SyncTransportFixture: ProfileSyncTransport {
     let event: @Sendable (CloudProfileEvent) async -> Void
     let maySend: @Sendable () async -> Bool
@@ -9,6 +13,7 @@ private actor SyncTransportFixture: ProfileSyncTransport {
     var uploaded: [SyncedProfile] = []
     var holdFetch = false
     var fetching = false
+    var stoppedInCallback: Bool?
     private var fetchContinuation: CheckedContinuation<Void, Never>?
 
     init(
@@ -38,7 +43,12 @@ private actor SyncTransportFixture: ProfileSyncTransport {
     func emit(_ document: SyncedProfile) async throws {
         await event(.received([try record(document)]))
     }
-    func stop() {}
+    func failFromCallback() async {
+        await SyncCallbackContext.$active.withValue(true) {
+            await event(.failure("Upload rejected"))
+        }
+    }
+    func stop() { stoppedInCallback = SyncCallbackContext.active }
     private func record(_ document: SyncedProfile) throws -> CloudProfileRecord {
         CloudProfileRecord(
             id: document.id, payload: try JSONEncoder().encode(document), systemFields: Data())
@@ -74,6 +84,30 @@ final class ProfileSyncLifecycleTests: XCTestCase {
             }
             try await Task.sleep(for: .milliseconds(10))
         }
+    }
+
+    func testCallbackFailureStopsOutsideCloudKitContextAndKeepsPendingEdits() async throws {
+        let store = try store()
+        var fixture: SyncTransportFixture?
+        let sync = ProfileSyncController(
+            store: store, hasPro: { true },
+            factory: { event, gate in
+                let transport = SyncTransportFixture(event: event, maySend: gate, holdFetch: true)
+                fixture = transport
+                return transport
+            })
+        sync.syncNow()
+        try await waitUntil { await fixture?.fetching == true }
+        let transport = try XCTUnwrap(fixture)
+        let pending = store.state.pending
+        await transport.failFromCallback()
+        try await waitUntil { await transport.stoppedInCallback != nil }
+        let inheritedCallback = await transport.stoppedInCallback
+        XCTAssertEqual(inheritedCallback, false)
+        XCTAssertEqual(sync.status, .attention)
+        XCTAssertEqual(store.state.pending, pending)
+        await transport.releaseFetch()
+        sync.stop()
     }
 
     func testFreeCannotConnectAndEntitlementLossRejectsLateDownloads() async throws {

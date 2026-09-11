@@ -82,7 +82,7 @@ final class ProfileSyncController: ObservableObject {
         let token = generation
         let transport = makeTransport(factory, token: token)
         self.transport = transport
-        work = Task { [weak self] in
+        work = Task.detached { @MainActor [weak self] in
             guard let self else { return }
             do {
                 let account = try await transport.accountID()
@@ -166,7 +166,7 @@ final class ProfileSyncController: ObservableObject {
         status = .syncing
         let startingRevisions = store.state.pending.mapValues(\.revision)
         let token = generation
-        work = Task { [weak self] in
+        work = Task.detached { @MainActor [weak self] in
             guard let self else { return }
             do {
                 let active: any ProfileSyncTransport
@@ -376,7 +376,7 @@ final class ProfileSyncController: ObservableObject {
             })
         else { return }
         let token = generation
-        work = Task { [weak self] in
+        work = Task.detached { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(1))
             guard let self, valid(token), !Task.isCancelled else { return }
             work = nil
@@ -395,7 +395,7 @@ final class ProfileSyncController: ObservableObject {
         reviewEngineState = nil
         let old = transport
         transport = nil
-        Task { await old?.stop() }
+        Task.detached { await old?.stop() }
     }
 
     private func refreshPresentation() {
