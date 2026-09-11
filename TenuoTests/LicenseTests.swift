@@ -16,16 +16,72 @@ final class LicenseTests: XCTestCase {
         XCTAssertTrue(entitlement.canUse(.macAction))
     }
 
-    func testOfflineAccessExpiresAfterGracePeriod() {
-        let now = Date(timeIntervalSince1970: 1_000)
-        let record = LicenseRecord(
-            key: "TEST-KEY",
-            activationID: UUID().uuidString,
-            displayKey: "****-KEY",
-            lastValidatedAt: now)
+    @MainActor
+    func testOfflineAccessExpiresWhileRunning() async {
+        let configuration = PolarConfiguration(
+            apiURL: URL(string: "https://offline.test")!, organizationID: "test", benefitID: "test")
+        let store = MemoryLicenseStore(
+            record: LicenseRecord(
+                key: "TEST", activationID: "activation", displayKey: "TEST",
+                lastValidatedAt: Date().addingTimeInterval(-LicenseManager.offlineGracePeriod + 1)))
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [LicenseResponseProtocol.self]
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+        let manager = LicenseManager(
+            configuration: configuration, store: store,
+            client: PolarLicenseClient(configuration: configuration, session: session),
+            allowsDevelopmentPreview: false)
+        defer { manager.stop() }
+        XCTAssertTrue(manager.hasProAccess)
+        let expired = expectation(description: "Running app publishes expired access")
+        let observer = manager.$state.filter { $0 == .failed }.prefix(1).sink { _ in
+            expired.fulfill()
+        }
+        defer { observer.cancel() }
+        manager.start()
+        await fulfillment(of: [expired], timeout: 4)
+        XCTAssertFalse(manager.hasProAccess)
+        XCTAssertFalse(manager.entitlement.canUse(.macAction))
+        XCTAssertTrue(manager.entitlement.canUse(.sendKey))
+    }
 
-        XCTAssertTrue(record.hasOfflineAccess(now: now.addingTimeInterval(10), gracePeriod: 20))
-        XCTAssertFalse(record.hasOfflineAccess(now: now.addingTimeInterval(21), gracePeriod: 20))
+    @MainActor
+    func testCancelledValidationDoesNotApplyResults() async {
+        let configuration = PolarConfiguration(
+            apiURL: URL(string: "https://offline.test")!, organizationID: "test", benefitID: "test")
+        let store = MemoryLicenseStore(
+            record: LicenseRecord(
+                key: "TEST", activationID: "activation", displayKey: "TEST", lastValidatedAt: Date()
+            ))
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [LicenseResponseProtocol.self]
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+        let manager = LicenseManager(
+            configuration: configuration, store: store,
+            client: PolarLicenseClient(configuration: configuration, session: session),
+            allowsDevelopmentPreview: false)
+        manager.start()
+        manager.stop()
+        let stoppedState = manager.state
+        let original = store.record
+        try? await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(manager.state, stoppedState)
+        XCTAssertEqual(store.record?.lastValidatedAt, original?.lastValidatedAt)
+        XCTAssertNil(manager.message)
+
+        let cancelledConfiguration = PolarConfiguration(
+            apiURL: URL(string: "https://cancelled.test")!, organizationID: "test",
+            benefitID: "test")
+        let client = PolarLicenseClient(configuration: cancelledConfiguration, session: session)
+        do {
+            _ = try await client.validate(record: store.record!)
+            XCTFail("Cancelled transport must throw cancellation")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Cancellation became \(error)")
+        }
     }
 
     @MainActor
@@ -97,6 +153,10 @@ private final class LicenseResponseProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
+        if request.url?.host == "cancelled.test" {
+            client?.urlProtocol(self, didFailWithError: URLError(.cancelled))
+            return
+        }
         if request.url?.host == "rejected.test" {
             let response = HTTPURLResponse(
                 url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!

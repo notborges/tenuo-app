@@ -34,6 +34,7 @@ final class LicenseManager: ObservableObject {
     private let now: () -> Date
     private var record: LicenseRecord?
     private var task: Task<Void, Never>?
+    private var validationTimer: Timer?
 
     init(
         configuration: PolarConfiguration = PolarConfiguration(bundle: .main),
@@ -44,7 +45,7 @@ final class LicenseManager: ObservableObject {
     ) {
         developmentPreview = Self.developmentPreviewEnabled && allowsDevelopmentPreview
         self.configuration = configuration
-        entitlement = LicenseEntitlement()
+        entitlement = LicenseEntitlement(now: now)
         self.store = store ?? KeychainLicenseStore()
         self.client = client ?? PolarLicenseClient(configuration: configuration)
         self.now = now
@@ -64,7 +65,9 @@ final class LicenseManager: ObservableObject {
                 if let record,
                     record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod)
                 {
-                    entitlement.setProAccess(true)
+                    entitlement.setProAccess(
+                        true,
+                        until: record.lastValidatedAt?.addingTimeInterval(Self.offlineGracePeriod))
                     state = .offlinePro
                 } else {
                     state = .free
@@ -101,21 +104,25 @@ final class LicenseManager: ObservableObject {
         cancelTask()
         message = nil
         if record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod) {
-            entitlement.setProAccess(true)
+            setProAccess(true)
         } else {
-            entitlement.setProAccess(false)
+            setProAccess(false)
         }
         state = .validating
         task = Task { [weak self] in
-            guard let self else { return }
+            guard let self, !Task.isCancelled else { return }
             do {
                 let result = try await client.validate(record: record)
+                try Task.checkCancellation()
                 applyValidation(result, to: record)
             } catch is CancellationError {
             } catch {
+                guard !Task.isCancelled else { return }
                 applyValidationFailure(error, for: record)
             }
+            guard !Task.isCancelled else { return }
             task = nil
+            scheduleValidation()
         }
     }
 
@@ -142,22 +149,24 @@ final class LicenseManager: ObservableObject {
         state = .activating
         let oldRecord = record
         task = Task { [weak self] in
-            guard let self else { return }
+            guard let self, !Task.isCancelled else { return }
             do {
                 if let oldRecord {
                     do {
                         try await client.deactivate(record: oldRecord)
                     } catch let error as PolarLicenseError where error == .invalidLicense {
                     }
+                    try Task.checkCancellation()
                     try store.remove()
                     self.record = nil
                     displayKey = nil
-                    entitlement.setProAccess(false)
+                    setProAccess(false)
                 }
                 let deviceName = Host.current().localizedName ?? "This Mac"
                 let result = try await client.activate(
                     key: key,
                     label: "Tenuo · " + deviceName)
+                try Task.checkCancellation()
                 let next = LicenseRecord(
                     key: key,
                     activationID: result.activationID,
@@ -171,19 +180,23 @@ final class LicenseManager: ObservableObject {
                 }
                 self.record = next
                 displayKey = next.displayKey
-                entitlement.setProAccess(true)
+                setProAccess(true)
                 state = .pro
             } catch is CancellationError {
             } catch let error as PolarLicenseError {
-                entitlement.setProAccess(false)
+                guard !Task.isCancelled else { return }
+                setProAccess(false)
                 state = error == .invalidLicense ? .invalid : .failed
                 message = error.localizedDescription
             } catch {
-                entitlement.setProAccess(false)
+                guard !Task.isCancelled else { return }
+                setProAccess(false)
                 state = .failed
                 message = error.localizedDescription
             }
+            guard !Task.isCancelled else { return }
             task = nil
+            scheduleValidation()
         }
     }
 
@@ -198,12 +211,14 @@ final class LicenseManager: ObservableObject {
         message = nil
         state = .deactivating
         task = Task { [weak self] in
-            guard let self else { return }
+            guard let self, !Task.isCancelled else { return }
             do {
                 try await client.deactivate(record: record)
+                try Task.checkCancellation()
                 clearLocalLicense()
             } catch is CancellationError {
             } catch let error as PolarLicenseError {
+                guard !Task.isCancelled else { return }
                 if error == .invalidLicense {
                     clearLocalLicense()
                 } else {
@@ -211,10 +226,13 @@ final class LicenseManager: ObservableObject {
                     message = error.localizedDescription
                 }
             } catch {
+                guard !Task.isCancelled else { return }
                 state = hasProAccess ? .pro : .free
                 message = error.localizedDescription
             }
+            guard !Task.isCancelled else { return }
             task = nil
+            scheduleValidation()
         }
     }
 
@@ -232,11 +250,11 @@ final class LicenseManager: ObservableObject {
             try store.save(next)
             self.record = next
             displayKey = next.displayKey
-            entitlement.setProAccess(true)
+            setProAccess(true)
             state = .pro
             message = nil
         } catch {
-            entitlement.setProAccess(false)
+            setProAccess(false)
             state = .failed
             message = error.localizedDescription
         }
@@ -244,7 +262,7 @@ final class LicenseManager: ObservableObject {
 
     private func applyValidationFailure(_ error: Error, for record: LicenseRecord) {
         if let error = error as? PolarLicenseError, error == .invalidLicense {
-            entitlement.setProAccess(false)
+            setProAccess(false)
             let invalidated = LicenseRecord(
                 key: record.key, activationID: record.activationID,
                 displayKey: record.displayKey, lastValidatedAt: nil)
@@ -265,14 +283,14 @@ final class LicenseManager: ObservableObject {
         }
 
         if record.hasOfflineAccess(now: now(), gracePeriod: Self.offlineGracePeriod) {
-            entitlement.setProAccess(true)
+            setProAccess(true)
             state = .offlinePro
             message =
                 "Could not verify the license right now. Pro stays available while you are offline."
             return
         }
 
-        entitlement.setProAccess(false)
+        setProAccess(false)
         state = .failed
         message =
             (error as? LocalizedError)?.errorDescription
@@ -282,7 +300,7 @@ final class LicenseManager: ObservableObject {
     private func clearLocalLicense() {
         record = nil
         displayKey = nil
-        entitlement.setProAccess(false)
+        setProAccess(false)
         state = .free
         message = nil
         do {
@@ -294,9 +312,34 @@ final class LicenseManager: ObservableObject {
     }
 
     private func cancelTask() {
+        validationTimer?.invalidate()
+        validationTimer = nil
         task?.cancel()
         task = nil
     }
+
+    private func setProAccess(_ enabled: Bool) {
+        entitlement.setProAccess(
+            enabled, until: record?.lastValidatedAt?.addingTimeInterval(Self.offlineGracePeriod))
+    }
+
+    private func scheduleValidation() {
+        validationTimer?.invalidate()
+        validationTimer = nil
+        guard !developmentPreview, configuration.isConfigured, let record,
+            let validatedAt = record.lastValidatedAt
+        else { return }
+        let remaining = validatedAt.addingTimeInterval(Self.offlineGracePeriod).timeIntervalSince(
+            now())
+        let interval = remaining > 0 ? min(remaining + 0.01, 3600) : 3600
+        let timer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.validateStoredLicense() }
+        }
+        validationTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    deinit { validationTimer?.invalidate() }
 
     private static func displayKey(for key: String) -> String {
         "****-\(key.suffix(6))"

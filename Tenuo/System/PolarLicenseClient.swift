@@ -97,8 +97,13 @@ struct PolarLicenseClient {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
+            if Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
             throw PolarLicenseError.network
         }
+
+        try Task.checkCancellation()
 
         guard let http = response as? HTTPURLResponse else {
             throw PolarLicenseError.invalidResponse

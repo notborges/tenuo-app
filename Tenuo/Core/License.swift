@@ -64,11 +64,17 @@ struct LicenseRecord: Codable, Equatable {
 final class LicenseEntitlement: ActionAvailability, @unchecked Sendable {
     private let lock = NSLock()
     private var hasProAccess = false
+    private var expiresAt: Date?
+    private let now: () -> Date
+
+    init(now: @escaping () -> Date = Date.init) {
+        self.now = now
+    }
 
     var isPro: Bool {
         lock.lock()
         defer { lock.unlock() }
-        return hasProAccess
+        return hasProAccess && (expiresAt.map { now() <= $0 } ?? true)
     }
 
     func canUse(_ kind: ActionKind) -> Bool {
@@ -76,9 +82,10 @@ final class LicenseEntitlement: ActionAvailability, @unchecked Sendable {
         return isPro
     }
 
-    func setProAccess(_ enabled: Bool) {
+    func setProAccess(_ enabled: Bool, until expiresAt: Date? = nil) {
         lock.lock()
         hasProAccess = enabled
+        self.expiresAt = expiresAt
         lock.unlock()
     }
 }
