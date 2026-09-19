@@ -154,21 +154,28 @@ struct LayersPage: View {
                     .font(DS.Typography.mono)
                     .foregroundStyle(DS.Ink.tertiary)
                 Spacer(minLength: 0)
-                Button("Choose key…") { choosingSource = true }
-                    .buttonStyle(RoundedActionStyle())
-                    .popover(isPresented: $choosingSource) {
-                        KeyChooser(
-                            selection: Binding(
-                                get: { model.selectedKey ?? "" },
-                                set: {
-                                    model.selectKey($0); choosingSource = false
-                                })
-                        )
-                        .frame(width: 300).padding(DS.Space.small)
-                    }
-                Text("⌘-click to select multiple keys")
-                    .font(DS.Typography.caption)
-                    .foregroundStyle(DS.Ink.tertiary)
+                Button {
+                    choosingSource = true
+                } label: {
+                    Label("Add mapping", systemImage: "plus")
+                        .font(DS.Typography.label)
+                        .padding(.horizontal, DS.Space.tight)
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(ApplicationControlStyle())
+                .foregroundStyle(DS.Ink.secondary)
+                .help("Choose a key, including keys outside the keyboard view")
+                .popover(isPresented: $choosingSource) {
+                    KeyChooser(
+                        selection: Binding(
+                            get: { model.selectedKey ?? "" },
+                            set: {
+                                model.selectKey($0); choosingSource = false
+                            })
+                    )
+                    .frame(width: 300).padding(DS.Space.small)
+                }
             }
 
             if model.sortedMappings.isEmpty {
