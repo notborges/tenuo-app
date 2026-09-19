@@ -361,6 +361,7 @@ final class ProfileSyncController: ObservableObject {
 
     private func reconcile() throws {
         try store?.transaction { state in
+            state.retryQuarantinedProfiles()
             try state.reconcile(
                 protectedProfileID: canApply() ? nil : state.snapshot.manualProfileID)
         }

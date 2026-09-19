@@ -24,6 +24,9 @@ final class KeyboardMonitor {
     }
     var onIdle: (() -> Void)?
 
+    private var lastKeyboardType: UInt32?
+    var onKeyboardTypeChanged: ((UInt32) -> Void)?
+
     var onAction: ((MacAction) -> Void)?
 
     var onTapInvalidated: (() -> Void)?
@@ -116,6 +119,7 @@ final class KeyboardMonitor {
     }
 
     func flushHeldKeys() {
+        lastKeyboardType = nil
         let hadActiveLayer = engine.isLayerActive || !lastActiveLayerStates.isEmpty
         engine.reset { [weak self] key in self?.post(key) }
         lastActiveLayerStates = []
@@ -156,6 +160,14 @@ final class KeyboardMonitor {
 
         let wasIdle = isQuiescent
         if !input.isSynthetic {
+            let typeID = event.getIntegerValueField(.keyboardEventKeyboardType)
+            if type == .keyDown, typeID > 0, typeID <= Int64(Int16.max) {
+                let keyboardType = UInt32(typeID)
+                if lastKeyboardType != keyboardType {
+                    lastKeyboardType = keyboardType
+                    onKeyboardTypeChanged?(keyboardType)
+                }
+            }
             if type == .keyDown { pressedKeys.insert(input.keyCode) }
             if type == .keyUp { pressedKeys.remove(input.keyCode) }
             physicalModifiers = event.flags.intersection(Self.heldModifierMask)

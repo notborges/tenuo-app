@@ -151,6 +151,17 @@ struct ProfileSyncState: Codable, Equatable, Sendable {
         }
     }
 
+    // Retry documents retained by an older build before sending local changes.
+    mutating func retryQuarantinedProfiles() {
+        for (id, payload) in quarantined {
+            guard let document = try? JSONDecoder().decode(SyncedProfile.self, from: payload),
+                document.id == id, (try? document.validate()) != nil
+            else { continue }
+            incoming[id] = document
+            quarantined[id] = nil
+        }
+    }
+
     mutating func receive(_ remote: SyncedProfile) throws {
         try remote.validate()
         incoming[remote.id] = remote

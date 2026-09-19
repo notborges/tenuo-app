@@ -31,7 +31,7 @@ struct ChordBadge: View {
     var height: CGFloat = 19
 
     var body: some View {
-        Text(layer.isBase ? "·" : (layer.trigger?.displayLabel ?? "·"))
+        Text(layer.isBase ? "·" : (layer.trigger?.keyboardLabel ?? "·"))
             .font(DS.Typography.label.weight(.semibold))
             .foregroundStyle(
                 layer.isBase

@@ -417,14 +417,15 @@ struct Keycap: View {
     var isSelected: Bool = false
     var isPressed: Bool = false
     var castsShadow: Bool = false
+    var returnNotch: CGFloat = 0
 
     private var legend: CGFloat { legendSize ?? 11 }
     private var radius: CGFloat { cornerRadius ?? max(3, DS.Radius.key * height / 34) }
 
-    private var depth: CGFloat { max(1, height * 0.075) }
+    private var depth: CGFloat { max(1, min(width, height) * 0.075) }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        let shape = KeycapOutline(radius: radius, notch: returnNotch)
 
         face(shape)
             .offset(y: isPressed ? depth * 0.6 : 0)
@@ -440,7 +441,7 @@ struct Keycap: View {
             }
             .overlay {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: radius + 2.5, style: .continuous)
+                    KeycapOutline(radius: radius + 2.5, notch: returnNotch)
                         .strokeBorder(DS.Selection.accent, lineWidth: 2)
                         .padding(-2.5)
                 }
@@ -449,7 +450,7 @@ struct Keycap: View {
             .animation(reduceMotion ? nil : DS.Motion.fill, value: isLit)
     }
 
-    private func face(_ shape: RoundedRectangle) -> some View {
+    private func face(_ shape: KeycapOutline) -> some View {
         Group {
             if secondaryIsMapping,
                 secondary != nil || secondarySymbol != nil || secondaryImage != nil
@@ -566,6 +567,42 @@ struct Keycap: View {
         if isGhosted { return DS.Cap.inherited }
         if isInactive { return DS.Cap.inkInactive }
         return secondaryIsMapping ? DS.Cap.sub : DS.Cap.inkDim
+    }
+}
+
+struct KeycapOutline: InsettableShape {
+    var radius: CGFloat
+    var notch: CGFloat
+    var insetAmount: CGFloat = 0
+
+    func inset(by amount: CGFloat) -> some InsettableShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let r = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        guard notch > 0 else {
+            return RoundedRectangle(cornerRadius: max(0, radius - insetAmount), style: .continuous)
+                .path(in: r)
+        }
+        let middle = rect.midY
+        let points = [
+            CGPoint(x: r.minX, y: r.minY), CGPoint(x: r.maxX, y: r.minY),
+            CGPoint(x: r.maxX, y: r.maxY), CGPoint(x: r.minX + notch, y: r.maxY),
+            CGPoint(x: r.minX + notch, y: middle - insetAmount),
+            CGPoint(x: r.minX, y: middle - insetAmount),
+        ]
+        var path = Path()
+        path.move(to: CGPoint(x: r.minX, y: r.minY + radius))
+        for index in points.indices {
+            path.addArc(
+                tangent1End: points[index], tangent2End: points[(index + 1) % points.count],
+                radius: max(0, radius - insetAmount))
+        }
+        path.closeSubpath()
+        return path
     }
 }
 

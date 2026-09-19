@@ -134,6 +134,7 @@ final class SystemEventObserver {
     }
 
     private func handleKeyboardChange() {
+        Task { @MainActor in KeyboardPresentation.shared.resetKeyboardDetection() }
         log.info("Keyboard set changed")
         onShouldResetState?()
         scheduleReapply()

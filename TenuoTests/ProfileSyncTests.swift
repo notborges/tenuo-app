@@ -14,6 +14,31 @@ final class ProfileSyncTests: XCTestCase {
         return (directory.appendingPathComponent("profiles.sqlite"), defaults)
     }
 
+    func testQuarantinedKeysRecoverAfterUpgradeWithoutDiscardingOfflineEdits() throws {
+        let profile = Presets.navigation
+        var state = ProfileSyncState(
+            snapshot: ProfileStoreSnapshot(
+                profiles: [profile], manualProfileID: profile.id))
+        var remote = profile
+        remote.layers[1].mappings["isoSection"] = .blocked
+        let document = SyncedProfile(id: profile.id, revision: UUID(), profile: remote, position: 0)
+        state.quarantined[profile.id] = try JSONEncoder().encode(document)
+        let unrelatedID = UUID()
+        state.quarantined[unrelatedID] = Data("unreadable".utf8)
+        var offline = profile
+        offline.name = "Offline edit"
+        state.pending[profile.id] = SyncedProfile(
+            id: profile.id, revision: UUID(),
+            profile: offline, position: 0)
+        state.retryQuarantinedProfiles()
+        try state.reconcile(protectedProfileID: nil)
+        XCTAssertNil(state.quarantined[profile.id])
+        XCTAssertNotNil(state.quarantined[unrelatedID])
+        XCTAssertEqual(state.conflicts[profile.id]?.remote, document)
+        XCTAssertEqual(state.pending[profile.id]?.profile, offline)
+        XCTAssertEqual(state.snapshot.profiles, [profile])
+    }
+
     func testHistoryCheckpointsFollowEditingSessionsAndSurviveReopen() throws {
         let (url, defaults) = try temporaryStore()
         var clock = Date(timeIntervalSince1970: 1000)

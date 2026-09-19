@@ -23,6 +23,7 @@ enum KeyCatalog {
         case function = "Function"
         case punctuation = "Punctuation"
         case modifiers = "Modifiers"
+        case international = "International"
     }
 
     static let all: [Key] = [
@@ -108,6 +109,11 @@ enum KeyCatalog {
         Key(code: 44, name: "slash", label: "/", group: .punctuation),
         Key(code: 42, name: "backslash", label: "\\", group: .punctuation),
         Key(code: 50, name: "grave", label: "`", group: .punctuation),
+        Key(code: 10, name: "isoSection", label: "§", group: .international),
+        Key(code: 93, name: "jisYen", label: "¥", group: .international),
+        Key(code: 94, name: "jisUnderscore", label: "_", group: .international),
+        Key(code: 102, name: "jisEisu", label: "英数", group: .international),
+        Key(code: 104, name: "jisKana", label: "かな", group: .international),
     ]
 
     private static let byName: [String: Key] = Dictionary(

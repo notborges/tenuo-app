@@ -112,7 +112,8 @@ struct MappingGroupInspector: View {
             ForEach(model.selectedKeys.sorted(), id: \.self) { key in
                 HStack(spacing: DS.Space.small) {
                     Keycap(
-                        label: KeyCatalog.label(for: KeyCatalog.code(for: key) ?? 0),
+                        label: KeyboardPresentation.shared.label(
+                            for: KeyCatalog.code(for: key) ?? 0),
                         width: 30, height: 30, legendSize: 11,
                         isLit: model.selectedMappings[key] != nil)
                     Text(

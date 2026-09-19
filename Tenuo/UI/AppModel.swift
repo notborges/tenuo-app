@@ -36,6 +36,7 @@ final class AppModel: ObservableObject {
     let license: LicenseManager
     let edits: ProfileEditSession
     private var licenseObserver: AnyCancellable?
+    private var keyboardObserver: AnyCancellable?
 
     init(controller: TenuoController) {
         self.controller = controller
@@ -63,6 +64,9 @@ final class AppModel: ObservableObject {
             }
             objectWillChange.send()
         }
+        keyboardObserver = KeyboardPresentation.shared.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
         updateDockIcon()
         refresh()
     }

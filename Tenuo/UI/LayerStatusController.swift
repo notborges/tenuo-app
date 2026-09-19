@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -8,12 +9,21 @@ final class LayerStatusController {
     private var hosting: NSHostingView<LayerStatusView>?
     private var surface: NSView?
     private var items: [LayerStatusItem] = []
+    private var activeStates: [LayerActivity] = []
+    private var keyboardObserver: AnyCancellable?
 
     init(model: AppModel) {
         self.model = model
+        keyboardObserver = KeyboardPresentation.shared.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self, !activeStates.isEmpty else { return }
+                setActiveLayers(activeStates)
+            }
     }
 
     func setActiveLayers(_ states: [LayerActivity]) {
+        activeStates = states
         let statefulLayers = states.filter(\.isStateful)
         let nextItems =
             statefulLayers
@@ -23,7 +33,7 @@ final class LayerStatusController {
                 return LayerStatusItem(
                     id: layer.id,
                     name: layer.name,
-                    trigger: layer.trigger?.displayLabel ?? "·",
+                    trigger: layer.trigger?.keyboardLabel ?? "·",
                     status: state.isOneShot ? .nextKey : .on)
             }
 

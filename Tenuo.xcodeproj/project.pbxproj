@@ -109,6 +109,10 @@
 		E12000000000000000000002 /* MappingTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12000000000000000000001 /* MappingTransfer.swift */; };
 		E12000000000000000000003 /* MappingTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12000000000000000000001 /* MappingTransfer.swift */; };
 		E12000000000000000000005 /* MappingEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12000000000000000000004 /* MappingEditing.swift */; };
+		B10000000000000000000002 /* KeyboardPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001; };
+		B20000000000000000000002 /* KeyboardLabels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001; };
+		B30000000000000000000002 /* KeyboardPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000001; };
+		B30000000000000000000003 /* KeyboardPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -193,6 +197,9 @@
 		A08B8203B8CC58EE137310AA /* TenuoCloud.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TenuoCloud.entitlements; sourceTree = "<group>"; };
 		E12000000000000000000001 /* MappingTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MappingTransfer.swift; sourceTree = "<group>"; };
 		E12000000000000000000004 /* MappingEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MappingEditing.swift; sourceTree = "<group>"; };
+		B10000000000000000000001 /* KeyboardPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPresentation.swift; sourceTree = "<group>"; };
+		B20000000000000000000001 /* KeyboardLabels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardLabels.swift; sourceTree = "<group>"; };
+		B30000000000000000000001 /* KeyboardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPresentationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -261,6 +268,7 @@
 				7D931717F1C564D5C79A5385 /* CloudProfileTransport.swift */,
 				AC7100000000000000000000 /* MacActionRunner.swift */,
 				TENUO000000000000000001E /* KeyboardMonitor.swift */,
+				B10000000000000000000001 /* KeyboardPresentation.swift */,
 				TENUO0000000000000000020 /* CapsLockRemapper.swift */,
 				TENUO0000000000000000022 /* AccessibilityManager.swift */,
 				TENUO0000000000000000024 /* LaunchAtLoginManager.swift */,
@@ -293,6 +301,7 @@
 				TENUO0000000000000000038 /* LayersPage.swift */,
 				TENUO000000000000000003A /* SettingsControls.swift */,
 				TENUO000000000000000003C /* KeyboardLayoutView.swift */,
+				B20000000000000000000001 /* KeyboardLabels.swift */,
 				TENUO000000000000000003E /* LayerList.swift */,
 				TENUO0000000000000000040 /* ProfileSwitcher.swift */,
 				TENUO0000000000000000042 /* CheatSheetController.swift */,
@@ -337,6 +346,7 @@
 			children = (
 				6876BE70C775712FC76923F8 /* ProfileSyncLifecycleTests.swift */,
 				F59C783512856AF14F158351 /* ProfileSyncTests.swift */,
+				B30000000000000000000001 /* KeyboardPresentationTests.swift */,
 				TENUO0000000000000000084 /* CapsLockRemapperTests.swift */,
 				TENUO0000000000000000044 /* LayerEngineTests.swift */,
 				TENUO0000000000000000091 /* ProfileStoreTests.swift */,
@@ -517,6 +527,7 @@
 				TENUO0000000000000000087 /* AppPreferences.swift in Sources */,
 				TENUO0000000000000000088 /* ProfileSelection.swift in Sources */,
 				TENUO000000000000000001D /* KeyboardMonitor.swift in Sources */,
+				B10000000000000000000002 /* KeyboardPresentation.swift in Sources */,
 				TENUO000000000000000001F /* CapsLockRemapper.swift in Sources */,
 				TENUO0000000000000000021 /* AccessibilityManager.swift in Sources */,
 				TENUO0000000000000000023 /* LaunchAtLoginManager.swift in Sources */,
@@ -535,6 +546,7 @@
 				TENUO0000000000000000037 /* LayersPage.swift in Sources */,
 				TENUO0000000000000000039 /* SettingsControls.swift in Sources */,
 				TENUO000000000000000003B /* KeyboardLayoutView.swift in Sources */,
+				B20000000000000000000002 /* KeyboardLabels.swift in Sources */,
 				TENUO000000000000000003D /* LayerList.swift in Sources */,
 				TENUO000000000000000003F /* ProfileSwitcher.swift in Sources */,
 				TENUO0000000000000000041 /* CheatSheetController.swift in Sources */,
@@ -556,6 +568,8 @@
 				4940486E568097DD4ED95059 /* ProfileSyncController.swift in Sources */,
 				55741F01F1BF8C820D851440 /* CloudProfileTransport.swift in Sources */,
 				5C5777D7D9752077F7666C17 /* ProfileSyncTests.swift in Sources */,
+				B30000000000000000000002 /* KeyboardPresentationTests.swift in Sources */,
+				B30000000000000000000003 /* KeyboardPresentation.swift in Sources */,
 				042B915D85609CF990A556F3 /* LocalActionTargets.swift in Sources */,
 				33649BD1CB939D30402D874F /* SQLiteProfileStore.swift in Sources */,
 				32F1148E67F208D97F1814B9 /* ProfileSyncState.swift in Sources */,

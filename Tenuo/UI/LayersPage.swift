@@ -3,6 +3,8 @@ import UniformTypeIdentifiers
 
 struct LayersPage: View {
     @ObservedObject var model: AppModel
+    @ObservedObject private var keyboard = KeyboardPresentation.shared
+    @State private var choosingSource = false
     private var selectedKey: String? { model.selectedKey }
 
     var body: some View {
@@ -48,13 +50,22 @@ struct LayersPage: View {
                             inherited: model.inheritedMappings,
                             selectedKeys: model.selectedKeys,
                             editingModel: model,
-                            triggerName: model.selectedLayer.trigger?.displayLabel ?? "Base",
+                            triggerName: model.selectedLayer.trigger?.keyboardLabel ?? "Base",
                             triggerKey: model.selectedLayer.trigger?.key
                         ) { key in
                             model.selectKey(key)
                         }
                         .frame(maxWidth: .infinity)
 
+                        if let trigger = model.selectedLayer.trigger,
+                            case let .key(name) = trigger.key,
+                            !KeyboardGeometry.visibleKeys(for: keyboard.shape).contains(name)
+                        {
+                            Text(
+                                "The layer trigger is not shown on this keyboard. Its assignment is preserved."
+                            )
+                            .font(DS.Typography.footnote).foregroundStyle(DS.Ink.secondary)
+                        }
                         inventory
                     }
                     .padding(.horizontal, DS.Space.large)
@@ -89,7 +100,7 @@ struct LayersPage: View {
         HStack(spacing: DS.Space.small) {
             Keycap(
                 label: model.selectedLayer.isBase
-                    ? "·" : (model.selectedLayer.trigger?.displayLabel ?? "·"),
+                    ? "·" : (model.selectedLayer.trigger?.keyboardLabel ?? "·"),
                 width: 40, height: 40, legendSize: 13,
                 isRinged: !model.selectedLayer.isBase,
                 hasIndicator: model.selectedLayer.trigger?.key == .capsLock)
@@ -117,13 +128,13 @@ struct LayersPage: View {
         guard let trigger = layer.trigger else {
             return "Always active · used when no other layer is active"
         }
-        var parts = ["Hold \(trigger.displayLabel)"]
+        var parts = ["Hold \(trigger.keyboardLabel)"]
         if let tap = layer.tapAction {
             switch tap {
             case let .sendKey(binding):
-                parts.append("tap sends \(binding.displayLabel)")
+                parts.append("tap sends \(binding.keyboardLabel)")
             case let .macAction(action):
-                parts.append("tap: \(action.displayLabel)")
+                parts.append("tap: \(action.keyboardLabel)")
             case .toggleLayer:
                 parts.append("tap toggles this layer")
             case .oneShotLayer:
@@ -134,7 +145,8 @@ struct LayersPage: View {
     }
 
     private var inventory: some View {
-        VStack(alignment: .leading, spacing: DS.Space.tight) {
+        let visibleKeys = KeyboardGeometry.visibleKeys(for: keyboard.shape)
+        return VStack(alignment: .leading, spacing: DS.Space.tight) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Space.tight) {
                 Text(model.selectedApplicationID == nil ? "Mappings" : "App overrides")
                     .sectionLabel()
@@ -142,6 +154,18 @@ struct LayersPage: View {
                     .font(DS.Typography.mono)
                     .foregroundStyle(DS.Ink.tertiary)
                 Spacer(minLength: 0)
+                Button("Choose key…") { choosingSource = true }
+                    .buttonStyle(RoundedActionStyle())
+                    .popover(isPresented: $choosingSource) {
+                        KeyChooser(
+                            selection: Binding(
+                                get: { model.selectedKey ?? "" },
+                                set: {
+                                    model.selectKey($0); choosingSource = false
+                                })
+                        )
+                        .frame(width: 300).padding(DS.Space.small)
+                    }
                 Text("⌘-click to select multiple keys")
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Ink.tertiary)
@@ -169,10 +193,12 @@ struct LayersPage: View {
                             model.selectKey(entry.source)
                         } label: {
                             MappingRow(
-                                source: KeyCatalog.label(
+                                source: KeyboardPresentation.shared.label(
                                     for: KeyCatalog.code(for: entry.source) ?? 0),
-                                destination: entry.action.displayLabel,
-                                caption: Self.caption(for: entry.action),
+                                destination: entry.action.keyboardLabel,
+                                caption: Self.caption(for: entry.action)
+                                    + (visibleKeys.contains(entry.source)
+                                        ? "" : " · Not shown on this keyboard"),
                                 macAction: entry.action.action?.macAction
                             )
                             .padding(6)
@@ -203,17 +229,15 @@ struct LayersPage: View {
     }
 
     static func caption(for action: LayerMapping) -> String {
-        guard let binding = action.binding else { return action.displayLabel }
+        guard let binding = action.binding else { return action.keyboardLabel }
         let symbols = Modifier.allCases
             .filter { binding.modifiers.contains($0) }
             .map(\.symbol)
             .joined()
-        let spaced = binding.key
-            .replacingOccurrences(
-                of: "([a-z])([A-Z])", with: "$1 $2",
-                options: .regularExpression
-            )
-            .capitalized
+        let spaced =
+            binding.modifiers.contains(.command)
+            ? KeyboardPresentation.shared.shortcutKeyLabel(for: binding)
+            : KeyboardPresentation.shared.displayName(for: binding.key)
         return symbols.isEmpty ? spaced : "\(symbols) \(spaced)"
     }
 
@@ -271,7 +295,8 @@ struct LayersPage: View {
             } else if let selectedKey {
                 HStack(spacing: DS.Space.tight) {
                     Keycap(
-                        label: KeyCatalog.label(for: KeyCatalog.code(for: selectedKey) ?? 0),
+                        label: KeyboardPresentation.shared.label(
+                            for: KeyCatalog.code(for: selectedKey) ?? 0),
                         width: 30, height: 30, legendSize: 11,
                         isLit: model.selectedMappings[selectedKey] != nil)
 
@@ -401,7 +426,7 @@ private struct KeyInspector: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name).sectionLabel()
                     Text(
-                        "Default: \(model.selectedLayer.mappings[source]?.displayLabel ?? "Normal key")"
+                        "Default: \(model.selectedLayer.mappings[source]?.keyboardLabel ?? "Normal key")"
                     )
                     .font(DS.Typography.label).foregroundStyle(DS.Ink.tertiary)
                     if model.selectedMappings[source] == nil && model.license.hasProAccess {
@@ -620,7 +645,7 @@ private struct LayerInspector: View {
                                     ))
                             }
                         case let .macAction(action):
-                            Text(action.displayLabel).padding(12)
+                            Text(action.keyboardLabel).padding(12)
                         case .toggleLayer, .oneShotLayer:
                             EmptyView()
                         }
@@ -649,7 +674,7 @@ private struct LayerInspector: View {
     }
 
     private var chordSentence: String {
-        var sentence = "Hold \(trigger.wrappedValue.displayLabel) to activate this layer."
+        var sentence = "Hold \(trigger.wrappedValue.keyboardLabel) to activate this layer."
         if trigger.wrappedValue.key.isConsumedWhileHeld,
             model.selectedLayer.tapAction == nil
         {

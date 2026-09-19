@@ -23,10 +23,14 @@ enum KeyboardGeometry {
     enum Element: Identifiable {
         case key(Key)
         case arrows
+        case returnKey
+        case space(CGFloat)
 
         var id: String {
             switch self {
             case .arrows: return "arrows"
+            case .returnKey: return "return"
+            case .space: return "spacer"
             case .key(let key): return key.name ?? "fixed-\(key.label)-\(key.word ?? "")"
             }
         }
@@ -34,6 +38,8 @@ enum KeyboardGeometry {
         var width: CGFloat {
             switch self {
             case .arrows: return 3
+            case .returnKey: return 1
+            case .space(let width): return width
             case .key(let key): return key.width
             }
         }
@@ -142,6 +148,65 @@ enum KeyboardGeometry {
             .arrows,
         ],
     ]
+
+    @MainActor
+    static func rows(for shape: KeyboardPresentation.Shape) -> [[Element]] {
+        guard shape != .ansi else { return rows }
+        var result = rows
+        result[2] =
+            [cap("tab", 1.5, word: "tab", legend: .leading)]
+            + letters("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
+            + [pair("leftBracket", "{"), pair("rightBracket", "}"), .returnKey]
+        result[3] =
+            [
+                fixed(
+                    "⇪", 1.75, word: "caps lock", legend: .leading,
+                    hasIndicator: true, trigger: .capsLock)
+            ]
+            + letters("a", "s", "d", "f", "g", "h", "j", "k", "l")
+            + [pair("semicolon", ":"), pair("quote", "\""), pair("backslash", "|"), .space(0.75)]
+        if shape == .iso {
+            // macOS reports ISO's upper-left key as Section, and the key beside Shift as Grave.
+            result[1][0] = cap("isoSection")
+            result[4] =
+                [
+                    fixed("⇧", 1.25, word: "shift", legend: .leading, trigger: .leftShift),
+                    cap("grave"),
+                ]
+                + letters("z", "x", "c", "v", "b", "n", "m")
+                + [pair("comma", "<"), pair("period", ">"), pair("slash", "?")]
+                + [fixed("⇧", 2.25, word: "shift", legend: .trailing, trigger: .rightShift)]
+        } else {
+            result[1] =
+                Array(rows[1].dropFirst().dropLast())
+                + [cap("jisYen"), cap("delete", 1.5, word: "delete", legend: .trailing)]
+            result[4] =
+                [fixed("⇧", 1.75, word: "shift", legend: .leading, trigger: .leftShift)]
+                + letters("z", "x", "c", "v", "b", "n", "m")
+                + [
+                    pair("comma", "<"), pair("period", ">"), pair("slash", "?"),
+                    cap("jisUnderscore"),
+                ]
+                + [fixed("⇧", 1.75, word: "shift", legend: .trailing, trigger: .rightShift)]
+            result[5] =
+                Array(rows[5].prefix(4))
+                + [cap("jisEisu"), cap("space", 3, label: ""), cap("jisKana")]
+                + Array(rows[5].suffix(3))
+        }
+        return result
+    }
+
+    @MainActor
+    static func visibleKeys(for shape: KeyboardPresentation.Shape) -> Set<String> {
+        var names = Set(
+            rows(for: shape).flatMap { $0 }.compactMap { element -> String? in
+                if case let .key(key) = element { return key.name }
+                if case .returnKey = element { return "return" }
+                return nil
+            })
+        names.formUnion(["leftArrow", "rightArrow", "upArrow", "downArrow"])
+        return names
+    }
 
     static var shiftedKeyCount: Int {
         rows.flatMap { $0 }.reduce(0) { total, element in

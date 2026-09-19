@@ -183,6 +183,7 @@ struct ModifierChips: View {
 }
 
 struct KeyChooser: View {
+    @ObservedObject private var keyboard = KeyboardPresentation.shared
     @Binding var selection: String
     var columns: Int = 8
     var height: CGFloat? = 170
@@ -198,7 +199,8 @@ struct KeyChooser: View {
     private func matches(_ key: KeyCatalog.Key) -> Bool {
         guard !query.isEmpty else { return true }
         let needle = query.lowercased()
-        return key.name.lowercased().contains(needle) || key.label.lowercased().contains(needle)
+        return key.name.lowercased().contains(needle)
+            || keyboard.label(for: key.name).lowercased().contains(needle)
     }
 
     var body: some View {
@@ -263,7 +265,7 @@ struct KeyChooser: View {
         return Button {
             selection = key.name
         } label: {
-            Text(key.label)
+            Text(keyboard.label(for: key.name))
                 .font(DS.Typography.label.weight(isSelected ? .semibold : .regular))
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .frame(maxWidth: .infinity)
@@ -275,7 +277,7 @@ struct KeyChooser: View {
                 .foregroundStyle(isSelected ? DS.Selection.solidInk : DS.Ink.primary)
         }
         .buttonStyle(.plain)
-        .tooltip(key.label == key.displayName ? nil : key.displayName)
+        .tooltip(keyboard.displayName(for: key.name))
     }
 }
 
@@ -335,7 +337,7 @@ struct CompactKeyField: View {
         Button {
             isPresented = true
         } label: {
-            PopupFieldLabel(title: KeyCatalog.key(named: selection)?.displayName ?? "Choose…")
+            PopupFieldLabel(title: KeyboardPresentation.shared.displayName(for: selection))
         }
         .buttonStyle(.plain)
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
@@ -362,7 +364,7 @@ struct TriggerKeyField: View {
 
     var body: some View {
         InspectorPicker(
-            title: trigger.displayName,
+            title: trigger.keyboardName,
             selection: Binding<Choice>(
                 get: { .use(trigger) },
                 set: { choice in
@@ -403,6 +405,6 @@ struct TriggerKeyField: View {
     }
 
     private func entry(_ key: TriggerKey) -> some View {
-        Text(key.displayName).tag(Choice.use(key))
+        Text(key.keyboardName).tag(Choice.use(key))
     }
 }

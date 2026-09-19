@@ -203,16 +203,27 @@ final class ProfileStoreTests: XCTestCase {
     func testImportAddsAProfileAndExportRoundTripsIt() throws {
         let store = UserDefaultsProfileStore(defaults: defaults)
         let before = store.profiles.count
-        let imported = try store.importProfile(ProfileDocument.encoder.encode(Presets.vim))
+        var profile = Presets.vim
+        profile.layers[1].trigger = LayerTrigger(key: .key("jisKana"))
+        profile.layers[1].tapAction = .sendKey(KeyBinding(key: "jisEisu"))
+        profile.layers[1].mappings["isoSection"] = .action(.sendKey(KeyBinding(key: "jisYen")))
+        profile.layers[1].applications["com.apple.Safari"] = ApplicationOverride(
+            name: "Safari", mappings: ["jisUnderscore": .blocked])
+        let imported = try store.importProfile(ProfileDocument.encoder.encode(profile))
 
         XCTAssertEqual(store.profiles.count, before + 1)
         XCTAssertEqual(store.manualProfileID, imported.id)
         XCTAssertEqual(
             store.manualProfile.layers.map(\.name),
-            Presets.vim.layers.map(\.name))
+            profile.layers.map(\.name))
         XCTAssertNotEqual(
             store.manualProfile.layers.map(\.id),
-            Presets.vim.layers.map(\.id))
+            profile.layers.map(\.id))
+
+        XCTAssertEqual(imported.layers[1].trigger, profile.layers[1].trigger)
+        XCTAssertEqual(imported.layers[1].tapAction, profile.layers[1].tapAction)
+        XCTAssertEqual(imported.layers[1].mappings, profile.layers[1].mappings)
+        XCTAssertEqual(imported.layers[1].applications, profile.layers[1].applications)
 
         let exported = try JSONDecoder().decode(
             Profile.self,

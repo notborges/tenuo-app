@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct KeyboardLayoutView: View {
+    @ObservedObject private var keyboard = KeyboardPresentation.shared
 
     let mappings: [String: LayerMapping]
     var inherited: [String: LayerMapping] = [:]
@@ -26,12 +27,19 @@ struct KeyboardLayoutView: View {
                 isElevated: width == nil
             ) {
                 VStack(alignment: .leading, spacing: gap) {
-                    ForEach(Array(KeyboardGeometry.rows.enumerated()), id: \.offset) { _, row in
-                        HStack(spacing: gap) {
+                    ForEach(
+                        Array(KeyboardGeometry.rows(for: keyboard.shape).enumerated()), id: \.offset
+                    ) { _, row in
+                        HStack(alignment: .top, spacing: gap) {
                             ForEach(Array(row.enumerated()), id: \.offset) { _, element in
                                 view(for: element, unit: unit, gap: gap)
                             }
                         }
+                        .frame(height: unit, alignment: .top)
+                        .zIndex(
+                            row.contains {
+                                if case .returnKey = $0 { return true }; return false
+                            } ? 1 : 0)
                     }
                 }
             }
@@ -51,6 +59,16 @@ struct KeyboardLayoutView: View {
             keycap(
                 for: key, width: span(key.width, unit: unit, gap: gap),
                 height: unit, unit: unit)
+        case .space(let units):
+            Color.clear.frame(width: span(units, unit: unit, gap: gap), height: unit)
+        case .returnKey:
+            Color.clear.frame(width: unit, height: unit)
+                .overlay(alignment: .topLeading) {
+                    keycap(
+                        for: KeyboardGeometry.Key(name: "return", label: "↩"),
+                        width: unit, height: unit * 2 + gap, unit: unit,
+                        returnNotch: (unit + gap) * 0.25)
+                }
         case .arrows:
             arrowCluster(unit: unit, gap: gap)
         }
@@ -89,7 +107,8 @@ struct KeyboardLayoutView: View {
         for key: KeyboardGeometry.Key,
         width: CGFloat,
         height: CGFloat,
-        unit: CGFloat
+        unit: CGFloat,
+        returnNotch: CGFloat = 0
     ) -> some View {
         let action = key.name.flatMap { mappings[$0] }
         let inheritedAction = key.name.flatMap { inherited[$0] }
@@ -102,7 +121,8 @@ struct KeyboardLayoutView: View {
         let legend = secondaryLegend(for: key, shown: shown)
 
         return Keycap(
-            label: key.label,
+            label: key.name.map { $0 == "space" ? "" : keyboard.legends[$0]?.normal ?? key.label }
+                ?? key.label,
             symbol: key.symbol,
             secondary: legend.text,
             secondarySymbol: legend.symbol,
@@ -121,7 +141,8 @@ struct KeyboardLayoutView: View {
             isGhosted: action == nil && inheritedAction != nil,
             isSelected: key.name != nil
                 && (key.name == selected || selectedKeys.contains(key.name!)),
-            castsShadow: true
+            castsShadow: true,
+            returnNotch: returnNotch
         )
         .overlay(alignment: .topTrailing) {
             if let name = key.name, changedKeys.contains(name) {
@@ -132,14 +153,14 @@ struct KeyboardLayoutView: View {
                     .allowsHitTesting(false)
             }
         }
-        .contentShape(RoundedRectangle(cornerRadius: unit * 0.16, style: .continuous))
+        .contentShape(KeycapOutline(radius: unit * 0.16, notch: returnNotch))
         .modifier(
             KeyInteraction(
                 isEnabled: isInteractive,
                 name: key.name,
                 isMappable: key.isMappable,
-                label: key.name.flatMap { KeyCatalog.key(named: $0)?.displayName } ?? key.label,
-                value: (shown?.displayLabel ?? "No mapping")
+                label: key.name.map { keyboard.displayName(for: $0) } ?? key.label,
+                value: (shown?.keyboardLabel ?? "No mapping")
                     + (key.name.map { changedKeys.contains($0) } == true ? ", changed" : ""),
                 onSelect: onSelect
             )
@@ -156,7 +177,7 @@ struct KeyboardLayoutView: View {
             isInteractive
                 ? tooltip(
                     for: key, action: action, inherited: inheritedAction,
-                    isTrigger: isTrigger) ?? (shown?.displayLabel ?? key.word ?? key.label)
+                    isTrigger: isTrigger) ?? (shown?.keyboardLabel ?? key.word ?? key.label)
                 : "")
     }
 
@@ -167,9 +188,13 @@ struct KeyboardLayoutView: View {
         if case let .action(.macAction(action)) = shown {
             return (nil, action.symbol, false, true)
         }
-        if let shown { return (shown.displayLabel, nil, false, true) }
+        if let shown { return (shown.keyboardLabel, nil, false, true) }
         if let glyph = key.glyph { return (nil, glyph, true, false) }
-        if let shifted = key.shifted { return (shifted, nil, true, false) }
+        if let name = key.name, let local = keyboard.legends[name] {
+            if let shifted = local.shifted { return (shifted, nil, true, false) }
+        } else if let shifted = key.shifted {
+            return (shifted, nil, true, false)
+        }
         if let word = key.word { return (word, nil, false, false) }
         return (nil, nil, false, false)
     }

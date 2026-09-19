@@ -88,7 +88,7 @@ struct MenuPanelView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text(layer.name).sectionLabel()
-                Text(layer.trigger?.displayLabel ?? "")
+                Text(layer.trigger?.keyboardLabel ?? "")
                     .font(DS.Typography.caption)
                     .foregroundStyle(DS.Ink.secondary)
                 Spacer(minLength: 0)

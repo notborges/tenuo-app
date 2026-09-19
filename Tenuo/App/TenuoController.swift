@@ -134,6 +134,11 @@ final class TenuoController {
         systemEvents.onShouldReapplyRemap = { [weak self] in self?.reconcileRemap() }
         systemEvents.start()
 
+        monitor.onKeyboardTypeChanged = { type in
+            // Keep layout translation and view updates outside the event-tap callback.
+            Task { @MainActor in KeyboardPresentation.shared.observeKeyboardType(type) }
+        }
+
         monitor.onActiveLayersChanged = { [weak self] states in
             self?.onActiveLayersChanged?(states)
         }

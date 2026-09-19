@@ -45,9 +45,10 @@ final class CheatSheetController {
         let screen = NSScreen.main
         let keyboardWidth = min(480, (screen?.visibleFrame.width ?? 640) - 72)
         let view = CheatSheetView(
-            model: model, activeLayerIndex: activeLayer, keyboardWidth: keyboardWidth)
-            .glassPanel()
-            .padding(10)
+            model: model, activeLayerIndex: activeLayer, keyboardWidth: keyboardWidth
+        )
+        .glassPanel()
+        .padding(10)
 
         let hosting = NSHostingView(rootView: view)
         hosting.setFrameSize(hosting.fittingSize)
@@ -124,7 +125,7 @@ struct CheatSheetView: View {
         VStack(alignment: .leading, spacing: DS.Space.medium) {
             HStack(spacing: DS.Space.tight) {
                 Keycap(
-                    label: layer?.trigger?.displayLabel ?? "·",
+                    label: layer?.trigger?.keyboardLabel ?? "·",
                     width: 30, height: 28, legendSize: 11, isRinged: true)
                 Text(layer?.name ?? "")
                     .font(DS.Typography.title)
@@ -147,7 +148,8 @@ struct CheatSheetView: View {
                 HStack(spacing: DS.Space.tight) {
                     Text("Other keys")
                     Spacer()
-                    Text(layer.outputMode.injectsHyper ? "⌃ ⌥ ⌘ ⇧  Hyper shortcuts" : "Use normally")
+                    Text(
+                        layer.outputMode.injectsHyper ? "⌃ ⌥ ⌘ ⇧  Hyper shortcuts" : "Use normally")
                 }
                 .font(DS.Typography.label)
                 .foregroundStyle(DS.Ink.secondary)

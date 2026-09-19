@@ -47,6 +47,7 @@ struct ProfileHistoryView: View {
 }
 
 struct ProfileHistoryBrowser: View {
+    @ObservedObject private var keyboard = KeyboardPresentation.shared
     let profile: Profile?
     let history: Result<[ProfileHistoryEntry], ProfileHistoryError>
     var canRestore: Bool = true
@@ -349,7 +350,7 @@ struct ProfileHistoryBrowser: View {
                             mappings: selectedLayer.mappings(for: selectedApplicationID),
                             inherited: inheritedMappings(for: selectedLayer, in: preview),
                             selected: selectedKey,
-                            triggerName: selectedLayer.trigger?.displayLabel ?? "Base",
+                            triggerName: selectedLayer.trigger?.keyboardLabel ?? "Base",
                             triggerKey: selectedLayer.trigger?.key,
                             width: min(
                                 680, geometry.size.width - 48,
@@ -390,7 +391,7 @@ struct ProfileHistoryBrowser: View {
                             selectedKey = nil
                         } label: {
                             HStack(spacing: 8) {
-                                Text(layer.trigger?.displayLabel ?? "·")
+                                Text(layer.trigger?.keyboardLabel ?? "·")
                                     .frame(width: 24, height: 24)
                                     .background(
                                         DS.Surface.raised, in: RoundedRectangle(cornerRadius: 7))
@@ -460,12 +461,12 @@ struct ProfileHistoryBrowser: View {
         HStack(spacing: 8) {
             if let selectedKey {
                 let inherited = inheritedMappings(for: layer, in: profile)[selectedKey]
-                Text(KeyCatalog.key(named: selectedKey)?.displayName ?? selectedKey)
+                Text(KeyboardPresentation.shared.displayName(for: selectedKey))
                     .foregroundStyle(DS.Ink.primary)
                     .fontWeight(.medium)
                 Image(systemName: "arrow.right").font(.system(size: 9))
                 Text(
-                    ProfileHistoryComparison.mappingLabel(
+                    keyboardMappingLabel(
                         layer.mappings(for: selectedApplicationID)[selectedKey] ?? inherited,
                         in: profile)
                 )
@@ -531,7 +532,9 @@ struct ProfileHistoryBrowser: View {
         let row = HStack(alignment: .top, spacing: 12) {
             if change.key != nil {
                 Keycap(
-                    label: change.key.map { KeyCatalog.label(for: KeyCatalog.code(for: $0) ?? 0) }
+                    label: change.key.map {
+                        KeyboardPresentation.shared.label(for: KeyCatalog.code(for: $0) ?? 0)
+                    }
                         ?? change.title, width: 30, height: 30, legendSize: 11, isLit: true
                 )
                 .accessibilityHidden(true)
@@ -546,8 +549,13 @@ struct ProfileHistoryBrowser: View {
                     Text(changeScope(change))
                         .font(DS.Typography.footnote)
                         .foregroundStyle(DS.Ink.tertiary)
-                    changeValue("Now", value: change.before)
-                    changeValue("After restore", value: change.after, emphasized: true)
+                    changeValue(
+                        "Now", value: localChangeValue(change, in: profile, fallback: change.before)
+                    )
+                    changeValue(
+                        "After restore",
+                        value: localChangeValue(change, in: preview, fallback: change.after),
+                        emphasized: true)
                 } else {
                     Text(description.title)
                         .font(DS.Typography.body.weight(.medium))
@@ -622,13 +630,32 @@ struct ProfileHistoryBrowser: View {
         }
     }
 
+    private func localChangeValue(
+        _ change: ProfileHistoryChange, in profile: Profile?, fallback: String
+    ) -> String {
+        guard let profile, let layer = profile.layers.first(where: { $0.id == change.layerID })
+        else { return fallback }
+        if let key = change.key {
+            let mapping =
+                change.applicationID.map { layer.applications[$0]?.mappings[key] }
+                ?? layer.mappings[key]
+            if mapping == nil, change.applicationID != nil { return "Use Default" }
+            return keyboardMappingLabel(mapping, in: profile)
+        }
+        if change.id.hasSuffix("/trigger") { return layer.trigger?.keyboardLabel ?? "Base" }
+        if change.id.hasSuffix("/tap"), let action = layer.tapAction, action.target == nil {
+            return action.keyboardLabel
+        }
+        return fallback
+    }
+
     private func changeDescription(_ change: ProfileHistoryChange) -> (
         title: String, detail: String
     ) {
-        if change.key != nil {
+        if let key = change.key {
             return (
-                "\(change.title) · \(changeScope(change))",
-                "Now: \(change.before). After restore: \(change.after)"
+                "\(keyboard.displayName(for: key)) · \(changeScope(change))",
+                "Now: \(localChangeValue(change, in: profile, fallback: change.before)). After restore: \(localChangeValue(change, in: preview, fallback: change.after))"
             )
         }
         if change.title == "Add layer" {
@@ -638,8 +665,8 @@ struct ProfileHistoryBrowser: View {
             return ("Remove the “\(change.before)” layer", "Its mappings will be removed too")
         }
         return (
-            "\(change.title): \(change.after)",
-            "\(changeScope(change)) · Currently: \(change.before)"
+            "\(change.title): \(localChangeValue(change, in: preview, fallback: change.after))",
+            "\(changeScope(change)) · Currently: \(localChangeValue(change, in: profile, fallback: change.before))"
         )
     }
 

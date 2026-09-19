@@ -138,6 +138,8 @@ private struct PreferencesView: View {
         .tint(DS.Selection.solid)
     }
 
+    @ObservedObject private var keyboard = KeyboardPresentation.shared
+
     private var general: some View {
         Group {
             group("Everyday") {
@@ -163,6 +165,26 @@ private struct PreferencesView: View {
                 }
             }
             group("Keyboard") {
+                SettingsPreferenceRow(
+                    title: "Keyboard shape",
+                    detail:
+                        "Only changes the display on this Mac. Saved assignments stay unchanged."
+                ) {
+                    InspectorPicker(
+                        title: keyboard.override?.rawValue
+                            ?? "Automatic (\(keyboard.detectedShape.rawValue))",
+                        selection: $keyboard.override
+                    ) {
+                        Text("Automatic (\(keyboard.detectedShape.rawValue))").tag(
+                            KeyboardPresentation.Shape?.none)
+                        ForEach(KeyboardPresentation.Shape.allCases, id: \.self) { shape in
+                            Text(shape.rawValue).tag(Optional(shape))
+                        }
+                    }
+                    .frame(width: 160)
+                }
+                settingsDivider
+
                 SettingsPreferenceRow(
                     title: "Show active layer",
                     detail: "Preview the layer while holding its trigger."
