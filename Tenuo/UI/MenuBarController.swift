@@ -82,6 +82,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         } onViewUpdate: { [weak self] in
             self?.closePanel()
             self?.model.updates.check()
+        } onQuit: { [weak self] in
+            self?.closePanel()
+            // Let the menu action return before terminating the application.
+            DispatchQueue.main.async { [weak self] in self?.model.quit() }
         }
     }
 

@@ -6,6 +6,7 @@ struct MenuPanelView: View {
     var onOpenEditor: () -> Void
     var onOpenPreferences: () -> Void
     var onViewUpdate: () -> Void
+    var onQuit: () -> Void
 
     private static let width: CGFloat = 460
 
@@ -192,7 +193,7 @@ struct MenuPanelView: View {
         VStack(spacing: 0) {
             FooterRow(title: "Edit layers…", action: onOpenEditor)
             FooterRow(title: "Settings…", action: onOpenPreferences)
-            FooterRow(title: "Quit \(AppIdentity.displayName)", action: model.quit)
+            FooterRow(title: "Quit \(AppIdentity.displayName)", action: onQuit)
         }
     }
 }

@@ -62,6 +62,11 @@ final class UpdateController: NSObject, ObservableObject {
         do {
             try updater.start()
             self.updater = updater
+            lastChecked = updater.lastUpdateCheckDate
+            if updater.automaticallyChecksForUpdates {
+                status = .checking
+                updater.checkForUpdatesInBackground()
+            }
         } catch {
             log.error("Updater failed to start: \(error.localizedDescription, privacy: .public)")
             status = .failed(error.localizedDescription)
@@ -91,6 +96,7 @@ extension UpdateController: SPUUpdaterDelegate {
         didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
         error: Error?
     ) {
+        lastChecked = updater.lastUpdateCheckDate
         if let error = error as NSError?,
             error.domain != SUSparkleErrorDomain
                 || (error.code != SUError.noUpdateError.rawValue
