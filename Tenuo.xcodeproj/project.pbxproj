@@ -106,6 +106,9 @@
 		AB4900000000000000000000 /* PolarLicenseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B2 /* PolarLicenseClient.swift */; };
 		AB4900000000000000000001 /* LicenseKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B4 /* LicenseKeychainStore.swift */; };
 		AB4900000000000000000002 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO00000000000000000B6 /* LicenseManager.swift */; };
+		E12000000000000000000002 /* MappingTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12000000000000000000001 /* MappingTransfer.swift */; };
+		E12000000000000000000003 /* MappingTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12000000000000000000001 /* MappingTransfer.swift */; };
+		E12000000000000000000005 /* MappingEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12000000000000000000004 /* MappingEditing.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -188,6 +191,8 @@
 		8B804A6BC4A169E7EF1CE968 /* ProfileSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncSettingsView.swift; sourceTree = "<group>"; };
 		6876BE70C775712FC76923F8 /* ProfileSyncLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSyncLifecycleTests.swift; sourceTree = "<group>"; };
 		A08B8203B8CC58EE137310AA /* TenuoCloud.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TenuoCloud.entitlements; sourceTree = "<group>"; };
+		E12000000000000000000001 /* MappingTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MappingTransfer.swift; sourceTree = "<group>"; };
+		E12000000000000000000004 /* MappingEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MappingEditing.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -237,6 +242,7 @@
 				TENUO00000000000000000B0 /* License.swift */,
 				TENUO00000000000000000BF /* ProfileHistory.swift */,
 				DE84942F344B4D98A9A08233 /* ProfileEditSession.swift */,
+				E12000000000000000000001 /* MappingTransfer.swift */,
 				TENUO0000000000000000014 /* Profile.swift */,
 				TENUO0000000000000000016 /* Presets.swift */,
 				TENUO0000000000000000018 /* LayerEngine.swift */,
@@ -280,6 +286,7 @@
 				TENUO000000000000000002C /* Controls.swift */,
 				TENUO000000000000000002E /* GlassStyle.swift */,
 				TENUO0000000000000000030 /* AppModel.swift */,
+				E12000000000000000000004 /* MappingEditing.swift */,
 				TENUO0000000000000000032 /* MenuBarController.swift */,
 				TENUO0000000000000000034 /* MenuPanelView.swift */,
 				TENUO0000000000000000036 /* LayerEditorView.swift */,
@@ -535,6 +542,8 @@
 				TENUO00000000000000000B9 /* LicenseSettingsView.swift in Sources */,
 				TENUO00000000000000000BD /* ProfileHistory.swift in Sources */,
 				DE84942F344B4D98A9A08231 /* ProfileEditSession.swift in Sources */,
+				E12000000000000000000005 /* MappingEditing.swift in Sources */,
+				E12000000000000000000002 /* MappingTransfer.swift in Sources */,
 				TENUO00000000000000000C0 /* ProfileHistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -567,6 +576,7 @@
 				TENUO00000000000000000BC /* License.swift in Sources */,
 				TENUO00000000000000000BE /* ProfileHistory.swift in Sources */,
 				DE84942F344B4D98A9A08232 /* ProfileEditSession.swift in Sources */,
+				E12000000000000000000003 /* MappingTransfer.swift in Sources */,
 				TENUO000000000000000004B /* Profile.swift in Sources */,
 				TENUO000000000000000004C /* Presets.swift in Sources */,
 				TENUO000000000000000004D /* LayerEngine.swift in Sources */,

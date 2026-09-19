@@ -5,6 +5,8 @@ struct KeyboardLayoutView: View {
     let mappings: [String: LayerMapping]
     var inherited: [String: LayerMapping] = [:]
     var selected: String?
+    var selectedKeys: Set<String> = []
+    var editingModel: AppModel?
     var triggerName: String = ""
     var triggerKey: TriggerKey?
     var width: CGFloat?
@@ -92,6 +94,7 @@ struct KeyboardLayoutView: View {
         let action = key.name.flatMap { mappings[$0] }
         let inheritedAction = key.name.flatMap { inherited[$0] }
         let shown = action ?? inheritedAction
+        let isSelected = key.name.map { selectedKeys.contains($0) || $0 == selected } ?? false
         let isTrigger =
             (key.trigger != nil && key.trigger == triggerKey)
             || (key.name != nil && triggerKey == .key(key.name!))
@@ -116,7 +119,8 @@ struct KeyboardLayoutView: View {
             hasIndicator: key.hasIndicator && isTrigger,
             isInactive: !key.isMappable,
             isGhosted: action == nil && inheritedAction != nil,
-            isSelected: key.name != nil && key.name == selected,
+            isSelected: key.name != nil
+                && (key.name == selected || selectedKeys.contains(key.name!)),
             castsShadow: true
         )
         .overlay(alignment: .topTrailing) {
@@ -139,6 +143,14 @@ struct KeyboardLayoutView: View {
                     + (key.name.map { changedKeys.contains($0) } == true ? ", changed" : ""),
                 onSelect: onSelect
             )
+        )
+        .contextMenu {
+            if let editingModel, key.isMappable, let name = key.name {
+                MappingSelectionMenu(model: editingModel, key: name)
+            }
+        }
+        .accessibilityAddTraits(
+            isSelected ? .isSelected : []
         )
         .help(
             isInteractive

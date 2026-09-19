@@ -13,9 +13,17 @@ final class AppModel: ObservableObject {
     @Published private(set) var launchNeedsApproval: Bool = false
     @Published private(set) var licenseState: LicenseState
 
-    @Published var selectedApplicationID: String?
+    @Published var selectedKeys: Set<String> = []
+    @Published var isMappingEditorVisible = true
+    var copiedMappings: MappingTransfer?
+    var mappingPasteboardChange: Int?
+
+    @Published var selectedApplicationID: String? {
+        didSet { if oldValue != selectedApplicationID { selectedKeys = [] } }
+    }
     @Published var selectedLayerID: UUID? {
         didSet {
+            selectedKeys = []
             selectedApplicationID = nil
             if oldValue != selectedLayerID { profileStore.history.endSession() }
         }
@@ -123,6 +131,26 @@ final class AppModel: ObservableObject {
                 selectedLayer.mappings = newValue
             }
         }
+    }
+
+    @discardableResult
+    func updateMappings(_ mappings: [String: LayerMapping], name: String) -> Bool {
+        guard mappings != selectedMappings else { return false }
+        var updated = profile
+        if let id = selectedApplicationID {
+            guard license.hasProAccess, updated.layers[selectedIndex].applications[id] != nil else {
+                return false
+            }
+            updated.layers[selectedIndex].applications[id]?.mappings = mappings
+        } else {
+            updated.layers[selectedIndex].mappings = mappings
+        }
+        guard edits.perform(name, { profileStore.updateProfile(updated) }) else {
+            errorMessage = "Tenuo could not save the mappings or their history."
+            return false
+        }
+        objectWillChange.send()
+        return true
     }
 
     var editingApplicationName: String? {

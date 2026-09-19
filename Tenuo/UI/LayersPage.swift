@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 struct LayersPage: View {
     @ObservedObject var model: AppModel
-    @State private var selectedKey: String?
+    private var selectedKey: String? { model.selectedKey }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -13,16 +13,16 @@ struct LayersPage: View {
                 .padding(.trailing, DS.Metrics.windowInset)
                 .padding(.vertical, DS.Metrics.windowInset)
         }
-        .onChange(of: model.selectedApplicationID) { _, _ in selectedKey = nil }
-        .onChange(of: model.selectedLayerID) { _, _ in selectedKey = nil }
+        .onChange(of: model.profile.id) { _, _ in model.selectedKeys = [] }
+
         .background(escapeDeselects)
 
     }
 
     private var escapeDeselects: some View {
-        Button("Deselect") { selectedKey = nil }
+        Button("Deselect") { model.selectedKeys = [] }
             .keyboardShortcut(.cancelAction)
-            .disabled(selectedKey == nil)
+            .disabled(model.selectedKeys.isEmpty)
             .opacity(0)
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
@@ -46,11 +46,12 @@ struct LayersPage: View {
                         KeyboardLayoutView(
                             mappings: model.selectedMappings,
                             inherited: model.inheritedMappings,
-                            selected: selectedKey,
+                            selectedKeys: model.selectedKeys,
+                            editingModel: model,
                             triggerName: model.selectedLayer.trigger?.displayLabel ?? "Base",
                             triggerKey: model.selectedLayer.trigger?.key
                         ) { key in
-                            selectedKey = (selectedKey == key) ? nil : key
+                            model.selectKey(key)
                         }
                         .frame(maxWidth: .infinity)
 
@@ -76,7 +77,7 @@ struct LayersPage: View {
     private var deselectionSurface: some View {
         Color.clear
             .contentShape(Rectangle())
-            .onTapGesture { selectedKey = nil }
+            .onTapGesture { model.selectedKeys = [] }
             .accessibilityHidden(true)
     }
 
@@ -141,6 +142,9 @@ struct LayersPage: View {
                     .font(DS.Typography.mono)
                     .foregroundStyle(DS.Ink.tertiary)
                 Spacer(minLength: 0)
+                Text("⌘-click to select multiple keys")
+                    .font(DS.Typography.caption)
+                    .foregroundStyle(DS.Ink.tertiary)
             }
 
             if model.sortedMappings.isEmpty {
@@ -162,7 +166,7 @@ struct LayersPage: View {
                 ) {
                     ForEach(model.sortedMappings, id: \.source) { entry in
                         Button {
-                            selectedKey = entry.source
+                            model.selectKey(entry.source)
                         } label: {
                             MappingRow(
                                 source: KeyCatalog.label(
@@ -173,12 +177,17 @@ struct LayersPage: View {
                             )
                             .padding(6)
                             .background(
-                                selectedKey == entry.source ? DS.Selection.fill : .clear,
+                                model.selectedKeys.contains(entry.source)
+                                    ? DS.Selection.fill : .clear,
                                 in: RoundedRectangle(cornerRadius: DS.Radius.small)
                             )
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .contextMenu { MappingSelectionMenu(model: model, key: entry.source) }
+                        .accessibilityAddTraits(
+                            model.selectedKeys.contains(entry.source) ? .isSelected : []
+                        )
                         .help(Self.caption(for: entry.action))
                     }
                 }
@@ -218,7 +227,9 @@ struct LayersPage: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.Space.medium) {
-                    if let selectedKey {
+                    if model.selectedKeys.count > 1 {
+                        MappingGroupInspector(model: model)
+                    } else if let selectedKey {
                         KeyInspector(model: model, source: selectedKey)
                             .id("\(selectedKey)/\(model.selectedApplicationID ?? "default")")
                     } else {
@@ -244,7 +255,20 @@ struct LayersPage: View {
 
     private var inspectorTitle: some View {
         Group {
-            if let selectedKey {
+            if model.selectedKeys.count > 1 {
+                HStack {
+                    Text("\(model.selectedKeys.count) keys selected")
+                        .font(DS.Typography.title)
+                    Spacer()
+                    Button {
+                        model.selectedKeys = []
+                    } label: {
+                        Image(systemName: "xmark").foregroundStyle(DS.Ink.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .tooltip("Deselect")
+                }
+            } else if let selectedKey {
                 HStack(spacing: DS.Space.tight) {
                     Keycap(
                         label: KeyCatalog.label(for: KeyCatalog.code(for: selectedKey) ?? 0),
@@ -265,7 +289,7 @@ struct LayersPage: View {
                     Spacer(minLength: 0)
 
                     Button {
-                        self.selectedKey = nil
+                        model.selectedKeys = []
                     } label: {
                         Image(systemName: "xmark").font(
                             .system(size: DS.Icon.small, weight: .semibold))
@@ -282,23 +306,19 @@ struct LayersPage: View {
     }
 
     private var hasDestructiveAction: Bool {
-        if let selectedKey { return model.selectedMappings[selectedKey] != nil }
-        return !model.selectedLayer.isBase
+        model.canClearMappings || (model.selectedKeys.isEmpty && !model.selectedLayer.isBase)
     }
 
     @ViewBuilder
     private var destructiveAction: some View {
-        if let selectedKey, model.selectedMappings[selectedKey] != nil {
+        if model.canClearMappings {
             InspectorDestructiveButton(
-                title: model.selectedApplicationID == nil ? "Clear mapping" : "Use Default"
-            ) {
-                model.selectedMappings.removeValue(forKey: selectedKey)
-            }
-        } else if selectedKey == nil, !model.selectedLayer.isBase {
-            InspectorDestructiveButton(
-                title: "Remove layer",
-                confirm: removalConfirmation
-            ) {
+                title: model.selectedApplicationID == nil
+                    ? (model.selectedKeys.count == 1 ? "Clear mapping" : "Clear mappings")
+                    : "Use Default"
+            ) { model.clearMappings() }
+        } else if model.selectedKeys.isEmpty, !model.selectedLayer.isBase {
+            InspectorDestructiveButton(title: "Remove layer", confirm: removalConfirmation) {
                 model.removeSelectedLayer()
             }
         }

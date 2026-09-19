@@ -39,6 +39,15 @@ struct LayerEditorView: View {
                 .transition(reduceMotion ? .identity : .opacity.combined(with: .offset(x: 12)))
             }
         }
+        .onReceive(
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+        ) { _ in
+            model.objectWillChange.send()
+        }
+        .onChange(of: historyProfileID) { _, id in
+            model.isMappingEditorVisible = id == nil
+            model.selectedKeys = []
+        }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: historyProfileID)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .frame(minWidth: 1080, minHeight: 620)

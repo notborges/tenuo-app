@@ -15,6 +15,105 @@ final class ProfileStoreTests: XCTestCase {
         super.tearDown()
     }
 
+    func testMappingCopySkipsUnassignedKeysAndPastesWithoutChangingSources() throws {
+        let profile = Presets.navigation
+        let mappings = profile.layers[1].mappings
+        let single = MappingTransfer(
+            profileID: profile.id, mappings: mappings, selection: ["h", "a"])
+        let replacements = try single.replacements(on: ["q", "w"], in: profile, hasPro: false)
+        XCTAssertEqual(replacements, ["q": mappings["h"]!, "w": mappings["h"]!])
+        var pasted = mappings
+        pasted.merge(replacements) { _, new in new }
+        XCTAssertEqual(pasted["h"], mappings["h"])
+        XCTAssertEqual(pasted["j"], mappings["j"])
+
+        let group = MappingTransfer(
+            profileID: profile.id, mappings: mappings, selection: ["h", "j"])
+        XCTAssertThrowsError(try group.replacements(on: ["q", "w"], in: profile, hasPro: false))
+        XCTAssertEqual(
+            try group.replacements(on: nil, in: profile, hasPro: false),
+            ["h": mappings["h"]!, "j": mappings["j"]!])
+        let empty = MappingTransfer(profileID: profile.id, mappings: mappings, selection: ["a"])
+        XCTAssertThrowsError(try empty.replacements(on: nil, in: profile, hasPro: false))
+    }
+
+    func testMappingPasteRejectsUnavailableActionsAndForeignLayerReferences() throws {
+        let profile = Presets.stacked
+        let group = MappingTransfer(
+            profileID: profile.id,
+            mappings: [
+                "h": .blocked,
+                "j": .action(.toggleLayer(.layer(profile.layers[2].id))),
+            ], selection: ["h", "j"])
+        XCTAssertEqual(try group.replacements(on: nil, in: profile, hasPro: false).count, 2)
+        var removed = profile
+        removed.layers.removeLast()
+        XCTAssertThrowsError(try group.replacements(on: nil, in: removed, hasPro: true))
+        var other = profile
+        other.id = UUID()
+        XCTAssertThrowsError(try group.replacements(on: nil, in: other, hasPro: true))
+
+        let paid = MappingTransfer(
+            profileID: profile.id,
+            mappings: ["h": .blocked, "j": .action(.macAction(.url("https://tenuo.app")))],
+            selection: ["h", "j"])
+        XCTAssertThrowsError(try paid.replacements(on: nil, in: profile, hasPro: false))
+        XCTAssertEqual(try paid.replacements(on: nil, in: profile, hasPro: true).count, 2)
+    }
+
+    func testMappingPasteKeepsLocalFileTargetsWithinTheirProfile() throws {
+        let profile = Presets.navigation
+        let transfer = MappingTransfer(
+            profileID: profile.id,
+            mappings: [
+                "r": .action(
+                    .macAction(
+                        .file(
+                            FileActionTarget(
+                                localID: UUID(), bookmark: Data(), name: "Document"))))
+            ], selection: ["r"])
+        XCTAssertEqual(try transfer.replacements(on: ["s"], in: profile, hasPro: true).count, 1)
+        var other = profile
+        other.id = UUID()
+        XCTAssertThrowsError(try transfer.replacements(on: ["s"], in: other, hasPro: true))
+    }
+
+    @MainActor
+    func testBatchMappingEditsUndoTogetherAndLeaveDefaultMappingsIntact() throws {
+        let store = UserDefaultsProfileStore(defaults: defaults)
+        var original = store.manualProfile
+        original.layers[1].applications["com.example.editor"] = ApplicationOverride(
+            name: "Editor", mappings: ["h": .blocked, "j": .transparent])
+        XCTAssertTrue(store.updateProfile(original))
+        let edits = ProfileEditSession(store: store)
+        edits.undoManager.groupsByEvent = false
+        var pasted = original
+        let transfer = MappingTransfer(
+            profileID: original.id, mappings: original.layers[1].mappings, selection: ["h", "j"])
+        pasted.layers[1].applications["com.example.editor"]?.mappings.merge(
+            try transfer.replacements(on: nil, in: original, hasPro: true)
+        ) { _, new in new }
+        edits.undoManager.beginUndoGrouping()
+        XCTAssertTrue(edits.perform("Paste Mappings") { store.updateProfile(pasted) })
+        edits.undoManager.endUndoGrouping()
+        edits.undoManager.undo()
+        XCTAssertEqual(store.manualProfile, original)
+        XCTAssertFalse(edits.undoManager.canUndo)
+        edits.undoManager.redo()
+        XCTAssertEqual(store.manualProfile, pasted)
+
+        var cleared = pasted
+        cleared.layers[1].applications["com.example.editor"]?.mappings = [:]
+        edits.undoManager.beginUndoGrouping()
+        XCTAssertTrue(edits.perform("Use Default Mappings") { store.updateProfile(cleared) })
+        edits.undoManager.endUndoGrouping()
+        XCTAssertEqual(store.manualProfile.layers[1].mappings, original.layers[1].mappings)
+        edits.undoManager.undo()
+        XCTAssertEqual(store.manualProfile, pasted)
+        edits.undoManager.redo()
+        XCTAssertEqual(store.manualProfile, cleared)
+    }
+
     func testCorruptProfilesFallBackToTheShippedSet() {
         defaults.set(Data("not json".utf8), forKey: "TenuoProfiles")
 

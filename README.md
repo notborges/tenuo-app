@@ -44,6 +44,22 @@ Modifier triggers continue to work as modifiers. A non-modifier trigger is
 consumed while held, so give it a tap action if it should do something when
 tapped.
 
+## Editing several mappings
+
+Command-click keys on the keyboard or in the mapping list to select more than
+one. Click empty space or press Escape to deselect.
+
+Use Copy and Paste in the Edit menu, or right-click a key. A single copied
+mapping can be pasted onto one or several selected keys. To copy a group to
+another layer, switch layers and choose **Paste to original keys**. Copy only
+includes assignments in the current layer and application context; inherited
+mappings and unassigned keys are skipped. The mapping clipboard lasts until
+another copy operation or until Tenuo quits.
+
+**Clear mappings** removes the selected assignments. In an application override,
+**Use Default** removes those overrides instead. Each paste or clear operation
+can be undone in one step with Command-Z.
+
 ## Requirements
 
 - macOS 15 or later.

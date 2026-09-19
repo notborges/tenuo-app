@@ -108,6 +108,9 @@ enum MainMenu {
         menu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
         menu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         menu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        menu.addItem(
+            withTitle: "Paste to original keys",
+            action: #selector(EditorWindow.pasteToOriginalKeys(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "Delete", action: #selector(NSText.delete(_:)), keyEquivalent: "")
         menu.addItem(
             withTitle: "Select All",

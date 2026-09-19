@@ -44,13 +44,30 @@ extension NSWindow {
 @MainActor
 final class EditorWindow: NSWindow {
     var profileUndoManager: UndoManager?
+    weak var mappingModel: AppModel?
     override var undoManager: UndoManager? { profileUndoManager ?? super.undoManager }
 
     @objc func undo(_ sender: Any?) { undoManager?.undo() }
     @objc func redo(_ sender: Any?) { undoManager?.redo() }
 
+    @objc func copy(_ sender: Any?) { mappingModel?.copyMappings() }
+    @objc func paste(_ sender: Any?) { mappingModel?.pasteMappings() }
+    @objc func pasteToOriginalKeys(_ sender: Any?) {
+        guard !(firstResponder is NSTextView) else { return }
+        mappingModel?.pasteMappings(toOriginalKeys: true)
+    }
+    @objc func delete(_ sender: Any?) { mappingModel?.clearMappings() }
+
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(copy(_:)):
+            return mappingModel?.canCopyMappings == true
+        case #selector(paste(_:)):
+            return mappingModel?.canPasteMappings == true
+        case #selector(pasteToOriginalKeys(_:)):
+            return !(firstResponder is NSTextView) && mappingModel?.hasCopiedMappings == true
+        case #selector(delete(_:)):
+            return mappingModel?.canClearMappings == true
         case #selector(undo(_:)):
             menuItem.title = undoManager?.undoMenuItemTitle ?? "Undo"
             return undoManager?.canUndo == true
@@ -162,6 +179,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 return
             }
 
+            #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--mapping-selection") {
+                    model.selectedKeys = ["h", "j", "k", "l"]
+                }
+            #endif
             showEditor()
             editorWindow?.level = .floating
             editorWindow?.orderFrontRegardless()
@@ -250,6 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         hosting.safeAreaRegions = []
         let window = EditorWindow(contentViewController: hosting)
         window.profileUndoManager = model.edits.undoManager
+        window.mappingModel = model
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.title = ""
         window.titleVisibility = .hidden
