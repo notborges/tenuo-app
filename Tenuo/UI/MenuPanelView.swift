@@ -100,6 +100,15 @@ struct MenuPanelView: View {
                 width: Self.width - 24,
                 isInteractive: false
             )
+
+            let gestures = model.liveGestures(for: layer)
+            if !gestures.isEmpty {
+                let width = (Self.width - 24) * 0.46
+                TrackpadView(mappings: gestures)
+                    .frame(width: width, height: width / 1.62 + 24)
+                    .frame(maxWidth: .infinity)
+                    .allowsHitTesting(false)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
@@ -126,10 +135,15 @@ struct MenuPanelView: View {
     }
 
     private func detail(for layer: Layer) -> String {
-        guard !layer.mappings.isEmpty else {
+        let keys = model.liveMappings(for: layer).count
+        let swipes = model.liveGestures(for: layer).count
+        guard keys > 0 || swipes > 0 else {
             return layer.outputMode.injectsHyper ? "Hyper" : "Normal keys"
         }
-        return "\(layer.mappings.count) key\(layer.mappings.count == 1 ? "" : "s")"
+        var parts: [String] = []
+        if keys > 0 { parts.append("\(keys) key\(keys == 1 ? "" : "s")") }
+        if swipes > 0 { parts.append("\(swipes) swipe\(swipes == 1 ? "" : "s")") }
+        return parts.joined(separator: " · ")
     }
 
     private var profiles: some View {

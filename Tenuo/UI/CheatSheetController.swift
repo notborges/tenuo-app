@@ -144,12 +144,14 @@ struct CheatSheetView: View {
                 isInteractive: false
             )
 
-            if let layer, model.license.hasProAccess {
-                let gestures = layer.gestures(for: model.liveApplication?.bundleIdentifier)
+            if let layer {
+                let gestures = model.liveGestures(for: layer)
                 if !gestures.isEmpty {
+                    let width = min(320, keyboardWidth * 0.46)
                     TrackpadView(mappings: gestures)
-                        .frame(width: min(320, keyboardWidth * 0.46))
+                        .frame(width: width, height: width / 1.62 + 24)
                         .frame(maxWidth: .infinity)
+                        .allowsHitTesting(false)
                 }
             }
 

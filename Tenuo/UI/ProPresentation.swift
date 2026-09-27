@@ -100,7 +100,19 @@ struct ProFeaturePreview: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            if symbol == "icloud" {
+            if symbol == "trackpad" {
+                TrackpadView(
+                    mappings: [
+                        "left": .action(.sendKey(KeyBinding(key: "z", modifiers: [.command]))),
+                        "right": .action(
+                            .sendKey(KeyBinding(key: "z", modifiers: [.command, .shift]))),
+                    ],
+                    selected: .right,
+                    showsCaption: false
+                )
+                .frame(width: 180, height: 180 / 1.62)
+                .allowsHitTesting(false)
+            } else if symbol == "icloud" {
                 device("laptopcomputer", name: "MacBook")
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 18)).foregroundStyle(DS.Ink.tertiary)

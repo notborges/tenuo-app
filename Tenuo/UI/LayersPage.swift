@@ -315,7 +315,8 @@ struct LayersPage: View {
                             ProFeaturePrompt(
                                 title: "Trackpad layers",
                                 detail:
-                                    "Assign swipes to shortcuts and Mac actions alongside your keyboard mappings with Tenuo Pro."
+                                    "Assign swipes to shortcuts and Mac actions alongside your keyboard mappings with Tenuo Pro.",
+                                visual: "trackpad"
                             ) { model.onOpenProSettings?() }
                         }
                     } else if model.selectedKeys.count > 1 {

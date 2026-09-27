@@ -224,6 +224,12 @@ final class AppModel: ObservableObject {
         layer.mappings(for: license.hasProAccess ? liveApplication?.bundleIdentifier : nil)
     }
 
+    func liveGestures(for layer: Layer) -> [String: LayerMapping] {
+        guard license.hasProAccess else { return [:] }
+        return layer.gestures(for: liveApplication?.bundleIdentifier)
+            .filter { $0.value != .transparent }
+    }
+
     var inheritedMappings: [String: LayerMapping] {
         var result: [String: LayerMapping] = [:]
         for layer in profile.layers.prefix(selectedIndex) {
