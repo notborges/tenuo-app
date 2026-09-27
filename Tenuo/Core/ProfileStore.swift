@@ -101,6 +101,28 @@ enum ProfileStoreError: LocalizedError, Equatable {
 }
 
 enum ProfileDocument {
+    private struct Envelope: Codable {
+        var version: Int
+        var profile: Profile
+    }
+
+    static func export(_ profile: Profile) throws -> Data {
+        if profile.hasGestures { return try encoder.encode(Envelope(version: 2, profile: profile)) }
+        return try encoder.encode(profile)
+    }
+
+    static func decode(_ data: Data) throws -> Profile {
+        let decoder = JSONDecoder()
+        if let envelope = try? decoder.decode(Envelope.self, from: data) {
+            guard envelope.version == 2 else { throw ProfileSyncError.invalidDocument }
+            try envelope.profile.validate()
+            return envelope.profile
+        }
+        let profile = try decoder.decode(Profile.self, from: data)
+        try profile.validate()
+        return profile
+    }
+
     static var encoder: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -218,12 +240,12 @@ final class UserDefaultsProfileStore: ProfileStore {
     }
 
     func exportProfile(_ profile: Profile) throws -> Data {
-        try ProfileDocument.encoder.encode(profile)
+        try ProfileDocument.export(profile)
     }
 
     @discardableResult
     func importProfile(_ data: Data) throws -> Profile {
-        let decoded = try JSONDecoder().decode(Profile.self, from: data)
+        let decoded = try ProfileDocument.decode(data)
         try decoded.validate()
 
         let current = snapshot

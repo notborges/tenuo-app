@@ -144,6 +144,15 @@ struct CheatSheetView: View {
                 isInteractive: false
             )
 
+            if let layer, model.license.hasProAccess {
+                let gestures = layer.gestures(for: model.liveApplication?.bundleIdentifier)
+                if !gestures.isEmpty {
+                    TrackpadView(mappings: gestures)
+                        .frame(width: min(320, keyboardWidth * 0.46))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
             if let layer {
                 HStack(spacing: DS.Space.tight) {
                     Text("Other keys")

@@ -47,6 +47,7 @@ struct LayerEditorView: View {
         .onChange(of: historyProfileID) { _, id in
             model.isMappingEditorVisible = id == nil
             model.selectedKeys = []
+            model.selectedGesture = nil
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: historyProfileID)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

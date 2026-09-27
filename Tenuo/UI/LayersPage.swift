@@ -22,12 +22,15 @@ struct LayersPage: View {
     }
 
     private var escapeDeselects: some View {
-        Button("Deselect") { model.selectedKeys = [] }
-            .keyboardShortcut(.cancelAction)
-            .disabled(model.selectedKeys.isEmpty)
-            .opacity(0)
-            .frame(width: 0, height: 0)
-            .accessibilityHidden(true)
+        Button("Deselect") {
+            model.selectedKeys = []
+            model.selectedGesture = nil
+        }
+        .keyboardShortcut(.cancelAction)
+        .disabled(model.selectedKeys.isEmpty && model.selectedGesture == nil)
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
     }
 
     private var rule: some View {
@@ -56,6 +59,18 @@ struct LayersPage: View {
                             model.selectKey(key)
                         }
                         .frame(maxWidth: .infinity)
+
+                        if !model.selectedLayer.isBase {
+                            TrackpadView(
+                                mappings: model.selectedGestures,
+                                inherited: model.inheritedGestures,
+                                selected: model.selectedGesture,
+                                hasPro: model.license.hasProAccess,
+                                onSelect: model.selectGesture
+                            )
+                            .frame(width: min(320, (proxy.size.width - DS.Space.large * 2) * 0.46))
+                            .frame(maxWidth: .infinity)
+                        }
 
                         if let trigger = model.selectedLayer.trigger,
                             case let .key(name) = trigger.key,
@@ -88,7 +103,10 @@ struct LayersPage: View {
     private var deselectionSurface: some View {
         Color.clear
             .contentShape(Rectangle())
-            .onTapGesture { model.selectedKeys = [] }
+            .onTapGesture {
+                model.selectedKeys = []
+                model.selectedGesture = nil
+            }
             .accessibilityHidden(true)
     }
 
@@ -178,7 +196,7 @@ struct LayersPage: View {
                 }
             }
 
-            if model.sortedMappings.isEmpty {
+            if model.sortedMappings.isEmpty && model.selectedGestures.isEmpty {
                 Text(
                     model.selectedApplicationID == nil
                         ? "No mappings yet. Select a key to add one."
@@ -223,6 +241,31 @@ struct LayersPage: View {
                         )
                         .help(Self.caption(for: entry.action))
                     }
+                    ForEach(TrackpadGesture.allCases, id: \.self) { gesture in
+                        if let mapping = model.selectedGestures[gesture.rawValue] {
+                            Button {
+                                model.selectGesture(gesture)
+                            } label: {
+                                HStack(spacing: DS.Space.small) {
+                                    Image(systemName: gesture.symbol)
+                                        .frame(width: 28, height: 28)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(mapping.keyboardLabel).font(DS.Typography.body)
+                                            .lineLimit(1)
+                                        Text(gesture.title).font(DS.Typography.footnote)
+                                            .foregroundStyle(DS.Ink.tertiary)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(6)
+                                .background(
+                                    model.selectedGesture == gesture ? DS.Selection.fill : .clear,
+                                    in: RoundedRectangle(cornerRadius: DS.Radius.small)
+                                )
+                                .contentShape(Rectangle())
+                            }.buttonStyle(.plain)
+                        }
+                    }
                 }
                 .padding(DS.Space.medium)
                 .glassCard()
@@ -232,7 +275,9 @@ struct LayersPage: View {
 
     private var countText: String {
         let count = model.sortedMappings.count
-        return "\(count) key\(count == 1 ? "" : "s")"
+        let gestures = model.selectedGestures.count
+        let keys = "\(count) key\(count == 1 ? "" : "s")"
+        return gestures == 0 ? keys : "\(keys) · \(gestures) gesture\(gestures == 1 ? "" : "s")"
     }
 
     static func caption(for action: LayerMapping) -> String {
@@ -258,10 +303,25 @@ struct LayersPage: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.Space.medium) {
-                    if model.selectedKeys.count > 1 {
+                    if let gesture = model.selectedGesture {
+                        if model.license.hasProAccess {
+                            MappingInspector(
+                                model: model, source: gesture.rawValue, isGesture: true
+                            )
+                            .id(
+                                "gesture/\(gesture.rawValue)/\(model.selectedApplicationID ?? "default")"
+                            )
+                        } else {
+                            ProFeaturePrompt(
+                                title: "Trackpad layers",
+                                detail:
+                                    "Assign swipes to shortcuts and Mac actions alongside your keyboard mappings with Tenuo Pro."
+                            ) { model.onOpenProSettings?() }
+                        }
+                    } else if model.selectedKeys.count > 1 {
                         MappingGroupInspector(model: model)
                     } else if let selectedKey {
-                        KeyInspector(model: model, source: selectedKey)
+                        MappingInspector(model: model, source: selectedKey)
                             .id("\(selectedKey)/\(model.selectedApplicationID ?? "default")")
                     } else {
                         LayerInspector(model: model)
@@ -286,7 +346,23 @@ struct LayersPage: View {
 
     private var inspectorTitle: some View {
         Group {
-            if model.selectedKeys.count > 1 {
+            if let gesture = model.selectedGesture {
+                HStack(spacing: DS.Space.small) {
+                    Image(systemName: gesture.symbol)
+                        .font(.system(size: 18, weight: .medium))
+                        .frame(width: 30, height: 30)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Two fingers").sectionLabel()
+                        Text(gesture.title).font(DS.Typography.title)
+                    }
+                    Spacer()
+                    Button {
+                        model.selectedGesture = nil
+                    } label: {
+                        Image(systemName: "xmark").foregroundStyle(DS.Ink.tertiary)
+                    }.buttonStyle(.plain).tooltip("Deselect")
+                }
+            } else if model.selectedKeys.count > 1 {
                 HStack {
                     Text("\(model.selectedKeys.count) keys selected")
                         .font(DS.Typography.title)
@@ -338,12 +414,19 @@ struct LayersPage: View {
     }
 
     private var hasDestructiveAction: Bool {
-        model.canClearMappings || (model.selectedKeys.isEmpty && !model.selectedLayer.isBase)
+        if let gesture = model.selectedGesture {
+            return model.license.hasProAccess && model.selectedGestures[gesture.rawValue] != nil
+        }
+        return model.canClearMappings || (model.selectedKeys.isEmpty && !model.selectedLayer.isBase)
     }
 
     @ViewBuilder
     private var destructiveAction: some View {
-        if model.canClearMappings {
+        if let gesture = model.selectedGesture {
+            InspectorDestructiveButton(
+                title: model.selectedApplicationID == nil ? "Clear gesture" : "Use Default"
+            ) { model.selectedGestures[gesture.rawValue] = nil }
+        } else if model.canClearMappings {
             InspectorDestructiveButton(
                 title: model.selectedApplicationID == nil
                     ? (model.selectedKeys.count == 1 ? "Clear mapping" : "Clear mappings")
@@ -413,15 +496,26 @@ private struct LayerNameField: View {
     }
 }
 
-private struct KeyInspector: View {
+private struct MappingInspector: View {
     @ObservedObject var model: AppModel
     let source: String
+    var isGesture = false
+
+    private func assign(_ mapping: LayerMapping) {
+        if isGesture {
+            model.selectedGestures[source] = mapping
+        } else {
+            model.selectedMappings[source] = mapping
+        }
+    }
 
     @State private var modifiers: Set<Modifier> = []
     @State private var output = MappingOutput.key
 
     private var current: LayerMapping? {
-        model.selectedMappings[source] ?? model.inheritedMappings[source]
+        isGesture
+            ? (model.selectedGestures[source] ?? model.inheritedGestures[source])
+            : (model.selectedMappings[source] ?? model.inheritedMappings[source])
     }
     private var ordered: [Modifier] { Modifier.allCases.filter { modifiers.contains($0) } }
 
@@ -429,16 +523,28 @@ private struct KeyInspector: View {
         let layerID = model.selectedLayer.id
         let applicationID = model.selectedApplicationID
         VStack(alignment: .leading, spacing: DS.Space.medium) {
+            if isGesture {
+                Text(
+                    "Swipe with two fingers while the layer is active. Unassigned directions scroll normally."
+                )
+                .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+            }
             if let name = model.editingApplicationName {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(name).sectionLabel()
                     Text(
-                        "Default: \(model.selectedLayer.mappings[source]?.keyboardLabel ?? "Normal key")"
+                        "Default: \((isGesture ? model.selectedLayer.gestures[source] : model.selectedLayer.mappings[source])?.keyboardLabel ?? (isGesture ? "Unassigned" : "Normal key"))"
                     )
                     .font(DS.Typography.label).foregroundStyle(DS.Ink.tertiary)
-                    if model.selectedMappings[source] == nil && model.license.hasProAccess {
-                        Text("Using Default. Choose an output to customize this key.")
-                            .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+                    if (isGesture ? model.selectedGestures[source] : model.selectedMappings[source])
+                        == nil && model.license.hasProAccess
+                    {
+                        Text(
+                            isGesture
+                                ? "Using Default. Choose an output to customize this swipe."
+                                : "Using Default. Choose an output to customize this key."
+                        )
+                        .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
                     }
                 }
             }
@@ -477,8 +583,7 @@ private struct KeyInspector: View {
                         selection: Binding(
                             get: { current?.binding?.key ?? "" },
                             set: {
-                                model.selectedMappings[source] =
-                                    .action(.sendKey(KeyBinding(key: $0, modifiers: ordered)))
+                                assign(.action(.sendKey(KeyBinding(key: $0, modifiers: ordered))))
                             }
                         ),
                         columns: 5,
@@ -488,12 +593,15 @@ private struct KeyInspector: View {
             } else {
                 MacActionEditor(
                     output: output, current: current, hasPro: model.canUse(.macAction),
+                    assignmentLabel: isGesture
+                        ? "Assigned to this gesture" : "Assigned to this key",
                     activate: { model.onOpenProSettings?() }
                 ) { action in
                     guard model.canUse(.macAction), model.selectedLayer.id == layerID,
-                        model.selectedApplicationID == applicationID
+                        model.selectedApplicationID == applicationID,
+                        !isGesture || model.selectedGesture?.rawValue == source
                     else { return }
-                    model.selectedMappings[source] = .action(.macAction(action))
+                    assign(.action(.macAction(action)))
                 }
                 .id(output)
             }
@@ -502,15 +610,15 @@ private struct KeyInspector: View {
             modifiers = Set(current?.binding?.modifiers ?? [])
             output = MappingOutput(mapping: current)
         }
-        .onChange(of: source) { _, newSource in
-            modifiers = Set(model.selectedMappings[newSource]?.binding?.modifiers ?? [])
+        .onChange(of: current) { _, mapping in
+            modifiers = Set(mapping?.binding?.modifiers ?? [])
+            output = MappingOutput(mapping: mapping)
         }
     }
 
     private func reassignIfMapped() {
         guard let key = current?.binding?.key else { return }
-        model.selectedMappings[source] =
-            .action(.sendKey(KeyBinding(key: key, modifiers: ordered)))
+        assign(.action(.sendKey(KeyBinding(key: key, modifiers: ordered))))
     }
 }
 

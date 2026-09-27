@@ -227,6 +227,54 @@ struct LayerEngine {
         return handleKey(event, emit: emit)
     }
 
+    mutating func beginTrackpadGesture() -> [String: GestureAssignment] {
+        guard isEnabled, actionAvailability.canUse(.macAction) else { return [:] }
+        var assignments: [String: GestureAssignment] = [:]
+        for index in layers.indices
+        where layers[index].trigger != nil
+            && activeMask & (UInt32(1) << UInt32(index)) != 0
+        {
+            for (gesture, mapping) in sourceLayers[index].gestures(for: applicationID)
+            where mapping != .transparent {
+                assignments[gesture] = GestureAssignment(
+                    layerID: layers[index].id, mapping: mapping,
+                    consumedFlags: layers[index].consumedFlags)
+            }
+        }
+        if !assignments.isEmpty { markUsed() }
+        return assignments
+    }
+
+    func isGestureLayerActive(_ id: UUID) -> Bool {
+        guard let index = layers.firstIndex(where: { $0.id == id }) else { return false }
+        return activeMask & (UInt32(1) << UInt32(index)) != 0
+    }
+
+    mutating func performGesture(
+        _ assignment: GestureAssignment?, flags: EventFlags, emit: (SyntheticKey) -> Void
+    ) {
+        guard isEnabled, actionAvailability.canUse(.macAction) else { return }
+        if let assignment, !isGestureLayerActive(assignment.layerID) { return }
+        // Consume existing one-shots before the action can arm another one.
+        for slot in layers.indices where layers[slot].activation.isOneShotArmed {
+            layers[slot].activation.consumeOneShot()
+        }
+        if let assignment,
+            let index = layers.firstIndex(where: { $0.id == assignment.layerID }),
+            case .action(let action) = assignment.mapping
+        {
+            if case .sendKey(let binding) = action, let code = binding.keyCode {
+                let output = outputFlags(
+                    from: flags, adding: binding.flags, consumedBy: assignment.consumedFlags)
+                emit(SyntheticKey(keyCode: code, flags: output, isKeyDown: true))
+                emit(SyntheticKey(keyCode: code, flags: output, isKeyDown: false))
+            } else {
+                perform(action, from: index, emit: emit)
+            }
+        }
+        recomputeActiveLayers(flags: flags, emit: emit)
+    }
+
     @inline(__always)
     private func triggerSlot(for event: InputEvent) -> Int? {
         for (slot, runtime) in triggers.enumerated()
@@ -631,12 +679,15 @@ struct LayerEngine {
         }
     }
 
-    mutating func reset(emit: (SyntheticKey) -> Void) {
+    mutating func reset(
+        preservingHeldTriggers: Bool = false, flags: EventFlags = [],
+        emit: (SyntheticKey) -> Void
+    ) {
         pendingActions.removeAll(keepingCapacity: true)
         releaseHeldOutputs(emit: emit)
-        held.removeAll(keepingCapacity: true)
+        if !preservingHeldTriggers { held.removeAll(keepingCapacity: true) }
         for slot in triggers.indices {
-            triggers[slot].isDown = false
+            if !preservingHeldTriggers { triggers[slot].isDown = false }
             triggers[slot].wasUsed = true
         }
         for index in layers.indices {
@@ -645,6 +696,7 @@ struct LayerEngine {
         activeMask = baseMask
         activeLayerIndex = nil
         activeLayerStates = []
+        if preservingHeldTriggers { recomputeActiveLayers(flags: flags, emit: emit) }
     }
 
     var isLayerActive: Bool { activeMask & ~baseMask != 0 }

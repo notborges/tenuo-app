@@ -130,8 +130,12 @@ final class TenuoController {
         }
         accessibility.startMonitoring()
 
+        systemEvents.onFocusChanged = { [weak self] in self?.monitor.focusDidChange() }
         systemEvents.onShouldResetState = { [weak self] in self?.monitor.flushHeldKeys() }
-        systemEvents.onShouldReapplyRemap = { [weak self] in self?.reconcileRemap() }
+        systemEvents.onShouldReapplyRemap = { [weak self] in
+            self?.monitor.restartTrackpad()
+            self?.reconcileRemap()
+        }
         systemEvents.start()
 
         monitor.onKeyboardTypeChanged = { type in

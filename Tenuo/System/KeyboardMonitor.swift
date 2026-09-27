@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import os
@@ -7,6 +8,12 @@ final class KeyboardMonitor {
 
     private let log = Logger(subsystem: "app.tenuo", category: "tap")
 
+    private var hasGestureMappings: Bool
+    private let availability: any ActionAvailability
+    private var gestureSequence = TrackpadSequence()
+    private var gestureAssignments: [String: GestureAssignment] = [:]
+    private var pendingScrollEvents: [CGEvent] = []
+    private var applicationID: String?
     private var engine: LayerEngine
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -17,10 +24,13 @@ final class KeyboardMonitor {
     private var physicalModifiers: CGEventFlags = []
     private static let heldModifierMask: CGEventFlags = [
         .maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn,
+        CGEventFlags(rawValue: EventFlags.allDeviceBits.rawValue),
     ]
 
     var isQuiescent: Bool {
-        !isRunning || (engine.isQuiescent && pressedKeys.isEmpty && physicalModifiers.isEmpty)
+        !isRunning
+            || (!gestureSequence.isTouching(at: ProcessInfo.processInfo.systemUptime)
+                && engine.isQuiescent && pressedKeys.isEmpty && physicalModifiers.isEmpty)
     }
     var onIdle: (() -> Void)?
 
@@ -41,6 +51,8 @@ final class KeyboardMonitor {
         isEnabled: Bool,
         actionAvailability: any ActionAvailability = DefaultActionAvailability.current
     ) {
+        hasGestureMappings = profile.hasGestures
+        availability = actionAvailability
         engine = LayerEngine(
             profile: profile,
             isEnabled: isEnabled,
@@ -55,6 +67,7 @@ final class KeyboardMonitor {
             (1 << CGEventType.keyDown.rawValue)
             | (1 << CGEventType.keyUp.rawValue)
             | (1 << CGEventType.flagsChanged.rawValue)
+            | (1 << CGEventType.scrollWheel.rawValue)
 
         guard
             let port = CGEvent.tapCreate(
@@ -62,11 +75,11 @@ final class KeyboardMonitor {
                 place: .headInsertEventTap,
                 options: .defaultTap,
                 eventsOfInterest: CGEventMask(mask),
-                callback: { _, type, event, refcon in
+                callback: { proxy, type, event, refcon in
                     guard let refcon else { return Unmanaged.passUnretained(event) }
                     let monitor = Unmanaged<KeyboardMonitor>.fromOpaque(refcon)
                         .takeUnretainedValue()
-                    return monitor.process(type: type, event: event)
+                    return monitor.process(proxy: proxy, type: type, event: event)
                 },
                 userInfo: Unmanaged.passUnretained(self).toOpaque()
             )
@@ -79,18 +92,22 @@ final class KeyboardMonitor {
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: port, enable: true)
 
+        gestureSequence.reset()
         pressedKeys = Set(
             (UInt16(0)..<128).filter { CGEventSource.keyState(.combinedSessionState, key: $0) })
         physicalModifiers = CGEventSource.flagsState(.combinedSessionState).intersection(
             Self.heldModifierMask)
         tap = port
         runLoopSource = source
+        refreshTrackpad()
         log.info("Event tap installed")
         return true
     }
 
     func stop() {
         guard let tap, let runLoopSource else { return }
+        TrackpadContacts.shared.setEnabled(false)
+        gestureSequence.reset()
         flushHeldKeys()
         CGEvent.tapEnable(tap: tap, enable: false)
         CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
@@ -103,12 +120,18 @@ final class KeyboardMonitor {
     }
 
     func updateApplication(_ applicationID: String?) {
+        if self.applicationID != applicationID { cancelGesture() }
+        self.applicationID = applicationID
         engine.updateApplication(applicationID)
+        if !availability.canUse(.macAction) { cancelGesture() }
+        refreshTrackpad()
     }
 
     func update(profile: Profile) {
         flushHeldKeys()
         engine.apply(profile: profile)
+        hasGestureMappings = profile.hasGestures
+        refreshTrackpad()
         publishActiveLayerIfNeeded()
     }
 
@@ -116,9 +139,24 @@ final class KeyboardMonitor {
         guard isEnabled != engine.isEnabled else { return }
         if !isEnabled { flushHeldKeys() }
         engine.isEnabled = isEnabled
+        refreshTrackpad()
+    }
+
+    func focusDidChange() {
+        let wasIdle = isQuiescent
+        cancelGesture()
+        // Release outputs in the previous app, but keep physically held layer keys active.
+        engine.reset(
+            preservingHeldTriggers: true, flags: EventFlags(rawValue: physicalModifiers.rawValue)
+        ) {
+            [weak self] key in self?.post(key)
+        }
+        publishActiveLayerIfNeeded()
+        if !wasIdle && isQuiescent { onIdle?() }
     }
 
     func flushHeldKeys() {
+        cancelGesture()
         lastKeyboardType = nil
         let hadActiveLayer = engine.isLayerActive || !lastActiveLayerStates.isEmpty
         engine.reset { [weak self] key in self?.post(key) }
@@ -127,20 +165,27 @@ final class KeyboardMonitor {
         onIdle?()
     }
 
-    private func process(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+    private func process(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<
+        CGEvent
+    >? {
         switch type {
         case .tapDisabledByTimeout:
+            gestureSequence.reset()
             log.error("Tap disabled by timeout; re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             flushHeldKeys()
             return nil
 
         case .tapDisabledByUserInput:
+            gestureSequence.reset()
             log.error("Tap disabled by user input")
             flushHeldKeys()
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             onTapInvalidated?()
             return nil
+
+        case .scrollWheel:
+            return processScroll(event, proxy: proxy)
 
         case .keyDown, .keyUp, .flagsChanged:
             break
@@ -173,6 +218,9 @@ final class KeyboardMonitor {
             physicalModifiers = event.flags.intersection(Self.heldModifierMask)
         }
         let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
+        if gestureAssignments.values.contains(where: { !engine.isGestureLayerActive($0.layerID) }) {
+            cancelGesture()
+        }
         if !wasIdle && isQuiescent { onIdle?() }
         for action in engine.takePendingActions() { onAction?(action) }
         publishActiveLayerIfNeeded()
@@ -189,6 +237,92 @@ final class KeyboardMonitor {
             event.flags = CGEventFlags(rawValue: flags.rawValue)
             return Unmanaged.passUnretained(event)
         }
+    }
+
+    func restartTrackpad() {
+        cancelGesture()
+        gestureSequence.reset()
+        TrackpadContacts.shared.setEnabled(false)
+        refreshTrackpad()
+    }
+
+    private func refreshTrackpad() {
+        TrackpadContacts.shared.setEnabled(
+            isRunning && engine.isEnabled && hasGestureMappings && availability.canUse(.macAction))
+    }
+
+    private func processScroll(_ event: CGEvent, proxy: CGEventTapProxy) -> Unmanaged<CGEvent>? {
+        guard
+            gestureSequence.isCaptured
+                || (engine.isEnabled && hasGestureMappings && availability.canUse(.macAction))
+        else { return Unmanaged.passUnretained(event) }
+        guard event.getIntegerValueField(.eventSourceUserData) != Self.syntheticMarker,
+            let scroll = NSEvent(cgEvent: event), scroll.hasPreciseScrollingDeltas
+        else {
+            return Unmanaged.passUnretained(event)
+        }
+        let phase: TrackpadSequence.Phase
+        if scroll.momentumPhase.contains(.ended) {
+            phase = .momentumEnded
+        } else if !scroll.momentumPhase.isEmpty {
+            phase = .momentum
+        } else if scroll.phase.contains(.cancelled) {
+            phase = .cancelled
+        } else if scroll.phase.contains(.ended) {
+            phase = .ended
+        } else if scroll.phase.contains(.began) {
+            phase = .began
+        } else if scroll.phase.contains(.changed) {
+            phase = .changed
+        } else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        let wasIdle = isQuiescent
+        if phase == .began {
+            pendingScrollEvents.removeAll(keepingCapacity: true)
+            gestureAssignments =
+                TrackpadContacts.shared.hasRecentScrollContact
+                ? engine.beginTrackpadGesture() : [:]
+        }
+        var result = gestureSequence.handle(
+            phase: phase, x: Double(scroll.scrollingDeltaX),
+            y: Double(scroll.scrollingDeltaY),
+            time: ProcessInfo.processInfo.systemUptime,
+            canCapture: !gestureAssignments.isEmpty,
+            isDirectionInvertedFromDevice: scroll.isDirectionInvertedFromDevice,
+            mappedGestures: Set(gestureAssignments.keys.compactMap(TrackpadGesture.init(rawValue:)))
+        )
+        // Bound storage if a long, ambiguous movement never resolves to a direction.
+        if gestureSequence.isPending, pendingScrollEvents.count >= 128 {
+            result = gestureSequence.passThrough()
+        }
+        if result.replayBuffered {
+            for buffered in pendingScrollEvents { buffered.tapPostEvent(proxy) }
+            pendingScrollEvents.removeAll(keepingCapacity: true)
+        } else if gestureSequence.isPending, let copy = event.copy() {
+            pendingScrollEvents.append(copy)
+        } else {
+            pendingScrollEvents.removeAll(keepingCapacity: true)
+        }
+        if let gesture = result.gesture, !gestureAssignments.isEmpty {
+            engine.performGesture(
+                gestureAssignments[gesture.rawValue],
+                flags: EventFlags(rawValue: event.flags.rawValue)
+            ) {
+                [weak self] key in self?.post(key)
+            }
+            for action in engine.takePendingActions() { onAction?(action) }
+            publishActiveLayerIfNeeded()
+        }
+        if !wasIdle && isQuiescent { onIdle?() }
+        return result.suppress ? nil : Unmanaged.passUnretained(event)
+    }
+
+    private func cancelGesture() {
+        gestureAssignments.removeAll()
+        pendingScrollEvents.removeAll(keepingCapacity: true)
+        gestureSequence.cancelRecognition()
     }
 
     private func post(_ key: SyntheticKey) {

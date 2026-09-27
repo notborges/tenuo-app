@@ -7,8 +7,18 @@ struct SyncedProfile: Codable, Equatable, Sendable {
     var profile: Profile?
     var position: Int
 
+    init(schema: Int = 1, id: UUID, revision: UUID, profile: Profile?, position: Int) {
+        self.schema = profile?.hasGestures == true ? max(2, schema) : schema
+        self.id = id
+        self.revision = revision
+        self.profile = profile
+        self.position = position
+    }
+
     func validate() throws {
-        guard schema == 1, position >= 0, profile == nil || profile?.id == id else {
+        guard (1...2).contains(schema), !(schema == 1 && profile?.hasGestures == true),
+            position >= 0, profile == nil || profile?.id == id
+        else {
             throw ProfileSyncError.invalidDocument
         }
         try profile?.validate()
@@ -73,7 +83,7 @@ struct ProfileSyncState: Codable, Equatable, Sendable {
     var lastSyncedAt: Date?
 
     func validate() throws {
-        guard schema == 1 else { throw ProfileSyncError.invalidDocument }
+        guard (1...2).contains(schema) else { throw ProfileSyncError.invalidDocument }
         try snapshot.validate()
         for documents in [pending, acknowledged, incoming] {
             for (id, document) in documents {
@@ -129,6 +139,7 @@ struct ProfileSyncState: Codable, Equatable, Sendable {
             guard old[id]?.element != next[id]?.element || old[id]?.offset != next[id]?.offset
             else { continue }
             pending[id] = SyncedProfile(
+                schema: max(pending[id]?.schema ?? 1, acknowledged[id]?.schema ?? 1),
                 id: id, revision: UUID(), profile: next[id]?.element,
                 position: next[id]?.offset ?? old[id]?.offset ?? 0)
         }
@@ -146,6 +157,7 @@ struct ProfileSyncState: Codable, Equatable, Sendable {
         for (position, profile) in snapshot.profiles.enumerated() where pending[profile.id] == nil {
             if acknowledged[profile.id]?.profile != profile {
                 pending[profile.id] = SyncedProfile(
+                    schema: acknowledged[profile.id]?.schema ?? 1,
                     id: profile.id, revision: UUID(), profile: profile, position: position)
             }
         }

@@ -543,3 +543,213 @@ final class MacActionEngineTests: XCTestCase {
         XCTAssertEqual(resolved.standardizedFileURL, renamed.standardizedFileURL)
     }
 }
+
+final class TrackpadTests: XCTestCase {
+    private var profile: Profile {
+        var profile = Presets.navigation
+        profile.layers[1].gestures["up"] = .action(
+            .sendKey(KeyBinding(key: "s", modifiers: [.command])))
+        return profile
+    }
+
+    func testGestureUsesLayerAndCancelsTapWhileBalancingShortcut() throws {
+        var engine = LayerEngine(profile: profile, actionAvailability: AllActionsAvailability())
+        let trigger = try XCTUnwrap(profile.layers[1].trigger?.key.observedKeyCode)
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: trigger)) { _ in }
+        let assignments = engine.beginTrackpadGesture()
+        var output: [SyntheticKey] = []
+        engine.performGesture(try XCTUnwrap(assignments["up"]), flags: []) { output.append($0) }
+        _ = engine.handle(InputEvent(kind: .keyUp, keyCode: trigger, timestamp: 50_000_000)) {
+            output.append($0)
+        }
+        XCTAssertEqual(
+            output,
+            [
+                SyntheticKey(keyCode: KeyCode.s, flags: .command, isKeyDown: true),
+                SyntheticKey(keyCode: KeyCode.s, flags: .command, isKeyDown: false),
+            ])
+        XCTAssertTrue(engine.isQuiescent)
+    }
+
+    func testGestureRequiresProAndActiveLayerAndHonorsAppOverride() throws {
+        var profile = profile
+        profile.layers[1].applications["test.app"] = ApplicationOverride(
+            name: "Test", mappings: [:], gestures: ["up": .blocked])
+        let trigger = try XCTUnwrap(profile.layers[1].trigger?.key.observedKeyCode)
+        var free = LayerEngine(profile: profile, actionAvailability: FreeActionsAvailability())
+        _ = free.handle(InputEvent(kind: .keyDown, keyCode: trigger)) { _ in }
+        XCTAssertTrue(free.beginTrackpadGesture().isEmpty)
+        var engine = LayerEngine(profile: profile, actionAvailability: AllActionsAvailability())
+        XCTAssertTrue(engine.beginTrackpadGesture().isEmpty)
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: trigger)) { _ in }
+        engine.updateApplication("test.app")
+        XCTAssertEqual(engine.beginTrackpadGesture()["up"]?.mapping, .blocked)
+        engine.updateApplication(nil)
+        let assignment = try XCTUnwrap(engine.beginTrackpadGesture()["up"])
+        _ = engine.handle(InputEvent(kind: .keyUp, keyCode: trigger)) { _ in }
+        var output: [SyntheticKey] = []
+        engine.performGesture(assignment, flags: []) { output.append($0) }
+        XCTAssertTrue(output.isEmpty)
+
+        let entitlement = LicenseEntitlement()
+        entitlement.setProAccess(true)
+        var licensed = LayerEngine(profile: profile, actionAvailability: entitlement)
+        _ = licensed.handle(InputEvent(kind: .keyDown, keyCode: trigger)) { _ in }
+        let licensedAssignment = try XCTUnwrap(licensed.beginTrackpadGesture()["up"])
+        entitlement.setProAccess(false)
+        licensed.performGesture(licensedAssignment, flags: []) { output.append($0) }
+        XCTAssertTrue(output.isEmpty)
+        XCTAssertTrue(licensed.beginTrackpadGesture().isEmpty)
+    }
+
+    func testHeldLayerSurvivesFocusChangesWithoutLeavingKeysPressed() throws {
+        var profile = profile
+        profile.layers[1].applications["other.app"] = ApplicationOverride(
+            name: "Other", mappings: [:], gestures: ["up": .blocked])
+        var engine = LayerEngine(profile: profile, actionAvailability: AllActionsAvailability())
+        let trigger = try XCTUnwrap(profile.layers[1].trigger?.key.observedKeyCode)
+        let h = try XCTUnwrap(KeyCatalog.code(for: "h"))
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: trigger)) { _ in }
+        _ = engine.handle(InputEvent(kind: .keyDown, keyCode: h)) { _ in }
+        var output: [SyntheticKey] = []
+        engine.reset(preservingHeldTriggers: true) { output.append($0) }
+        XCTAssertEqual(output.count, 1)
+        XCTAssertFalse(try XCTUnwrap(output.first).isKeyDown)
+        XCTAssertTrue(engine.isLayerActive)
+        engine.updateApplication("other.app")
+        XCTAssertEqual(engine.beginTrackpadGesture()["up"]?.mapping, .blocked)
+        engine.reset(preservingHeldTriggers: true) { output.append($0) }
+        XCTAssertEqual(output.count, 1)
+        XCTAssertEqual(
+            engine.handle(InputEvent(kind: .keyUp, keyCode: h)) { output.append($0) }, .suppress)
+        _ = engine.handle(InputEvent(kind: .keyUp, keyCode: trigger, timestamp: 30_000_000)) {
+            output.append($0)
+        }
+        XCTAssertEqual(output.count, 1)  // No stray tap action in the new app.
+        XCTAssertTrue(engine.isQuiescent)
+    }
+
+    func testGestureConsumesOneShotAndLeavesToggleActive() throws {
+        for tap in [Action.oneShotLayer(.current), .toggleLayer(.current)] {
+            var profile = profile
+            profile.layers[1].tapAction = tap
+            var engine = LayerEngine(profile: profile, actionAvailability: AllActionsAvailability())
+            let key = try XCTUnwrap(profile.layers[1].trigger?.key.observedKeyCode)
+            _ = engine.handle(InputEvent(kind: .keyDown, keyCode: key)) { _ in }
+            _ = engine.handle(InputEvent(kind: .keyUp, keyCode: key, timestamp: 30_000_000)) { _ in
+            }
+            let assignment = try XCTUnwrap(engine.beginTrackpadGesture()["up"])
+            engine.performGesture(assignment, flags: []) { _ in }
+            XCTAssertEqual(engine.isLayerActive, tap == .toggleLayer(.current))
+        }
+    }
+
+    func testSequenceCapturesOnceDrainsMomentumAndDoesNotStealExistingScroll() {
+        // AppKit's horizontal scroll axis points left; its vertical axis points up.
+        let swipes: [(Double, Double, Bool, TrackpadGesture)] = [
+            (40, 0, false, .left), (-40, 0, false, .right),
+            (0, 40, false, .up), (0, -40, false, .down),
+            (-40, 0, true, .left), (40, 0, true, .right),
+            (0, -40, true, .up), (0, 40, true, .down),
+        ]
+        for (x, y, inverted, direction) in swipes {
+            var sequence = TrackpadSequence()
+            let result = sequence.handle(
+                phase: .began, x: x, y: y, time: 1,
+                canCapture: true, isDirectionInvertedFromDevice: inverted)
+            XCTAssertEqual(result.gesture, direction)
+        }
+        var sequence = TrackpadSequence()
+        XCTAssertFalse(
+            sequence.handle(phase: .began, x: 0, y: 2, time: 10, canCapture: false).suppress)
+        XCTAssertFalse(
+            sequence.handle(phase: .changed, x: 0, y: 40, time: 10.1, canCapture: true).suppress)
+        XCTAssertTrue(
+            sequence.handle(phase: .began, x: 0, y: 3, time: 11, canCapture: true).suppress)
+        XCTAssertNil(
+            sequence.handle(phase: .changed, x: 22, y: 23, time: 11.1, canCapture: true).gesture)
+        // Contact reports can change before the native scroll sequence ends.
+        // Eligibility is decided at the start; an owned swipe must still finish.
+        XCTAssertEqual(
+            sequence.handle(phase: .changed, x: 0, y: 25, time: 11.2, canCapture: false).gesture,
+            .up
+        )
+        XCTAssertNil(
+            sequence.handle(phase: .changed, x: 0, y: 100, time: 11.3, canCapture: true).gesture)
+        XCTAssertTrue(
+            sequence.handle(phase: .ended, x: 0, y: 0, time: 11.4, canCapture: false).suppress)
+        XCTAssertTrue(
+            sequence.handle(phase: .momentum, x: 0, y: 100, time: 11.5, canCapture: false).suppress)
+        XCTAssertTrue(
+            sequence.handle(phase: .momentumEnded, x: 0, y: 0, time: 11.6, canCapture: false)
+                .suppress)
+        XCTAssertFalse(
+            sequence.handle(phase: .began, x: 0, y: 50, time: 12, canCapture: false).suppress)
+    }
+
+    func testSequenceRecoversFromMissingEndAndCancellation() {
+        var sequence = TrackpadSequence()
+        _ = sequence.handle(phase: .began, x: 0, y: 0, time: 10, canCapture: true)
+        XCTAssertFalse(
+            sequence.handle(phase: .changed, x: 0, y: 50, time: 13, canCapture: true).suppress)
+        _ = sequence.handle(phase: .began, x: 0, y: 40, time: 14, canCapture: true)
+        XCTAssertTrue(
+            sequence.handle(phase: .cancelled, x: 0, y: 0, time: 14.1, canCapture: true).suppress)
+        XCTAssertFalse(
+            sequence.handle(phase: .momentum, x: 0, y: 50, time: 14.2, canCapture: true).suppress)
+    }
+
+    func testUnmappedSwipeReplaysItsStartAndPassesThroughRemainder() {
+        var sequence = TrackpadSequence()
+        let start = sequence.handle(
+            phase: .began, x: 0, y: 3, time: 1, canCapture: true, mappedGestures: [.left])
+        XCTAssertTrue(start.suppress)
+        XCTAssertTrue(sequence.isPending)
+        let decision = sequence.handle(
+            phase: .changed, x: 0, y: 35, time: 1.1, canCapture: true)
+        XCTAssertFalse(decision.suppress)
+        XCTAssertTrue(decision.replayBuffered)
+        XCTAssertNil(decision.gesture)
+        // Even if the direction changes, this is now ordinary scrolling.
+        let changed = sequence.handle(
+            phase: .changed, x: 50, y: 0, time: 1.2, canCapture: true)
+        XCTAssertFalse(changed.suppress)
+        XCTAssertFalse(changed.replayBuffered)
+        XCTAssertNil(changed.gesture)
+        for phase in [TrackpadSequence.Phase.ended, .momentum, .momentumEnded] {
+            XCTAssertFalse(
+                sequence.handle(
+                    phase: phase, x: 0, y: 10, time: 1.3, canCapture: true
+                ).suppress)
+        }
+        let mapped = sequence.handle(
+            phase: .began, x: 40, y: 0, time: 2, canCapture: true, mappedGestures: [.left])
+        XCTAssertTrue(mapped.suppress)
+        XCTAssertFalse(mapped.replayBuffered)
+        XCTAssertEqual(mapped.gesture, .left)
+    }
+
+    func testShortScrollIsReplayedButCancelledMappingCannotReplayIntoNewContext() {
+        var sequence = TrackpadSequence()
+        _ = sequence.handle(phase: .began, x: 0, y: 3, time: 1, canCapture: true)
+        let end = sequence.handle(phase: .ended, x: 0, y: 0, time: 1.1, canCapture: true)
+        XCTAssertTrue(end.replayBuffered)
+        XCTAssertFalse(end.suppress)
+        XCTAssertFalse(
+            sequence.handle(
+                phase: .momentum, x: 0, y: 5, time: 1.2, canCapture: true
+            ).suppress)
+
+        _ = sequence.handle(phase: .began, x: 0, y: 3, time: 2, canCapture: true)
+        sequence.cancelRecognition()
+        let cancelled = sequence.handle(
+            phase: .changed, x: 0, y: 40, time: 2.1, canCapture: false)
+        XCTAssertTrue(cancelled.suppress)
+        XCTAssertFalse(cancelled.replayBuffered)
+        XCTAssertNil(cancelled.gesture)
+        let cancelledEnd = sequence.handle(
+            phase: .ended, x: 0, y: 0, time: 2.2, canCapture: false)
+        XCTAssertTrue(cancelledEnd.suppress)
+        XCTAssertFalse(cancelledEnd.replayBuffered)
+    }
+}

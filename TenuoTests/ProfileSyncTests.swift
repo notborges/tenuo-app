@@ -262,7 +262,7 @@ final class ProfileSyncTests: XCTestCase {
             for document in Array(state.pending.values) { state.acknowledge(document) }
         }
         var replaced = saved
-        guard case var .file(target) = saved.layers[1].mappings["a"]?.action?.macAction else {
+        guard case .file(var target) = saved.layers[1].mappings["a"]?.action?.macAction else {
             return XCTFail("Missing file")
         }
         target.bookmark = Data([2])
@@ -377,4 +377,86 @@ final class ProfileSyncTests: XCTestCase {
         XCTAssertEqual(state.pending[previous.id]?.profile, Presets.navigation)
     }
 
+}
+
+extension ProfileSyncTests {
+    @MainActor
+    func testGestureProfilesRoundTripWithHistoryAndPortableTargets() throws {
+        let (url, defaults) = try temporaryStore()
+        let store = try SQLiteProfileStore(url: url, defaults: defaults)
+        var profile = store.manualProfile
+        let layer = profile.layers[1].id
+        profile.layers[1].gestures["up"] = .action(.toggleLayer(.layer(layer)))
+        profile.layers[1].applications["test.app"] = ApplicationOverride(
+            name: "Test", mappings: [:],
+            gestures: [
+                "left": .action(
+                    .macAction(.file(FileActionTarget(bookmark: Data([8, 9]), name: "Notes"))))
+            ])
+        XCTAssertTrue(store.updateProfile(profile))
+        let saved = store.manualProfile
+        XCTAssertEqual(store.state.schema, 2)
+        let document = try XCTUnwrap(store.state.pending[profile.id])
+        XCTAssertEqual(document.schema, 2)
+        try document.validate()
+        guard
+            case .file(let portable)? = document.profile?.layers[1].applications["test.app"]?
+                .gestures["left"]?.action?.macAction
+        else { return XCTFail("Missing file gesture") }
+        XCTAssertTrue(portable.bookmark.isEmpty)
+        XCTAssertNotNil(portable.localID)
+
+        let edits = ProfileEditSession(store: store)
+        var changed = saved
+        changed.layers[1].gestures["down"] = .blocked
+        XCTAssertTrue(edits.perform("Edit gesture", { store.updateProfile(changed) }))
+        edits.undoManager.undo()
+        XCTAssertEqual(store.manualProfile, saved)
+        edits.undoManager.redo()
+        XCTAssertEqual(store.manualProfile.layers[1].gestures["down"], .blocked)
+        edits.undoManager.undo()
+
+        let exported = try store.exportProfile(saved)
+        XCTAssertThrowsError(try JSONDecoder().decode(Profile.self, from: exported))
+        let copied = try store.importProfile(exported)
+        XCTAssertNotEqual(copied.id, profile.id)
+        XCTAssertEqual(
+            copied.layers[1].gestures["up"], .action(.toggleLayer(.layer(copied.layers[1].id))))
+        XCTAssertEqual(copied.layers[1].applications, saved.layers[1].applications)
+        let reopened = try SQLiteProfileStore(url: url, defaults: defaults)
+        XCTAssertEqual(reopened.snapshot, store.snapshot)
+        let differences = ProfileHistoryComparison.changes(from: Presets.navigation, to: profile)
+        XCTAssertTrue(differences.contains { $0.gesture == .up && $0.applicationID == nil })
+        XCTAssertTrue(
+            differences.contains { $0.gesture == .left && $0.applicationID == "test.app" })
+        var edited = saved
+        edited.layers[1].gestures["up"] = .blocked
+        XCTAssertTrue(store.updateProfile(edited))
+        XCTAssertTrue(store.restore(ProfileHistoryEntry(profile: saved, savedAt: Date())))
+        XCTAssertEqual(store.profiles.first { $0.id == saved.id }, saved)
+    }
+
+    func testGestureSyncVersionStaysUpgradedAndInvalidGesturesDoNotReplaceProfiles() throws {
+        let (url, defaults) = try temporaryStore()
+        let store = try SQLiteProfileStore(url: url, defaults: defaults)
+        var profile = store.manualProfile
+        profile.layers[1].gestures["down"] = .blocked
+        XCTAssertTrue(store.updateProfile(profile))
+        try store.transaction { state in
+            for document in Array(state.pending.values) { state.acknowledge(document) }
+        }
+        profile.layers[1].gestures = [:]
+        XCTAssertTrue(store.updateProfile(profile))
+        XCTAssertEqual(store.state.pending[profile.id]?.schema, 2)
+        XCTAssertEqual(store.state.schema, 2)
+
+        let before = store.snapshot
+        profile.layers[1].gestures["unknown"] = .blocked
+        XCTAssertFalse(store.updateProfile(profile))
+        XCTAssertEqual(store.snapshot, before)
+        profile.layers[1].gestures = [:]
+        profile.layers[0].gestures["up"] = .blocked
+        XCTAssertFalse(store.updateProfile(profile))
+        XCTAssertEqual(store.snapshot, before)
+    }
 }

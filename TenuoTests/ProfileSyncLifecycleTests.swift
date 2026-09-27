@@ -262,6 +262,32 @@ final class ProfileSyncLifecycleTests: XCTestCase {
         sync.stop()
     }
 
+    func testUnsupportedRemoteProfileBlocksItsPendingUploadButNotOtherProfiles() async throws {
+        let store = try store()
+        var unsupported = try XCTUnwrap(store.state.pending[store.manualProfileID])
+        unsupported.schema = 999
+        unsupported.revision = UUID()
+        let local = store.state.pending[unsupported.id]
+        var fixture: SyncTransportFixture?
+        let sync = ProfileSyncController(
+            store: store, hasPro: { true },
+            factory: { event, gate in
+                let transport = SyncTransportFixture(
+                    event: event, maySend: gate, documents: [unsupported])
+                fixture = transport
+                return transport
+            })
+        defer { sync.stop() }
+        sync.syncNow()
+        try await waitUntil { sync.status == .attention }
+        let transport = try XCTUnwrap(fixture)
+        let uploaded = await transport.uploaded
+        XCTAssertFalse(uploaded.contains { $0.id == unsupported.id })
+        XCTAssertFalse(uploaded.isEmpty)
+        XCTAssertEqual(store.state.pending[unsupported.id], local)
+        XCTAssertNotNil(store.state.quarantined[unsupported.id])
+    }
+
     func testOneConflictDoesNotBlockOtherProfilesFromSyncing() async throws {
         let store = try store()
         var fixture: SyncTransportFixture?
@@ -281,6 +307,8 @@ final class ProfileSyncLifecycleTests: XCTestCase {
         XCTAssertTrue(store.updateProfile(local))
         remote.revision = UUID()
         remote.profile?.name = "Remote conflicting edit"
+        remote.profile?.layers[1].gestures["up"] = .blocked
+        remote.schema = 2
         try await transport.emit(remote)
         XCTAssertEqual(sync.conflicts.count, 1)
         var independent = store.profiles[1]
@@ -290,6 +318,12 @@ final class ProfileSyncLifecycleTests: XCTestCase {
         let uploaded = await transport.uploaded
         XCTAssertTrue(uploaded.contains { $0.profile?.name == "Independent edit" })
         XCTAssertEqual(sync.conflicts.count, 1)
+        sync.resolve(try XCTUnwrap(sync.conflicts.first), keepLocal: true)
+        try await waitUntil { store.state.pending[local.id] == nil }
+        XCTAssertEqual(store.state.acknowledged[local.id]?.schema, 2)
+        XCTAssertEqual(store.state.acknowledged[local.id]?.profile?.name, local.name)
+        XCTAssertTrue(
+            store.state.history.contains { $0.profile.layers[1].gestures["up"] == .blocked })
         sync.stop()
     }
 

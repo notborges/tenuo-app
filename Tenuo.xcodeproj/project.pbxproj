@@ -113,6 +113,10 @@
 		B20000000000000000000002 /* KeyboardLabels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001; };
 		B30000000000000000000002 /* KeyboardPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30000000000000000000001; };
 		B30000000000000000000003 /* KeyboardPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001; };
+		6CA484F39A2E479F9330480A /* TrackpadGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E2ED8E3ED84964BCC2CE22; };
+		09EE49796D64448F8BEE984A /* TrackpadGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E2ED8E3ED84964BCC2CE22; };
+		CEE53C7332E146FCADB256A9 /* TrackpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D96DEB9F754827B8035806; };
+		ADFA9F0C64774543B941E32B /* TrackpadContacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612FDB6A2C29420C8B5F9C05; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -200,6 +204,9 @@
 		B10000000000000000000001 /* KeyboardPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPresentation.swift; sourceTree = "<group>"; };
 		B20000000000000000000001 /* KeyboardLabels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardLabels.swift; sourceTree = "<group>"; };
 		B30000000000000000000001 /* KeyboardPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPresentationTests.swift; sourceTree = "<group>"; };
+		82E2ED8E3ED84964BCC2CE22 /* TrackpadGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadGesture.swift; sourceTree = "<group>"; };
+		D4D96DEB9F754827B8035806 /* TrackpadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadView.swift; sourceTree = "<group>"; };
+		612FDB6A2C29420C8B5F9C05 /* TrackpadContacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackpadContacts.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -236,6 +243,7 @@
 		TENUO0000000000000000066 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				82E2ED8E3ED84964BCC2CE22 /* TrackpadGesture.swift */,
 				CCC3551E7A57A269A063A2BC /* LocalActionTargets.swift */,
 				B50E299441B06633FDA6FEEB /* SQLiteProfileStore.swift */,
 				F9A3C6B002F18F4C5A2472CB /* ProfileSyncState.swift */,
@@ -264,6 +272,7 @@
 		TENUO0000000000000000067 /* System */ = {
 			isa = PBXGroup;
 			children = (
+				612FDB6A2C29420C8B5F9C05 /* TrackpadContacts.swift */,
 				F8DBDF97138ED366A77EB33B /* ProfileSyncController.swift */,
 				7D931717F1C564D5C79A5385 /* CloudProfileTransport.swift */,
 				AC7100000000000000000000 /* MacActionRunner.swift */,
@@ -284,6 +293,7 @@
 		TENUO0000000000000000068 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				D4D96DEB9F754827B8035806 /* TrackpadView.swift */,
 				8B804A6BC4A169E7EF1CE968 /* ProfileSyncSettingsView.swift */,
 				AC7100000000000000000003 /* ActionFeedbackController.swift */,
 				AC7100000000000000000002 /* MacActionEditor.swift */,
@@ -494,6 +504,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADFA9F0C64774543B941E32B /* TrackpadContacts.swift in Sources */,
+				CEE53C7332E146FCADB256A9 /* TrackpadView.swift in Sources */,
+				6CA484F39A2E479F9330480A /* TrackpadGesture.swift in Sources */,
 				42FCB7511D5B8FF05E55688B /* ProfileSyncSettingsView.swift in Sources */,
 				73C959CF365754CF84620789 /* ProfileSyncController.swift in Sources */,
 				1430FD359E48B5CFBE484A8E /* CloudProfileTransport.swift in Sources */,
@@ -564,6 +577,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				09EE49796D64448F8BEE984A /* TrackpadGesture.swift in Sources */,
 				B2CE72E47B47109D0F96DA82 /* ProfileSyncLifecycleTests.swift in Sources */,
 				4940486E568097DD4ED95059 /* ProfileSyncController.swift in Sources */,
 				55741F01F1BF8C820D851440 /* CloudProfileTransport.swift in Sources */,

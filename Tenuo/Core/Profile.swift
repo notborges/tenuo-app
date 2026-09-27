@@ -123,6 +123,23 @@ struct LayerTrigger: Codable, Equatable, Hashable, Sendable {
 struct ApplicationOverride: Codable, Equatable, Sendable {
     var name: String
     var mappings: [String: LayerMapping]
+    var gestures: [String: LayerMapping] = [:]
+
+    private enum CodingKeys: String, CodingKey { case name, mappings, gestures }
+
+    init(name: String, mappings: [String: LayerMapping], gestures: [String: LayerMapping] = [:]) {
+        self.name = name
+        self.mappings = mappings
+        self.gestures = gestures
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        mappings = try container.decode([String: LayerMapping].self, forKey: .mappings)
+        gestures =
+            try container.decodeIfPresent([String: LayerMapping].self, forKey: .gestures) ?? [:]
+    }
 }
 
 struct Layer: Codable, Equatable, Identifiable, Sendable {
@@ -133,6 +150,12 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
     var tapAction: Action?
     var mappings: [String: LayerMapping]
     var applications: [String: ApplicationOverride] = [:]
+    var gestures: [String: LayerMapping] = [:]
+
+    func gestures(for applicationID: String?) -> [String: LayerMapping] {
+        guard let applicationID, let override = applications[applicationID] else { return gestures }
+        return gestures.merging(override.gestures) { _, override in override }
+    }
 
     func mappings(for applicationID: String?) -> [String: LayerMapping] {
         guard let applicationID, let override = applications[applicationID] else { return mappings }
@@ -156,13 +179,15 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, trigger, holdMode, tapAction, mappings, applications
+        case id, name, trigger, holdMode, tapAction, mappings, applications, gestures
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
+        gestures =
+            try container.decodeIfPresent([String: LayerMapping].self, forKey: .gestures) ?? [:]
         applications =
             try container.decodeIfPresent(
                 [String: ApplicationOverride].self, forKey: .applications) ?? [:]
@@ -183,6 +208,7 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         try container.encode(outputMode, forKey: .holdMode)
         try container.encodeIfPresent(tapAction, forKey: .tapAction)
         try container.encode(mappings, forKey: .mappings)
+        if !gestures.isEmpty { try container.encode(gestures, forKey: .gestures) }
         if !applications.isEmpty { try container.encode(applications, forKey: .applications) }
     }
 
@@ -217,15 +243,23 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
                 var copy = layer
                 copy.id = newIDs[layer.id]!
                 copy.tapAction = copy.tapAction?.remappingLayerIDs(newIDs)
+                copy.gestures = copy.gestures.mapValues { $0.remappingLayerIDs(newIDs) }
                 copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(newIDs) }
                 copy.applications = copy.applications.mapValues { app in
                     ApplicationOverride(
                         name: app.name,
-                        mappings: app.mappings.mapValues { $0.remappingLayerIDs(newIDs) })
+                        mappings: app.mappings.mapValues { $0.remappingLayerIDs(newIDs) },
+                        gestures: app.gestures.mapValues { $0.remappingLayerIDs(newIDs) })
                 }
                 return copy
             },
             tapThresholdMilliseconds: tapThresholdMilliseconds)
+    }
+
+    var hasGestures: Bool {
+        layers.contains {
+            !$0.gestures.isEmpty || $0.applications.values.contains { !$0.gestures.isEmpty }
+        }
     }
 
     static let maxTriggeredLayers = 6
@@ -262,6 +296,14 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
             }
 
             try validate(layer.tapAction, in: layer)
+
+            let gestureMappings = [layer.gestures] + layer.applications.values.map(\.gestures)
+            for (source, mapping) in gestureMappings.flatMap({ Array($0) }) {
+                guard !layer.isBase, TrackpadGesture(rawValue: source) != nil else {
+                    throw ProfileError.invalidActionTarget(layer: layer.name)
+                }
+                try validate(mapping.action, in: layer)
+            }
 
             let allMappings = [layer.mappings] + layer.applications.values.map(\.mappings)
             for (source, action) in allMappings.flatMap({ Array($0) }) {

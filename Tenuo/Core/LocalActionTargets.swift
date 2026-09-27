@@ -20,9 +20,12 @@ extension Profile {
         copy.layers = layers.map { layer in
             var layer = layer
             layer.tapAction = layer.tapAction.map(action)
+            layer.gestures = layer.gestures.mapValues(mapping)
             layer.mappings = layer.mappings.mapValues(mapping)
             layer.applications = layer.applications.mapValues {
-                ApplicationOverride(name: $0.name, mappings: $0.mappings.mapValues(mapping))
+                ApplicationOverride(
+                    name: $0.name, mappings: $0.mappings.mapValues(mapping),
+                    gestures: $0.gestures.mapValues(mapping))
             }
             return layer
         }

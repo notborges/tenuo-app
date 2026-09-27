@@ -26,6 +26,9 @@ struct LicenseSettingsView: View {
                 columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading,
                 spacing: 18
             ) {
+                benefit(
+                    "rectangle.and.hand.point.up.left", "Trackpad layers",
+                    "Two-finger swipes & actions")
                 benefit("app.badge", "Mac actions", "Apps, files, links & Shortcuts")
                 benefit(
                     "square.stack.3d.up", "App-specific mappings", "Choose mappings per app")
@@ -201,7 +204,7 @@ struct LicenseSettingsView: View {
 
         if license.hasProAccess && license.state != .offlinePro {
             return
-                "Mac actions, app-specific mappings, profile history, and iCloud profile sync are unlocked."
+                "Trackpad layers, Mac actions, app-specific mappings, profile history, and iCloud profile sync are unlocked."
         }
 
         switch license.state {

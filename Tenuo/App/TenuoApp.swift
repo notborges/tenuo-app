@@ -104,7 +104,9 @@ final class EditorWindow: NSWindow {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    private static let previewDefaults = UserDefaults(suiteName: "app.tenuo.uipreview")!
+    private static let previewDefaults = UserDefaults(
+        suiteName: ProcessInfo.processInfo.arguments.contains("--trackpad-preview")
+            ? "app.tenuo.trackpad-preview" : "app.tenuo.uipreview")!
 
     private let controller: TenuoController = {
         guard isUIPreview else { return TenuoController() }
@@ -180,6 +182,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
 
             #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--trackpad-preview") {
+                    var profile = Presets.navigation
+                    profile.layers[1].gestures = [
+                        "left": .action(
+                            .sendKey(KeyBinding(key: "leftArrow", modifiers: [.command]))),
+                        "right": .action(
+                            .sendKey(KeyBinding(key: "rightArrow", modifiers: [.command]))),
+                        "up": .action(
+                            .macAction(
+                                .application(
+                                    NamedActionTarget(id: "com.apple.Safari", name: "Safari")))),
+                    ]
+                    _ = controller.profileStore.replaceProfiles([profile], selecting: profile.id)
+                    model.selectedLayerID = profile.layers[1].id
+                    model.selectGesture(.up)
+                }
                 if ProcessInfo.processInfo.arguments.contains("--mapping-selection") {
                     model.selectedKeys = ["h", "j", "k", "l"]
                 }

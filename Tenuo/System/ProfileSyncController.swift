@@ -247,6 +247,7 @@ final class ProfileSyncController: ObservableObject {
                     let profile = state.snapshot.profiles.first { $0.id == conflict.id }
                     state.acknowledged[conflict.id] = remote
                     state.pending[conflict.id] = SyncedProfile(
+                        schema: remote.schema,
                         id: conflict.id, revision: UUID(), profile: profile,
                         position: state.snapshot.profiles.firstIndex(where: { $0.id == conflict.id }
                         ) ?? remote.position)

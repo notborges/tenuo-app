@@ -44,6 +44,11 @@ final class SQLiteProfileStore: ProfileStore {
                 ProfileHistoryEntry(
                     id: entry.id, profile: initial.portable(entry.profile), savedAt: entry.savedAt)
             }
+            if initial.snapshot.profiles.contains(where: \.hasGestures)
+                || initial.history.contains(where: { $0.profile.hasGestures })
+            {
+                initial.schema = 2
+            }
             try database.save(initial)
             guard let saved = try database.load(), saved == initial else {
                 throw ProfileSyncError.storageUnavailable
@@ -67,6 +72,12 @@ final class SQLiteProfileStore: ProfileStore {
     private func persist(_ next: ProfileSyncState, sessions: HistoryCheckpointPolicy? = nil) throws
     {
         guard next != state else { return }
+        var next = next
+        if next.snapshot.profiles.contains(where: \.hasGestures)
+            || next.history.contains(where: { $0.profile.hasGestures })
+        {
+            next.schema = max(next.schema, 2)
+        }
         try database.save(next)
         let previous = snapshot
         state = next
@@ -167,12 +178,12 @@ final class SQLiteProfileStore: ProfileStore {
     }
 
     func exportProfile(_ profile: Profile) throws -> Data {
-        try ProfileDocument.encoder.encode(profile)
+        try ProfileDocument.export(profile)
     }
 
     @discardableResult
     func importProfile(_ data: Data) throws -> Profile {
-        let decoded = try JSONDecoder().decode(Profile.self, from: data)
+        let decoded = try ProfileDocument.decode(data)
         try decoded.validate()
 
         let current = snapshot

@@ -196,8 +196,8 @@ struct LayerList: View {
                                     "This trigger is also used by another layer. Only one layer will activate."
                                 )
                         }
-                        if !layer.mappings.isEmpty {
-                            Text("\(layer.mappings.count)")
+                        if !layer.mappings.isEmpty || !layer.gestures.isEmpty {
+                            Text("\(layer.mappings.count + layer.gestures.count)")
                                 .font(DS.Typography.mono)
                                 .foregroundStyle(DS.Ink.tertiary)
                         }

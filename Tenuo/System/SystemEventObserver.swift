@@ -8,6 +8,7 @@ final class SystemEventObserver {
     private let log = Logger(subsystem: "app.tenuo", category: "system")
 
     var onShouldResetState: (() -> Void)?
+    var onFocusChanged: (() -> Void)?
     var onShouldReapplyRemap: (() -> Void)?
 
     private var notificationPort: IONotificationPortRef?
@@ -57,7 +58,7 @@ final class SystemEventObserver {
         ] {
             observers.append(
                 center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                    self?.onShouldResetState?()
+                    self?.onFocusChanged?()
                 })
         }
     }

@@ -13,17 +13,26 @@ final class AppModel: ObservableObject {
     @Published private(set) var launchNeedsApproval: Bool = false
     @Published private(set) var licenseState: LicenseState
 
-    @Published var selectedKeys: Set<String> = []
+    @Published var selectedKeys: Set<String> = [] {
+        didSet { if !selectedKeys.isEmpty { selectedGesture = nil } }
+    }
+    @Published var selectedGesture: TrackpadGesture?
     @Published var isMappingEditorVisible = true
     var copiedMappings: MappingTransfer?
     var mappingPasteboardChange: Int?
 
     @Published var selectedApplicationID: String? {
-        didSet { if oldValue != selectedApplicationID { selectedKeys = [] } }
+        didSet {
+            if oldValue != selectedApplicationID {
+                selectedKeys = []
+                selectedGesture = nil
+            }
+        }
     }
     @Published var selectedLayerID: UUID? {
         didSet {
             selectedKeys = []
+            selectedGesture = nil
             selectedApplicationID = nil
             if oldValue != selectedLayerID { profileStore.history.endSession() }
         }
@@ -135,6 +144,40 @@ final class AppModel: ObservableObject {
                 selectedLayer.mappings = newValue
             }
         }
+    }
+
+    var selectedGestures: [String: LayerMapping] {
+        get {
+            guard let id = selectedApplicationID else { return selectedLayer.gestures }
+            return selectedLayer.applications[id]?.gestures ?? [:]
+        }
+        set {
+            guard license.hasProAccess, !selectedLayer.isBase else { return }
+            if let id = selectedApplicationID {
+                guard selectedLayer.applications[id] != nil else { return }
+                selectedLayer.applications[id]?.gestures = newValue
+            } else {
+                selectedLayer.gestures = newValue
+            }
+        }
+    }
+
+    var inheritedGestures: [String: LayerMapping] {
+        var result: [String: LayerMapping] = [:]
+        for layer in profile.layers.prefix(selectedIndex) where !layer.isBase {
+            for (gesture, mapping) in layer.gestures(for: selectedApplicationID)
+            where mapping != .transparent { result[gesture] = mapping }
+        }
+        if selectedApplicationID != nil {
+            result.merge(selectedLayer.gestures) { _, mapping in mapping }
+        }
+        for gesture in selectedGestures.keys { result.removeValue(forKey: gesture) }
+        return result
+    }
+
+    func selectGesture(_ gesture: TrackpadGesture) {
+        selectedKeys = []
+        selectedGesture = gesture
     }
 
     @discardableResult
@@ -263,11 +306,13 @@ final class AppModel: ObservableObject {
         copy.name = "Copy of \(layer.name)"
         let copiedLayerIDs = [originalID: copy.id]
         copy.tapAction = copy.tapAction?.remappingLayerIDs(copiedLayerIDs)
+        copy.gestures = copy.gestures.mapValues { $0.remappingLayerIDs(copiedLayerIDs) }
         copy.mappings = copy.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) }
         copy.applications = copy.applications.mapValues { app in
             ApplicationOverride(
                 name: app.name,
-                mappings: app.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) })
+                mappings: app.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) },
+                gestures: app.gestures.mapValues { $0.remappingLayerIDs(copiedLayerIDs) })
         }
         guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
         copy.trigger = trigger

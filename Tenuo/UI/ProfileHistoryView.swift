@@ -364,6 +364,17 @@ struct ProfileHistoryBrowser: View {
                         ) { key in selectedKey = selectedKey == key ? nil : key }
                         .frame(maxWidth: 720)
                         .frame(maxWidth: .infinity)
+                        if !selectedLayer.gestures(for: selectedApplicationID).isEmpty {
+                            TrackpadView(
+                                mappings: selectedLayer.gestures(for: selectedApplicationID)
+                            )
+                            .frame(
+                                width: min(
+                                    680, geometry.size.width - 48,
+                                    max(480, (geometry.size.height - 270) * 2.2)) * 0.46
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
                         keyDetail(in: preview, layer: selectedLayer)
                     }
                     comparison
@@ -530,7 +541,11 @@ struct ProfileHistoryBrowser: View {
     private func changeRow(_ change: ProfileHistoryChange) -> some View {
         let description = changeDescription(change)
         let row = HStack(alignment: .top, spacing: 12) {
-            if change.key != nil {
+            if let gesture = change.gesture {
+                Image(systemName: gesture.symbol)
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(DS.Ink.secondary)
+            } else if change.key != nil {
                 Keycap(
                     label: change.key.map {
                         KeyboardPresentation.shared.label(for: KeyCatalog.code(for: $0) ?? 0)

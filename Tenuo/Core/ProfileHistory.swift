@@ -38,6 +38,7 @@ struct ProfileHistoryChange: Identifiable, Equatable {
     let before: String
     let after: String
     var applicationID: String? = nil
+    var gesture: TrackpadGesture? = nil
 }
 
 enum ProfileHistoryComparison {
@@ -45,13 +46,15 @@ enum ProfileHistoryComparison {
         var result: [ProfileHistoryChange] = []
         func append(
             _ field: String, _ title: String, _ old: String, _ new: String,
-            layer: Layer? = nil, key: String? = nil, applicationID: String? = nil
+            layer: Layer? = nil, key: String? = nil, applicationID: String? = nil,
+            gesture: TrackpadGesture? = nil
         ) {
             result.append(
                 ProfileHistoryChange(
                     id: "\(layer?.id.uuidString ?? "profile")/\(field)",
                     layerID: layer?.id, layerName: layer?.name, key: key,
-                    title: title, before: old, after: new, applicationID: applicationID))
+                    title: title, before: old, after: new, applicationID: applicationID,
+                    gesture: gesture))
         }
         if before.name != after.name {
             append("name", "Profile name", before.name, after.name)
@@ -110,6 +113,16 @@ enum ProfileHistoryComparison {
                         "app/\(appID)", "\(name) overrides", oldApp?.name ?? "Not present",
                         newApp?.name ?? "Not present", layer: layer, applicationID: appID)
                 }
+                for gesture in TrackpadGesture.allCases
+                where oldApp?.gestures[gesture.rawValue] != newApp?.gestures[gesture.rawValue] {
+                    append(
+                        "app/\(appID)/gesture/\(gesture.rawValue)", "\(name) · \(gesture.title)",
+                        oldApp?.gestures[gesture.rawValue].map { mappingLabel($0, in: before) }
+                            ?? "Use Default",
+                        newApp?.gestures[gesture.rawValue].map { mappingLabel($0, in: after) }
+                            ?? "Use Default",
+                        layer: layer, applicationID: appID, gesture: gesture)
+                }
                 let appKeys = Set(oldApp?.mappings.keys.map { $0 } ?? [])
                     .union(newApp?.mappings.keys.map { $0 } ?? [])
                 for key in appKeys.sorted() where oldApp?.mappings[key] != newApp?.mappings[key] {
@@ -120,6 +133,14 @@ enum ProfileHistoryComparison {
                         newApp?.mappings[key].map { mappingLabel($0, in: after) } ?? "Use Default",
                         layer: layer, key: key, applicationID: appID)
                 }
+            }
+            for gesture in TrackpadGesture.allCases
+            where old?.gestures[gesture.rawValue] != new?.gestures[gesture.rawValue] {
+                append(
+                    "gesture/\(gesture.rawValue)", gesture.title,
+                    mappingLabel(old?.gestures[gesture.rawValue], in: before),
+                    mappingLabel(new?.gestures[gesture.rawValue], in: after),
+                    layer: layer, gesture: gesture)
             }
             let keys = Set(old?.mappings.keys.map { $0 } ?? [])
                 .union(new?.mappings.keys.map { $0 } ?? [])

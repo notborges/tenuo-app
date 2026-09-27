@@ -68,6 +68,7 @@ struct MacActionEditor: View {
     let output: MappingOutput
     let current: LayerMapping?
     let hasPro: Bool
+    var assignmentLabel = "Assigned to this key"
     let activate: () -> Void
     let assign: (MacAction) -> Void
     @State private var showsApps = false
@@ -99,7 +100,7 @@ struct MacActionEditor: View {
                         Text(
                             !hasPro
                                 ? "Inactive · requires Tenuo Pro"
-                                : (unavailable ? "Not found on this Mac" : "Assigned to this key")
+                                : (unavailable ? "Not found on this Mac" : assignmentLabel)
                         )
                         .font(DS.Typography.footnote).foregroundStyle(DS.Ink.tertiary)
                     }
