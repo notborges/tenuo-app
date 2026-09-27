@@ -23,6 +23,7 @@ to typing.
 
 These features are free. **Tenuo Pro** adds:
 
+- Map two-finger trackpad swipes to shortcuts and actions in your layers.
 - Open apps, files, folders, and websites, or run Apple Shortcuts from a key.
 - Assign different mappings for each app.
 - Compare and restore earlier versions of your profiles.
