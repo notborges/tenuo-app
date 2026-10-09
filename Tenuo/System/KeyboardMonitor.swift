@@ -195,11 +195,8 @@ final class KeyboardMonitor {
         let wasIdle = isQuiescent
         cancelGesture()
         // Release outputs in the previous app, but keep physically held layer keys active.
-        engine.reset(
-            preservingHeldTriggers: true, flags: EventFlags(rawValue: physicalModifiers.rawValue)
-        ) {
-            [weak self] key in self?.post(key)
-        }
+        let flags = EventFlags(rawValue: physicalModifiers.rawValue)
+        postEmitted { engine.reset(preservingHeldTriggers: true, flags: flags, emit: $0) }
         publishActiveLayerIfNeeded()
         if !wasIdle && isQuiescent { onIdle?() }
     }
@@ -208,7 +205,7 @@ final class KeyboardMonitor {
         cancelGesture()
         lastKeyboardType = nil
         let hadActiveLayer = engine.isLayerActive || !lastActiveLayerStates.isEmpty
-        engine.reset { [weak self] key in self?.post(key) }
+        postEmitted { engine.reset(emit: $0) }
         releaseModifierPresses()
         lastActiveLayerStates = []
         if hadActiveLayer { onActiveLayersChanged?([]) }
@@ -313,8 +310,7 @@ final class KeyboardMonitor {
                 }
             }
         }
-        let disposition = engine.handle(
-            input, emit: { [weak self] key in self?.post(key, proxy: proxy) })
+        let disposition = postEmitted(proxy: proxy) { engine.handle(input, emit: $0) }
         if gestureAssignments.values.contains(where: { !engine.isGestureLayerActive($0.layerID) }) {
             cancelGesture()
         }
@@ -455,12 +451,9 @@ final class KeyboardMonitor {
             pendingScrollEvents.removeAll(keepingCapacity: true)
         }
         if let gesture = result.gesture, !gestureAssignments.isEmpty {
-            engine.performGesture(
-                gestureAssignments[gesture.rawValue],
-                flags: EventFlags(rawValue: event.flags.rawValue)
-            ) {
-                [weak self] key in self?.post(key)
-            }
+            let assignment = gestureAssignments[gesture.rawValue]
+            let flags = EventFlags(rawValue: event.flags.rawValue)
+            postEmitted { engine.performGesture(assignment, flags: flags, emit: $0) }
             for action in engine.takePendingActions() { onAction?(action) }
             publishActiveLayerIfNeeded()
         }
@@ -472,6 +465,19 @@ final class KeyboardMonitor {
         gestureAssignments.removeAll()
         pendingScrollEvents.removeAll(keepingCapacity: true)
         gestureSequence.cancelRecognition()
+    }
+
+    // Posting reads engine state, so keys emitted during an engine call are
+    // posted after it returns. Reading the engine mid-mutation traps at runtime.
+    @discardableResult
+    private func postEmitted<Result>(
+        proxy: CGEventTapProxy? = nil,
+        _ body: (_ emit: (SyntheticKey) -> Void) -> Result
+    ) -> Result {
+        var emitted: [SyntheticKey] = []
+        let result = body { emitted.append($0) }
+        for key in emitted { post(key, proxy: proxy) }
+        return result
     }
 
     private var visibleModifiers: EventFlags {
