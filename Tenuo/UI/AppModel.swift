@@ -105,6 +105,7 @@ final class AppModel: ObservableObject {
         get { profileStore.manualProfile }
         set {
             guard newValue != profile else { return }
+            guard canApply(newValue) else { return }
             guard edits.perform("Edit Profile", { profileStore.updateProfile(newValue) }) else {
                 errorMessage = "Tenuo could not save the profile or its history."
                 return
@@ -114,6 +115,19 @@ final class AppModel: ObservableObject {
     }
 
     var layers: [Layer] { profile.layers }
+
+    private func canApply(_ updated: Profile) -> Bool {
+        guard let conflict = updated.newMappingConflict(comparedTo: profile) else { return true }
+        errorMessage = conflict.message(in: updated)
+        return false
+    }
+
+    func reservationMessage(for source: String) -> String? {
+        let layers = profile.reservingLayers(for: source)
+        guard !layers.isEmpty else { return nil }
+        let names = layers.map { "“\($0.name)”" }.joined(separator: ", ")
+        return "This key activates \(names). Choose another trigger key to assign a mapping here."
+    }
 
     var selectedIndex: Int {
         profile.layers.firstIndex { $0.id == selectedLayerID } ?? 0
@@ -192,6 +206,7 @@ final class AppModel: ObservableObject {
         } else {
             updated.layers[selectedIndex].mappings = mappings
         }
+        guard canApply(updated) else { return false }
         guard edits.perform(name, { profileStore.updateProfile(updated) }) else {
             errorMessage = "Tenuo could not save the mappings or their history."
             return false
@@ -301,7 +316,7 @@ final class AppModel: ObservableObject {
         else { return }
         layer.trigger = trigger
         profile.layers.append(layer)
-        selectedLayerID = layer.id
+        if profile.layers.contains(where: { $0.id == layer.id }) { selectedLayerID = layer.id }
     }
 
     func duplicateLayer(_ layer: Layer) {
@@ -320,10 +335,13 @@ final class AppModel: ObservableObject {
                 mappings: app.mappings.mapValues { $0.remappingLayerIDs(copiedLayerIDs) },
                 gestures: app.gestures.mapValues { $0.remappingLayerIDs(copiedLayerIDs) })
         }
-        guard let trigger = uniqueTrigger(preferred: copy.trigger ?? LayerTrigger()) else { return }
+        guard
+            let trigger = uniqueTrigger(
+                preferred: copy.trigger ?? LayerTrigger(), excluding: copy.mappedSourceCodes)
+        else { return }
         copy.trigger = trigger
         profile.layers.append(copy)
-        selectedLayerID = copy.id
+        if profile.layers.contains(where: { $0.id == copy.id }) { selectedLayerID = copy.id }
     }
 
     func remove(_ layer: Layer) {
@@ -465,15 +483,28 @@ final class AppModel: ObservableObject {
         selectedLayerID = profile.triggeredLayers.first?.id ?? profile.layers.first?.id
     }
 
-    private func uniqueTrigger(preferred: LayerTrigger) -> LayerTrigger? {
+    private func uniqueTrigger(
+        preferred: LayerTrigger, excluding sources: Set<UInt16> = []
+    ) -> LayerTrigger? {
         let used = Set(profile.triggeredLayers.compactMap(\.trigger))
-        let key = preferred.key
-        let candidates =
-            [preferred]
-            + ModifierRequirement.allCases.map {
-                LayerTrigger(key: key, modifiers: [$0])
+        let mapped = profile.mappedSourceCodes.union(sources)
+        // Typing keys are never chosen automatically: a letter trigger would
+        // silently stop that letter from typing.
+        let keys =
+            [preferred.key] + TriggerKey.suggested
+            + TriggerKey.rightModifiers + TriggerKey.leftModifiers
+            + KeyCatalog.keys(in: .function).map { TriggerKey.key($0.name) }
+        for key in keys {
+            guard let code = key.observedKeyCode, !mapped.contains(code) else { continue }
+            let candidates =
+                [LayerTrigger(key: key, modifiers: preferred.modifiers)]
+                + [LayerTrigger(key: key)]
+                + ModifierRequirement.allCases.map { LayerTrigger(key: key, modifiers: [$0]) }
+            if let candidate = candidates.first(where: { !used.contains($0) }) {
+                return candidate
             }
-        return candidates.first { !used.contains($0) }
+        }
+        return nil
     }
 
     var isEnabled: Bool {

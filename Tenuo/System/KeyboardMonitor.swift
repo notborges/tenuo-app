@@ -22,6 +22,19 @@ final class KeyboardMonitor {
 
     private var pressedKeys: Set<UInt16> = []
     private var physicalModifiers: CGEventFlags = []
+    private var modifierPresses = ModifierPresses()
+    private var stopWhenReleased = false
+    private var waitingForRemapRemoval = false
+    var capsLockRemapIsInstalled = false {
+        didSet { engine.isCapsLockRemapped = capsLockRemapIsInstalled }
+    }
+    var isCapsLockHeld: Bool {
+        // Installation can finish before its main-queue callback. Preserve
+        // this release identity even while bridge confirmation is pending.
+        pressedKeys.contains(KeyCode.f18)
+    }
+    var onCapsLockReleased: (() -> Void)?
+    var onStopped: (() -> Void)?
     private static let heldModifierMask: CGEventFlags = [
         .maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn,
         CGEventFlags(rawValue: EventFlags.allDeviceBits.rawValue),
@@ -57,10 +70,13 @@ final class KeyboardMonitor {
             profile: profile,
             isEnabled: isEnabled,
             actionAvailability: actionAvailability)
+        engine.isCapsLockRemapped = false
     }
 
     @discardableResult
     func start() -> Bool {
+        stopWhenReleased = false
+        waitingForRemapRemoval = false
         guard tap == nil else { return true }
 
         let mask =
@@ -94,8 +110,11 @@ final class KeyboardMonitor {
 
         gestureSequence.reset()
         pressedKeys = Set(
-            (UInt16(0)..<128).filter { CGEventSource.keyState(.combinedSessionState, key: $0) })
-        physicalModifiers = CGEventSource.flagsState(.combinedSessionState).intersection(
+            (UInt16(0)..<128).filter {
+                SourceKeyCatalog.modifier(for: $0) == nil && $0 != KeyCode.capsLock
+                    && CGEventSource.keyState(.hidSystemState, key: $0)
+            })
+        physicalModifiers = CGEventSource.flagsState(.hidSystemState).intersection(
             Self.heldModifierMask)
         tap = port
         runLoopSource = source
@@ -104,11 +123,37 @@ final class KeyboardMonitor {
         return true
     }
 
-    func stop() {
-        guard let tap, let runLoopSource else { return }
+    func stop(waitingForRemap: Bool = false, immediately: Bool = false) {
+        guard tap != nil else { return }
+        engine.isEnabled = false
+        stopWhenReleased = true
+        waitingForRemapRemoval = waitingForRemap
         TrackpadContacts.shared.setEnabled(false)
         gestureSequence.reset()
         flushHeldKeys()
+        // Keep the tap just long enough to consume releases for keys whose
+        // physical down was suppressed. Removing it mid-press leaks key-ups.
+        if immediately {
+            removeTap()
+        } else {
+            finishStoppingIfReady()
+        }
+    }
+
+    func remapWasRemoved() {
+        capsLockRemapIsInstalled = false
+        waitingForRemapRemoval = false
+        finishStoppingIfReady()
+    }
+
+    private func finishStoppingIfReady() {
+        if stopWhenReleased, !waitingForRemapRemoval, !engine.hasPendingReleases, !isCapsLockHeld {
+            removeTap()
+        }
+    }
+
+    private func removeTap() {
+        guard let tap, let runLoopSource else { return }
         CGEvent.tapEnable(tap: tap, enable: false)
         CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CFMachPortInvalidate(tap)
@@ -116,7 +161,11 @@ final class KeyboardMonitor {
         self.runLoopSource = nil
         pressedKeys.removeAll(keepingCapacity: true)
         physicalModifiers = []
+        engine.reconcilePhysicalState()
+        stopWhenReleased = false
+        waitingForRemapRemoval = false
         log.info("Event tap removed")
+        onStopped?()
     }
 
     func updateApplication(_ applicationID: String?) {
@@ -160,9 +209,28 @@ final class KeyboardMonitor {
         lastKeyboardType = nil
         let hadActiveLayer = engine.isLayerActive || !lastActiveLayerStates.isEmpty
         engine.reset { [weak self] key in self?.post(key) }
+        releaseModifierPresses()
         lastActiveLayerStates = []
         if hadActiveLayer { onActiveLayersChanged?([]) }
         onIdle?()
+    }
+
+    func recoverPhysicalState() {
+        let wasCapsLockHeld = isCapsLockHeld
+        flushHeldKeys()
+        // Sleep and keyboard removal can lose physical releases altogether.
+        // Retain suppression only for sources the HID system still sees down.
+        let down = Set(
+            (UInt16(0)..<128).filter { CGEventSource.keyState(.hidSystemState, key: $0) })
+        engine.reconcilePhysicalState(keysDown: down)
+        pressedKeys = down.filter {
+            SourceKeyCatalog.modifier(for: $0) == nil && $0 != KeyCode.capsLock
+        }
+        physicalModifiers = CGEventSource.flagsState(.hidSystemState).intersection(
+            Self.heldModifierMask)
+        finishStoppingIfReady()
+        if wasCapsLockHeld && !isCapsLockHeld { onCapsLockReleased?() }
+        if isQuiescent { onIdle?() }
     }
 
     private func process(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<
@@ -173,13 +241,13 @@ final class KeyboardMonitor {
             gestureSequence.reset()
             log.error("Tap disabled by timeout; re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
-            flushHeldKeys()
+            recoverPhysicalState()
             return nil
 
         case .tapDisabledByUserInput:
             gestureSequence.reset()
             log.error("Tap disabled by user input")
-            flushHeldKeys()
+            recoverPhysicalState()
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             onTapInvalidated?()
             return nil
@@ -194,16 +262,38 @@ final class KeyboardMonitor {
             return Unmanaged.passUnretained(event)
         }
 
+        let code = UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
+        let isSynthetic = event.getIntegerValueField(.eventSourceUserData) == Self.syntheticMarker
+        let flags =
+            isSynthetic ? EventFlags(rawValue: event.flags.rawValue) : physicalFlags(event.flags)
+        let modifierIsDown: Bool?
+        if type == .flagsChanged, let modifier = SourceKeyCatalog.modifier(for: code) {
+            // Device bits distinguish releasing one side while the other is
+            // held. Some keyboards omit them; consult the raw HID state then.
+            if modifier.deviceFlag != nil, flags.intersection(modifier.modifierSideFlags).isEmpty,
+                let generalFlag = modifier.modifierFlag, flags.contains(generalFlag)
+            {
+                modifierIsDown = CGEventSource.keyState(.hidSystemState, key: code)
+            } else {
+                modifierIsDown = modifier.isDown(flags: flags)
+            }
+        } else {
+            modifierIsDown = nil
+        }
         let input = InputEvent(
             kind: type == .keyDown ? .keyDown : (type == .keyUp ? .keyUp : .flagsChanged),
-            keyCode: UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode)),
-            flags: EventFlags(rawValue: event.flags.rawValue),
+            keyCode: code,
+            flags: flags,
             isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
-            isSynthetic: event.getIntegerValueField(.eventSourceUserData) == Self.syntheticMarker,
-            timestamp: event.timestamp
+            isSynthetic: isSynthetic,
+            timestamp: event.timestamp,
+            modifierIsDown: modifierIsDown,
+            physicalFunctionIsDown: isSynthetic
+                ? nil : CGEventSource.keyState(.hidSystemState, key: KeyCode.function)
         )
 
         let wasIdle = isQuiescent
+        let wasCapsLockHeld = isCapsLockHeld
         if !input.isSynthetic {
             let typeID = event.getIntegerValueField(.keyboardEventKeyboardType)
             if type == .keyDown, typeID > 0, typeID <= Int64(Int16.max) {
@@ -216,14 +306,25 @@ final class KeyboardMonitor {
             if type == .keyDown { pressedKeys.insert(input.keyCode) }
             if type == .keyUp { pressedKeys.remove(input.keyCode) }
             physicalModifiers = event.flags.intersection(Self.heldModifierMask)
+            if SourceKeyCatalog.intrinsicFlags(for: input.keyCode).contains(.secondaryFn) {
+                physicalModifiers.remove(.maskSecondaryFn)
+                if input.physicalFunctionIsDown == true {
+                    physicalModifiers.insert(.maskSecondaryFn)
+                }
+            }
         }
-        let disposition = engine.handle(input, emit: { [weak self] key in self?.post(key) })
+        let disposition = engine.handle(
+            input, emit: { [weak self] key in self?.post(key, proxy: proxy) })
         if gestureAssignments.values.contains(where: { !engine.isGestureLayerActive($0.layerID) }) {
             cancelGesture()
         }
-        if !wasIdle && isQuiescent { onIdle?() }
         for action in engine.takePendingActions() { onAction?(action) }
         publishActiveLayerIfNeeded()
+        defer {
+            finishStoppingIfReady()
+            if wasCapsLockHeld && !isCapsLockHeld { onCapsLockReleased?() }
+            if !wasIdle && isQuiescent { onIdle?() }
+        }
 
         switch disposition {
         case .passThrough:
@@ -233,10 +334,58 @@ final class KeyboardMonitor {
             return nil
 
         case let .rewrite(keyCode, flags):
+            if let kind = keyKind(input.kind),
+                postWithModifiers(
+                    SyntheticKey(keyCode: keyCode, flags: flags, isKeyDown: kind == .keyDown),
+                    isRepeat: input.isRepeat, proxy: proxy)
+            {
+                return nil
+            }
             event.setIntegerValueField(.keyboardEventKeycode, value: Int64(keyCode))
-            event.flags = CGEventFlags(rawValue: flags.rawValue)
+            event.flags = CGEventFlags(
+                rawValue: flags.union(SourceKeyCatalog.intrinsicFlags(for: keyCode)).rawValue)
             return Unmanaged.passUnretained(event)
+
+        case let .replace(kind, keyCode, flags):
+            if keyKind(kind) != nil,
+                postWithModifiers(
+                    SyntheticKey(keyCode: keyCode, flags: flags, isKeyDown: kind == .keyDown),
+                    isRepeat: input.isRepeat, proxy: proxy)
+            {
+                return nil
+            }
+            guard
+                let replacement = CGEvent(
+                    keyboardEventSource: eventSource, virtualKey: keyCode, keyDown: kind == .keyDown
+                )
+            else { return nil }
+            replacement.flags = CGEventFlags(
+                rawValue: flags.union(SourceKeyCatalog.intrinsicFlags(for: keyCode)).rawValue)
+            replacement.timestamp = event.timestamp
+            replacement.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
+            return Unmanaged.passRetained(replacement)
+
+        case .toggleCapsLock:
+            if !CapsLockRemapper.toggleNativeCapsLock() {
+                log.error("Could not toggle the native Caps Lock state")
+            }
+            return nil
         }
+    }
+
+    private func physicalFlags(_ flags: CGEventFlags) -> EventFlags {
+        let raw = EventFlags(rawValue: flags.rawValue)
+        var result = raw
+        // Fill missing side bits from physical state before the engine strips
+        // mapped sources. This also preserves the opposite, unmapped modifier.
+        for key in TriggerKey.leftModifiers + TriggerKey.rightModifiers {
+            guard let flag = key.modifierFlag, let side = key.deviceFlag,
+                let code = key.physicalKeyCode, raw.contains(flag),
+                raw.intersection(key.modifierSideFlags).isEmpty
+            else { continue }
+            if CGEventSource.keyState(.hidSystemState, key: code) { result.formUnion(side) }
+        }
+        return result
     }
 
     func restartTrackpad() {
@@ -325,16 +474,65 @@ final class KeyboardMonitor {
         gestureSequence.cancelRecognition()
     }
 
-    private func post(_ key: SyntheticKey) {
+    private var visibleModifiers: EventFlags {
+        engine.visibleModifiers(EventFlags(rawValue: physicalModifiers.rawValue))
+    }
+
+    private func keyKind(_ kind: InputEvent.Kind) -> InputEvent.Kind? {
+        kind == .flagsChanged ? nil : kind
+    }
+
+    // Posts the output between its modifier presses so they arrive in order.
+    // Returns false when the rewritten event can be forwarded unchanged.
+    private func postWithModifiers(
+        _ key: SyntheticKey, isRepeat: Bool, proxy: CGEventTapProxy
+    ) -> Bool {
+        let needsModifiers =
+            key.isKeyDown
+            ? !isRepeat && !modifierPresses.isPressing(for: key.keyCode)
+                && !key.flags.intersection([.command, .option, .control, .shift])
+                    .subtracting(visibleModifiers).isEmpty
+            : modifierPresses.isPressing(for: key.keyCode)
+        guard needsModifiers else { return false }
+        post(key, proxy: proxy)
+        return true
+    }
+
+    private func post(_ key: SyntheticKey, proxy: CGEventTapProxy? = nil) {
+        if key.isKeyDown {
+            for down in modifierPresses.press(
+                output: key.keyCode, flags: key.flags, visible: visibleModifiers)
+            {
+                postEvent(down, proxy: proxy)
+            }
+            postEvent(key, proxy: proxy)
+        } else {
+            postEvent(key, proxy: proxy)
+            for up in modifierPresses.release(output: key.keyCode, visible: visibleModifiers) {
+                postEvent(up, proxy: proxy)
+            }
+        }
+    }
+
+    private func releaseModifierPresses() {
+        for up in modifierPresses.releaseAll(visible: visibleModifiers) { postEvent(up) }
+    }
+
+    private func postEvent(_ key: SyntheticKey, proxy: CGEventTapProxy? = nil) {
         guard
             let event = CGEvent(
                 keyboardEventSource: eventSource,
                 virtualKey: CGKeyCode(key.keyCode),
                 keyDown: key.isKeyDown)
         else { return }
-        event.flags = CGEventFlags(rawValue: key.flags.rawValue)
+        event.flags = CGEventFlags(
+            rawValue: key.flags.union(SourceKeyCatalog.intrinsicFlags(for: key.keyCode)).rawValue)
         event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
-        event.post(tap: .cgSessionEventTap)
+        if let proxy {
+            event.tapPostEvent(proxy)
+        } else {
+            event.post(tap: .cgSessionEventTap)
+        }
     }
 
     private func publishActiveLayerIfNeeded() {
@@ -345,6 +543,6 @@ final class KeyboardMonitor {
     }
 
     deinit {
-        stop()
+        stop(immediately: true)
     }
 }

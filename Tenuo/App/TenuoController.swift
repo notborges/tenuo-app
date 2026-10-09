@@ -91,6 +91,15 @@ final class TenuoController {
         monitor.onIdle = { [weak self] in
             Task { @MainActor [weak self] in self?.sync.applyWaitingChanges() }
         }
+        monitor.onCapsLockReleased = { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, !preferences.isEnabled || !requiresCapsLockRemap else { return }
+                reconcileRemap()
+            }
+        }
+        monitor.onStopped = { [weak self] in
+            Task { @MainActor [weak self] in self?.onStateChanged?() }
+        }
         sync.start()
         profileObserver = profileStore.addObserver { [weak self] change in
             if change.previous.manualProfile == change.current.manualProfile {
@@ -123,7 +132,7 @@ final class TenuoController {
         accessibility.onChange = { [weak self] trusted in
             guard let self, !trusted, monitor.isRunning else { return }
             log.info("Accessibility revoked")
-            deactivate()
+            deactivate(immediately: true)
             onPermissionMissing?()
             startRetrying()
             onStateChanged?()
@@ -131,7 +140,7 @@ final class TenuoController {
         accessibility.startMonitoring()
 
         systemEvents.onFocusChanged = { [weak self] in self?.monitor.focusDidChange() }
-        systemEvents.onShouldResetState = { [weak self] in self?.monitor.flushHeldKeys() }
+        systemEvents.onShouldResetState = { [weak self] in self?.monitor.recoverPhysicalState() }
         systemEvents.onShouldReapplyRemap = { [weak self] in
             self?.monitor.restartTrackpad()
             self?.reconcileRemap()
@@ -150,7 +159,7 @@ final class TenuoController {
         monitor.onTapInvalidated = { [weak self] in
             guard let self else { return }
             if !accessibility.isTrusted {
-                deactivate()
+                deactivate(immediately: true)
                 onPermissionMissing?()
                 startRetrying()
             }
@@ -190,7 +199,9 @@ final class TenuoController {
         profileSelection.stop()
         profileSelection.onChange = nil
         remapGeneration += 1
-        monitor.stop()
+        monitor.onStopped = nil
+        monitor.onCapsLockReleased = nil
+        monitor.stop(immediately: true)
         remapper.revert(waitUntilFinished: true)
         accessibility.stopMonitoring()
     }
@@ -199,6 +210,7 @@ final class TenuoController {
     private func activate() -> Bool {
         guard preferences.isEnabled else { return false }
 
+        monitor.update(isEnabled: true)
         guard monitor.start() else {
             accessibility.noteObservedState(false)
             return false
@@ -236,12 +248,6 @@ final class TenuoController {
         let timer = Timer(timeInterval: Self.retryInterval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                guard self.preferences.isEnabled, self.monitor.isRunning,
-                    self.requiresCapsLockRemap
-                else {
-                    self.stopRemapRetrying()
-                    return
-                }
                 self.reconcileRemap()
             }
         }
@@ -254,18 +260,16 @@ final class TenuoController {
         remapRetryTimer = nil
     }
 
-    private func deactivate() {
+    private func deactivate(immediately: Bool = false) {
         actionRunner.cancelAll()
         remapGeneration += 1
         capsLockRemapReady = false
-        monitor.stop()
-        remapper.revert()
+        monitor.stop(waitingForRemap: !immediately, immediately: immediately)
+        reconcileRemap()
     }
 
     private var requiresCapsLockRemap: Bool {
-        profileSelection.current.profile.triggeredLayers.contains {
-            $0.trigger?.key.requiresCapsLockRemap == true
-        }
+        profileSelection.current.profile.requiresCapsLockRemap
     }
 
     private func reconcileRemap() {
@@ -275,7 +279,7 @@ final class TenuoController {
         guard preferences.isEnabled, monitor.isRunning else {
             capsLockRemapReady = false
             stopRemapRetrying()
-            remapper.revert()
+            revertRemapWhenReleased()
             onStateChanged?()
             return
         }
@@ -283,14 +287,18 @@ final class TenuoController {
         guard requiresCapsLockRemap else {
             capsLockRemapReady = true
             stopRemapRetrying()
-            remapper.revert()
+            revertRemapWhenReleased()
             onStateChanged?()
             return
         }
 
         capsLockRemapReady = false
         remapper.ensureApplied { [weak self] success in
-            guard let self, generation == remapGeneration else { return }
+            guard let self else { return }
+            // Hardware state follows completed queue operations, even when
+            // a newer profile makes this readiness callback obsolete.
+            if success { monitor.capsLockRemapIsInstalled = true }
+            guard generation == remapGeneration else { return }
             guard preferences.isEnabled, monitor.isRunning, requiresCapsLockRemap else { return }
 
             capsLockRemapReady = success
@@ -302,6 +310,23 @@ final class TenuoController {
                 startRemapRetrying()
             }
             onStateChanged?()
+        }
+    }
+
+    private func revertRemapWhenReleased() {
+        // F18 is the release identity of a bridged Caps Lock. Removing the
+        // bridge during that press can turn its key-up into a Caps Lock event.
+        guard !monitor.isCapsLockHeld else { return }
+        let generation = remapGeneration
+        remapper.revert(deferWhileCapsLockHeld: monitor.isRunning) { [weak self] success in
+            guard let self else { return }
+            if success { monitor.remapWasRemoved() }
+            guard generation == remapGeneration else { return }
+            if success {
+                stopRemapRetrying()
+            } else {
+                startRemapRetrying()
+            }
         }
     }
 

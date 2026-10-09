@@ -1,7 +1,9 @@
+import CoreGraphics
 import Foundation
+import IOKit.hidsystem
 import os
 
-// Caps Lock is remapped to F18 so it can act as a momentary trigger.
+// Caps Lock is remapped to F18 to expose physical press and release events.
 final class CapsLockRemapper {
     private static let capsLockUsage: UInt64 = 0x700000039
     private static let f18Usage: UInt64 = 0x70000006D
@@ -15,6 +17,28 @@ final class CapsLockRemapper {
     private let queue = DispatchQueue(label: "app.tenuo.remap", qos: .userInitiated)
     private var applied = false
     private var originalMappings: [[String: Any]]?
+
+    // When a bridged Caps Lock has no mapping in the active layer, toggle the
+    // real system lock state (including its LED), rather than leaking F18.
+    static func toggleNativeCapsLock() -> Bool {
+        let service = IOServiceGetMatchingService(
+            kIOMainPortDefault, IOServiceMatching("IOHIDSystem"))
+        guard service != 0 else { return false }
+        defer { IOObjectRelease(service) }
+        var connection: io_connect_t = 0
+        guard
+            IOServiceOpen(service, mach_task_self_, UInt32(kIOHIDParamConnectType), &connection)
+                == KERN_SUCCESS
+        else { return false }
+        defer { IOServiceClose(connection) }
+        var locked = false
+        guard
+            IOHIDGetModifierLockState(connection, Int32(kIOHIDCapsLockState), &locked)
+                == KERN_SUCCESS
+        else { return false }
+        return IOHIDSetModifierLockState(connection, Int32(kIOHIDCapsLockState), !locked)
+            == KERN_SUCCESS
+    }
 
     func ensureApplied(completion: @escaping (Bool) -> Void = { _ in }) {
         queue.async { [self] in
@@ -54,6 +78,7 @@ final class CapsLockRemapper {
 
     func revert(
         waitUntilFinished: Bool = false,
+        deferWhileCapsLockHeld: Bool = false,
         completion: @escaping (Bool) -> Void = { _ in }
     ) {
         let work = { [self] in
@@ -73,6 +98,14 @@ final class CapsLockRemapper {
             let restored =
                 current.filter { !Self.isCapsLockMapping($0) }
                 + (originalMappings ?? []).filter { Self.isCapsLockMapping($0) }
+            // Recheck on the worker queue: a Caps Lock down may arrive after
+            // the controller requested restoration but before hidutil runs.
+            if deferWhileCapsLockHeld,
+                CGEventSource.keyState(.hidSystemState, key: KeyCode.f18)
+            {
+                finish(false, completion: completion)
+                return
+            }
             guard setMappings(restored) else {
                 log.error("Failed to revert Caps Lock mapping")
                 finish(false, completion: completion)

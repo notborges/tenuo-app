@@ -14,6 +14,9 @@
 		TENUO0000000000000000009 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000A /* PreferencesWindowController.swift */; };
 		TENUO000000000000000000B /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000C /* KeyCodes.swift */; };
 		TENUO000000000000000000D /* TriggerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO000000000000000000E /* TriggerKey.swift */; };
+		TENUOMODPRESS00000000002 /* ModifierPresses.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUOMODPRESS00000000001 /* ModifierPresses.swift */; };
+		TENUOMODPRESS00000000003 /* ModifierPresses.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUOMODPRESS00000000001 /* ModifierPresses.swift */; };
+		TENUOMODPRESS00000000005 /* ModifierPressesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUOMODPRESS00000000004 /* ModifierPressesTests.swift */; };
 		TENUO000000000000000000F /* KeyCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000010 /* KeyCatalog.swift */; };
 		TENUO0000000000000000011 /* KeyBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000012 /* KeyBinding.swift */; };
 		TENUO0000000000000000013 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = TENUO0000000000000000014 /* Profile.swift */; };
@@ -127,6 +130,8 @@
 		TENUO000000000000000000A /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		TENUO000000000000000000C /* KeyCodes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodes.swift; sourceTree = "<group>"; };
 		TENUO000000000000000000E /* TriggerKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerKey.swift; sourceTree = "<group>"; };
+		TENUOMODPRESS00000000001 /* ModifierPresses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierPresses.swift; sourceTree = "<group>"; };
+		TENUOMODPRESS00000000004 /* ModifierPressesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierPressesTests.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000010 /* KeyCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCatalog.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000012 /* KeyBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBinding.swift; sourceTree = "<group>"; };
 		TENUO0000000000000000014 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
@@ -251,6 +256,7 @@
 				TENUO0000000000000000081 /* HIDMappingParser.swift */,
 				TENUO000000000000000000C /* KeyCodes.swift */,
 				TENUO000000000000000000E /* TriggerKey.swift */,
+				TENUOMODPRESS00000000001 /* ModifierPresses.swift */,
 				TENUO0000000000000000010 /* KeyCatalog.swift */,
 				TENUO0000000000000000012 /* KeyBinding.swift */,
 				TENUO0000000000000000099 /* Actions.swift */,
@@ -359,6 +365,7 @@
 				B30000000000000000000001 /* KeyboardPresentationTests.swift */,
 				TENUO0000000000000000084 /* CapsLockRemapperTests.swift */,
 				TENUO0000000000000000044 /* LayerEngineTests.swift */,
+				TENUOMODPRESS00000000004 /* ModifierPressesTests.swift */,
 				TENUO0000000000000000091 /* ProfileStoreTests.swift */,
 				TENUO0000000000000000092 /* ProfileSelectionTests.swift */,
 				TENUO00000000000000000BA /* LicenseTests.swift */,
@@ -527,6 +534,7 @@
 				TENUO0000000000000000009 /* PreferencesWindowController.swift in Sources */,
 				TENUO000000000000000000B /* KeyCodes.swift in Sources */,
 				TENUO000000000000000000D /* TriggerKey.swift in Sources */,
+				TENUOMODPRESS00000000002 /* ModifierPresses.swift in Sources */,
 				TENUO000000000000000000F /* KeyCatalog.swift in Sources */,
 				TENUO0000000000000000011 /* KeyBinding.swift in Sources */,
 				TENUO0000000000000000097 /* Actions.swift in Sources */,
@@ -595,6 +603,8 @@
 				TENUO000000000000000008B /* ProfileSelectionTests.swift in Sources */,
 				TENUO0000000000000000047 /* KeyCodes.swift in Sources */,
 				TENUO0000000000000000048 /* TriggerKey.swift in Sources */,
+				TENUOMODPRESS00000000003 /* ModifierPresses.swift in Sources */,
+				TENUOMODPRESS00000000005 /* ModifierPressesTests.swift in Sources */,
 				TENUO0000000000000000049 /* KeyCatalog.swift in Sources */,
 				TENUO000000000000000004A /* KeyBinding.swift in Sources */,
 				TENUO0000000000000000098 /* Actions.swift in Sources */,

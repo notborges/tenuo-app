@@ -9,10 +9,13 @@ struct InputEvent: Equatable {
     var isRepeat: Bool
     var isSynthetic: Bool
     var timestamp: UInt64
+    var modifierIsDown: Bool?
+    var physicalFunctionIsDown: Bool?
 
     init(
         kind: Kind, keyCode: UInt16, flags: EventFlags = [],
-        isRepeat: Bool = false, isSynthetic: Bool = false, timestamp: UInt64 = 0
+        isRepeat: Bool = false, isSynthetic: Bool = false, timestamp: UInt64 = 0,
+        modifierIsDown: Bool? = nil, physicalFunctionIsDown: Bool? = nil
     ) {
         self.kind = kind
         self.keyCode = keyCode
@@ -20,6 +23,8 @@ struct InputEvent: Equatable {
         self.isRepeat = isRepeat
         self.isSynthetic = isSynthetic
         self.timestamp = timestamp
+        self.modifierIsDown = modifierIsDown
+        self.physicalFunctionIsDown = physicalFunctionIsDown
     }
 }
 
@@ -27,6 +32,8 @@ enum Disposition: Equatable {
     case passThrough
     case suppress
     case rewrite(keyCode: UInt16, flags: EventFlags)
+    case replace(kind: InputEvent.Kind, keyCode: UInt16, flags: EventFlags)
+    case toggleCapsLock
 }
 
 struct SyntheticKey: Equatable {
@@ -129,6 +136,11 @@ struct LayerEngine {
         var awaitingSourceRelease: Bool
     }
     private var held: [HeldKey] = []
+    private var suppressedUntilRelease: Set<UInt16> = []
+    private var modifierKeysDown: Set<UInt16> = []
+
+    var isCapsLockRemapped = false
+    private var profileRequiresCapsLockRemap = false
 
     private var tapThresholdNanoseconds: UInt64 = 200_000_000
 
@@ -145,6 +157,7 @@ struct LayerEngine {
         actionAvailability: any ActionAvailability = DefaultActionAvailability.current
     ) {
         self.isEnabled = isEnabled
+        isCapsLockRemapped = isEnabled && profile.requiresCapsLockRemap
         self.actionAvailability = actionAvailability
         held.reserveCapacity(16)
         apply(profile: profile)
@@ -154,9 +167,11 @@ struct LayerEngine {
         LayerMapping]
     {
         var compiled: [UInt16: LayerMapping] = [:]
-        for (name, mapping) in mappings {
-            guard let code = KeyCatalog.code(for: name) else { continue }
+        for (name, mapping) in mappings.sorted(by: { $0.key.lowercased() < $1.key.lowercased() }) {
+            guard let code = SourceKeyCatalog.observedCode(for: name) else { continue }
             if let binding = mapping.binding, binding.keyCode == nil { continue }
+            // Caps Lock owns its F18 bridge if both aliases exist in an imported profile.
+            guard compiled[code] == nil else { continue }
             compiled[code] = mapping
         }
         return compiled
@@ -174,6 +189,7 @@ struct LayerEngine {
     mutating func apply(profile: Profile) {
         pendingActions.removeAll(keepingCapacity: true)
         sourceLayers = profile.layers
+        profileRequiresCapsLockRemap = profile.requiresCapsLockRemap
         tapThresholdNanoseconds =
             UInt64(max(0, profile.tapThresholdMilliseconds)) * 1_000_000
 
@@ -207,24 +223,113 @@ struct LayerEngine {
     }
 
     @inline(__always)
-    mutating func handle(_ event: InputEvent, emit: (SyntheticKey) -> Void) -> Disposition {
-        guard !event.isSynthetic else { return .passThrough }
+    mutating func handle(_ input: InputEvent, emit: (SyntheticKey) -> Void) -> Disposition {
+        guard !input.isSynthetic else { return .passThrough }
+
+        // F-keys (including the Caps Lock bridge) and navigation keys carry
+        // intrinsic flags. They are not physical modifiers of a mapped key.
+        var event = input
+        let intrinsic = SourceKeyCatalog.intrinsicFlags(for: event.keyCode)
+        event.flags.subtract(intrinsic)
+        if intrinsic.contains(.secondaryFn),
+            event.physicalFunctionIsDown ?? modifierKeysDown.contains(KeyCode.function)
+        {
+            event.flags.insert(.secondaryFn)
+        }
+
+        var normalized = event
+        if event.kind == .flagsChanged, let modifier = SourceKeyCatalog.modifier(for: event.keyCode)
+        {
+            let wasDown = modifierKeysDown.contains(event.keyCode)
+            let isDown = event.modifierIsDown ?? modifier.isDown(flags: event.flags)
+            if isDown {
+                modifierKeysDown.insert(event.keyCode)
+            } else {
+                modifierKeysDown.remove(event.keyCode)
+            }
+            normalized.kind = isDown ? .keyDown : .keyUp
+            normalized.isRepeat = isDown && wasDown
+        }
+
+        if suppressedUntilRelease.contains(event.keyCode) {
+            if normalized.kind == .keyUp {
+                suppressedUntilRelease.remove(event.keyCode)
+                if isEnabled, event.kind == .flagsChanged {
+                    recomputeActiveLayers(flags: event.flags, emit: emit)
+                }
+                return .suppress
+            }
+            if normalized.kind == .keyDown, normalized.isRepeat { return .suppress }
+            if normalized.kind == .keyDown { suppressedUntilRelease.remove(event.keyCode) }
+        }
 
         guard isEnabled else {
             reset(emit: emit)
-            return .passThrough
+            if event.keyCode == KeyCode.f18, isCapsLockRemapped, event.kind == .keyDown {
+                suppressedUntilRelease.insert(event.keyCode)
+                return event.isRepeat ? .suppress : .toggleCapsLock
+            }
+            return forwardingPhysical(input)
+        }
+
+        // A pending release belongs to its original mapping even if a profile
+        // change or a modifier chord now makes this key a layer trigger.
+        if normalized.kind == .keyUp, held.contains(where: { $0.source == event.keyCode }) {
+            let result = handleKeyUp(normalized)
+            if event.kind == .flagsChanged {
+                recomputeActiveLayers(flags: event.flags, emit: emit)
+            }
+            return replacingModifierEvent(result, original: event, normalized: normalized)
         }
 
         if let slot = triggerSlot(for: event) {
-            return handleTrigger(slot: slot, event: event, emit: emit)
+            let result = handleTrigger(slot: slot, event: event, emit: emit)
+            return result == .passThrough ? forwardingPhysical(input) : result
         }
 
         if event.kind == .flagsChanged {
             recomputeActiveLayers(flags: event.flags, emit: emit)
-            return .passThrough
+            guard SourceKeyCatalog.modifier(for: event.keyCode) != nil else {
+                return forwardingPhysical(event)
+            }
+            if normalized.isRepeat, held.contains(where: { $0.source == event.keyCode }) {
+                return .suppress
+            }
+            let result = handleKey(normalized, emit: emit)
+            return replacingModifierEvent(result, original: event, normalized: normalized)
         }
 
-        return handleKey(event, emit: emit)
+        let result = handleKey(event, emit: emit)
+        return result == .passThrough ? forwardingPhysical(input) : result
+    }
+
+    private var consumedModifierSources: Set<UInt16> {
+        Set(held.map(\.source)).union(suppressedUntilRelease).intersection(modifierKeysDown)
+    }
+
+    /// Physical modifiers apps can see; consumed modifier sources are hidden.
+    func visibleModifiers(_ flags: EventFlags) -> EventFlags {
+        SourceKeyCatalog.removingModifiers(consumedModifierSources, from: flags)
+    }
+
+    private func forwardingPhysical(_ event: InputEvent) -> Disposition {
+        let flags = SourceKeyCatalog.removingModifiers(consumedModifierSources, from: event.flags)
+            .union(SourceKeyCatalog.intrinsicFlags(for: event.keyCode).intersection(event.flags))
+        return flags == event.flags ? .passThrough : .rewrite(keyCode: event.keyCode, flags: flags)
+    }
+
+    private func replacingModifierEvent(
+        _ result: Disposition, original: InputEvent, normalized: InputEvent
+    ) -> Disposition {
+        guard original.kind == .flagsChanged else { return result }
+        switch result {
+        case let .rewrite(keyCode, flags):
+            return .replace(kind: normalized.kind, keyCode: keyCode, flags: flags)
+        case .passThrough:
+            return forwardingPhysical(original)
+        default:
+            return result
+        }
     }
 
     mutating func beginTrackpadGesture() -> [String: GestureAssignment] {
@@ -296,7 +401,7 @@ struct LayerEngine {
         let runtime = triggers[slot]
         let isDown =
             runtime.key.isModifier
-            ? (runtime.key.modifierFlag.map { event.flags.contains($0) } ?? false)
+            ? (event.modifierIsDown ?? runtime.key.isDown(flags: event.flags))
             : event.kind == .keyDown
 
         if isDown {
@@ -399,6 +504,7 @@ struct LayerEngine {
     @inline(__always)
     private mutating func recomputeActiveLayers(
         flags: EventFlags,
+        preservingSource: UInt16? = nil,
         emit: (SyntheticKey) -> Void
     ) {
         var eligible = [Bool](repeating: false, count: layers.count)
@@ -453,7 +559,9 @@ struct LayerEngine {
         activeLayerIndex = highest
         activeLayerStates = nextActiveLayerStates
 
-        if maskChanged, !held.isEmpty { releaseHeldOutputs(emit: emit) }
+        if maskChanged, !held.isEmpty {
+            releaseHeldOutputs(excludingSource: preservingSource, emit: emit)
+        }
     }
 
     @inline(__always)
@@ -524,12 +632,14 @@ struct LayerEngine {
                     let flags = outputFlags(
                         from: event.flags,
                         adding: binding.flags,
-                        consumedBy: layer.consumedFlags)
+                        consumedBy: layer.consumedFlags,
+                        consumingSource: event.keyCode)
                     remember(source: event.keyCode, output: output, flags: flags)
                     return finishKeyDown(
                         .rewrite(keyCode: output, flags: flags),
                         hasArmedOneShots: hasArmedOneShots,
                         flags: event.flags,
+                        preservingSource: event.keyCode,
                         emit: emit)
                 case .toggleLayer, .oneShotLayer, .macAction:
                     perform(action, from: index, emit: emit)
@@ -553,6 +663,18 @@ struct LayerEngine {
             }
         }
 
+        if event.keyCode == KeyCode.f18, isCapsLockRemapped || profileRequiresCapsLockRemap {
+            remember(
+                source: event.keyCode, output: event.keyCode, flags: [],
+                awaitingSourceRelease: true)
+            return finishKeyDown(
+                .toggleCapsLock, hasArmedOneShots: hasArmedOneShots,
+                flags: event.flags, emit: emit)
+        }
+
+        // Unmapped modifiers keep their native behavior, including in Hyper layers.
+        // A modifier change alone must not consume an armed one-shot layer.
+        if SourceKeyCatalog.modifier(for: event.keyCode) != nil { return .passThrough }
         guard let injecting = highestInjectingLayer() else {
             return finishKeyDown(
                 .passThrough, hasArmedOneShots: hasArmedOneShots,
@@ -568,6 +690,7 @@ struct LayerEngine {
             .rewrite(keyCode: event.keyCode, flags: flags),
             hasArmedOneShots: hasArmedOneShots,
             flags: event.flags,
+            preservingSource: event.keyCode,
             emit: emit)
     }
 
@@ -576,13 +699,17 @@ struct LayerEngine {
         _ disposition: Disposition,
         hasArmedOneShots: Bool,
         flags: EventFlags,
+        preservingSource: UInt16? = nil,
         emit: (SyntheticKey) -> Void
     ) -> Disposition {
         guard hasArmedOneShots else { return disposition }
         for index in layers.indices where layers[index].activation.isOneShotArmed {
             layers[index].activation.consumeOneShot()
         }
-        recomputeActiveLayers(flags: flags, emit: emit)
+        // One-shot consumption changes the layer for the next key. The
+        // current down has not reached the event stream yet, so its output
+        // must remain held until the corresponding physical release.
+        recomputeActiveLayers(flags: flags, preservingSource: preservingSource, emit: emit)
         return disposition
     }
 
@@ -601,7 +728,7 @@ struct LayerEngine {
             keyCode: entry.output,
             flags: outputFlags(
                 from: event.flags,
-                adding: entry.flags.subtracting(.arrowIntrinsic),
+                adding: entry.flags,
                 consumedBy: []))
     }
 
@@ -657,9 +784,12 @@ struct LayerEngine {
     private func outputFlags(
         from flags: EventFlags,
         adding added: EventFlags,
-        consumedBy consumed: EventFlags
+        consumedBy consumed: EventFlags,
+        consumingSource source: UInt16? = nil
     ) -> EventFlags {
-        var result = flags
+        var sources = consumedModifierSources
+        if let source, SourceKeyCatalog.modifier(for: source) != nil { sources.insert(source) }
+        var result = SourceKeyCatalog.removingModifiers(sources, from: flags)
         result.remove(.alphaShift)
         result.remove(.allDeviceBits)
         result.remove(consumed)
@@ -668,8 +798,11 @@ struct LayerEngine {
     }
 
     @inline(__always)
-    private mutating func releaseHeldOutputs(emit: (SyntheticKey) -> Void) {
-        for position in held.indices where !held[position].awaitingSourceRelease {
+    private mutating func releaseHeldOutputs(
+        excludingSource: UInt16? = nil, emit: (SyntheticKey) -> Void
+    ) {
+        for position in held.indices
+        where !held[position].awaitingSourceRelease && held[position].source != excludingSource {
             emit(
                 SyntheticKey(
                     keyCode: held[position].output,
@@ -685,7 +818,13 @@ struct LayerEngine {
     ) {
         pendingActions.removeAll(keepingCapacity: true)
         releaseHeldOutputs(emit: emit)
-        if !preservingHeldTriggers { held.removeAll(keepingCapacity: true) }
+        if !preservingHeldTriggers {
+            suppressedUntilRelease.formUnion(held.map(\.source))
+            suppressedUntilRelease.formUnion(
+                triggers.filter { $0.isDown && $0.key.isConsumedWhileHeld }
+                    .compactMap { $0.key.observedKeyCode })
+            held.removeAll(keepingCapacity: true)
+        }
         for slot in triggers.indices {
             if !preservingHeldTriggers { triggers[slot].isDown = false }
             triggers[slot].wasUsed = true
@@ -700,8 +839,18 @@ struct LayerEngine {
     }
 
     var isLayerActive: Bool { activeMask & ~baseMask != 0 }
-    var isQuiescent: Bool { !isLayerActive && held.isEmpty && !triggers.contains { $0.isDown } }
+    var isQuiescent: Bool {
+        !isLayerActive && held.isEmpty && suppressedUntilRelease.isEmpty
+            && !triggers.contains { $0.isDown }
+    }
     var hasKeysHeld: Bool { !held.isEmpty }
+
+    var hasPendingReleases: Bool { !held.isEmpty || !suppressedUntilRelease.isEmpty }
+
+    mutating func reconcilePhysicalState(keysDown: Set<UInt16> = []) {
+        suppressedUntilRelease.formIntersection(keysDown)
+        modifierKeysDown.formIntersection(keysDown)
+    }
 
     func isActive(layerIndex: Int) -> Bool {
         activeMask & (UInt32(1) << UInt32(layerIndex)) != 0

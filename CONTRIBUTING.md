@@ -34,6 +34,26 @@ xcodebuild \
 
 The tests run without launching the app or changing your keyboard mappings.
 
+Caps Lock source mappings use the same verified `hidutil` Caps Lock → F18
+bridge as Caps Lock triggers. The bridge is needed for any nontransparent
+Caps Lock mapping, including app overrides. With no mapping in the active
+layers, the event tap toggles the native lock state through IOKit; it never
+forwards the bridge's F18 event. A failed native toggle is logged; disabling
+Tenuo restores the original HID mapping and native Caps Lock behavior.
+Bridge installation and restoration failures use the one-second retry. Removing
+the bridge waits for a held Caps Lock to be released. Disable releases held
+outputs immediately and keeps the event tap until the bridge is restored and consumed sources release;
+sleep, wake, and keyboard changes reconcile missing releases with HID state.
+Quit or lost Accessibility permission removes the tap immediately.
+
+Output modifiers are posted as real modifier presses around the output key,
+because hold shortcuts watch modifier presses rather than event flags alone.
+
+For event changes, verify key-down/key-up output, both modifier sides held
+together, layer/profile changes during a press, and disable during a press.
+Use a dictation app to check its hold and double-tap shortcuts manually; the
+unit tests exercise event lifecycles without starting a remapper.
+
 The source configuration uses ad-hoc signing. Rebuilding can require granting
 Accessibility access again. To use your Apple Development identity, copy
 `Local.xcconfig.example` to `Local.xcconfig` and set `CODE_SIGN_IDENTITY` and

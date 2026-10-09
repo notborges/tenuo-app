@@ -175,17 +175,20 @@ final class KeyboardPresentation: ObservableObject {
     }
 
     func label(for code: UInt16) -> String {
-        guard let key = KeyCatalog.key(code: code) else { return "Key \(code)" }
+        guard let key = SourceKeyCatalog.key(code: code) else { return "Key \(code)" }
         return label(for: key.name)
     }
 
     func label(for name: String) -> String {
-        guard let key = KeyCatalog.key(named: name) else { return name }
+        guard let key = SourceKeyCatalog.key(named: name) else { return name }
         return legends[key.name]?.normal ?? key.label
     }
 
     func displayName(for name: String) -> String {
-        guard let key = KeyCatalog.key(named: name) else { return name }
+        guard let key = SourceKeyCatalog.key(named: name) else { return name }
+        if TriggerKey(rawValue: key.name).isModifier || key.code == KeyCode.capsLock {
+            return TriggerKey(rawValue: key.name).displayName
+        }
         return legends[key.name]?.normal ?? key.displayName
     }
 

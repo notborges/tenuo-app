@@ -78,8 +78,8 @@ enum KeyboardGeometry {
     ) -> Element {
         .key(
             Key(
-                name: nil,
-                label: label,
+                name: trigger?.rawValue,
+                label: label.isEmpty ? (trigger?.shortSymbol ?? label) : label,
                 symbol: symbol,
                 word: word,
                 width: width,

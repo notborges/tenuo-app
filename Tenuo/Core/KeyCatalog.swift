@@ -140,3 +140,62 @@ enum KeyCatalog {
         all.filter { $0.group == group }
     }
 }
+
+// Source keys include physical modifiers. Destinations remain in KeyCatalog:
+// selecting a modifier as an output key requires different event semantics.
+enum SourceKeyCatalog {
+    private static let special: [TriggerKey] =
+        [.capsLock, .function] + TriggerKey.leftModifiers + TriggerKey.rightModifiers
+
+    static let all: [KeyCatalog.Key] =
+        KeyCatalog.all
+        + special.compactMap { key in
+            guard let code = key.physicalKeyCode else { return nil }
+            return KeyCatalog.Key(
+                code: code, name: key.rawValue, label: key.shortSymbol, group: .modifiers)
+        }
+
+    static func key(named name: String) -> KeyCatalog.Key? {
+        all.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    static func key(code: UInt16) -> KeyCatalog.Key? { all.first { $0.code == code } }
+
+    static func observedCode(for name: String) -> UInt16? {
+        guard let key = key(named: name) else { return nil }
+        return key.code == KeyCode.capsLock ? KeyCode.f18 : key.code
+    }
+
+    static func modifier(for code: UInt16) -> TriggerKey? {
+        special.first { $0.isModifier && $0.physicalKeyCode == code }
+    }
+
+    static func intrinsicFlags(for code: UInt16) -> EventFlags {
+        switch KeyCatalog.key(code: code)?.group {
+        case .function: return .secondaryFn
+        case .navigation: return .arrowIntrinsic
+        default:
+            if code == KeyCode.forwardDelete { return .secondaryFn }
+            if KeyCatalog.name(for: code) == "enter" { return .numericPad }
+            return []
+        }
+    }
+
+    static func removingModifiers(_ sources: Set<UInt16>, from flags: EventFlags) -> EventFlags {
+        var result = flags
+        for code in sources {
+            guard let key = modifier(for: code), let generalFlag = key.modifierFlag else {
+                continue
+            }
+            if let deviceFlag = key.deviceFlag {
+                result.remove(deviceFlag)
+                if result.intersection(key.modifierSideFlags).isEmpty {
+                    result.remove(generalFlag)
+                }
+            } else {
+                result.remove(generalFlag)
+            }
+        }
+        return result
+    }
+}

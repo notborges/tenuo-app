@@ -48,6 +48,10 @@ struct LayersPage: View {
                     VStack(alignment: .leading, spacing: DS.Space.large) {
                         applicationStrip
 
+                        if let conflict = model.profile.mappingConflicts.first {
+                            reservationDiagnostic(conflict)
+                        }
+
                         KeyboardLayoutView(
                             mappings: model.selectedMappings,
                             inherited: model.inheritedMappings,
@@ -190,7 +194,8 @@ struct LayersPage: View {
                             get: { model.selectedKey ?? "" },
                             set: {
                                 model.selectKey($0); choosingSource = false
-                            })
+                            }),
+                        isSource: true
                     )
                     .frame(width: 300).padding(DS.Space.small)
                 }
@@ -219,7 +224,7 @@ struct LayersPage: View {
                         } label: {
                             MappingRow(
                                 source: KeyboardPresentation.shared.label(
-                                    for: KeyCatalog.code(for: entry.source) ?? 0),
+                                    for: entry.source),
                                 destination: entry.action.keyboardLabel,
                                 caption: Self.caption(for: entry.action)
                                     + (visibleKeys.contains(entry.source)
@@ -278,6 +283,30 @@ struct LayersPage: View {
         let gestures = model.selectedGestures.count
         let keys = "\(count) key\(count == 1 ? "" : "s")"
         return gestures == 0 ? keys : "\(keys) · \(gestures) gesture\(gestures == 1 ? "" : "s")"
+    }
+
+    private func reservationDiagnostic(_ conflict: MappingReservationConflict) -> some View {
+        HStack(alignment: .top, spacing: DS.Space.small) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(DS.Ink.secondary)
+            VStack(alignment: .leading, spacing: DS.Space.tight) {
+                Text("Mapping uses a layer trigger").font(DS.Typography.body.weight(.medium))
+                Text(conflict.message(in: model.profile))
+                    .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Review mapping") {
+                    model.selectedLayerID = conflict.mappingLayerID
+                    model.selectedApplicationID = conflict.applicationID
+                    model.selectedKeys = [conflict.source]
+                }
+                .buttonStyle(.plain)
+                .font(DS.Typography.label)
+                .foregroundStyle(DS.Selection.solid)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(DS.Space.medium)
+        .glassCard()
     }
 
     static func caption(for action: LayerMapping) -> String {
@@ -380,7 +409,7 @@ struct LayersPage: View {
                 HStack(spacing: DS.Space.tight) {
                     Keycap(
                         label: KeyboardPresentation.shared.label(
-                            for: KeyCatalog.code(for: selectedKey) ?? 0),
+                            for: selectedKey),
                         width: 30, height: 30, legendSize: 11,
                         isLit: model.selectedMappings[selectedKey] != nil)
 
@@ -524,87 +553,10 @@ private struct MappingInspector: View {
         let layerID = model.selectedLayer.id
         let applicationID = model.selectedApplicationID
         VStack(alignment: .leading, spacing: DS.Space.medium) {
-            if isGesture {
-                Text(
-                    "Swipe with two fingers while the layer is active. Unassigned directions scroll normally."
-                )
-                .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
-            }
-            if let name = model.editingApplicationName {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(name).sectionLabel()
-                    Text(
-                        "Default: \((isGesture ? model.selectedLayer.gestures[source] : model.selectedLayer.mappings[source])?.keyboardLabel ?? (isGesture ? "Unassigned" : "Normal key"))"
-                    )
-                    .font(DS.Typography.label).foregroundStyle(DS.Ink.tertiary)
-                    if (isGesture ? model.selectedGestures[source] : model.selectedMappings[source])
-                        == nil && model.license.hasProAccess
-                    {
-                        Text(
-                            isGesture
-                                ? "Using Default. Choose an output to customize this swipe."
-                                : "Using Default. Choose an output to customize this key."
-                        )
-                        .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
-                    }
-                }
-            }
-            MappingOutputPicker(selection: $output, hasPro: model.canUse(.macAction))
-            if output == .key {
-                if applicationID != nil && !model.license.hasProAccess {
-                    ProFeaturePrompt(
-                        title: "App overrides are inactive",
-                        detail:
-                            "Your saved overrides are preserved. Activate Tenuo Pro to use or edit them; this app currently uses Default."
-                    ) {
-                        model.onOpenProSettings?()
-                    }
-                } else {
-                    InspectorCard(title: "Output") {
-                        InspectorWideRow(label: "Modifiers", divider: false) {
-                            HStack(spacing: 5) {
-                                ForEach(Modifier.allCases, id: \.self) { modifier in
-                                    CycleChip(
-                                        symbol: modifier.symbol,
-                                        isOn: modifiers.contains(modifier)
-                                    ) {
-                                        if modifiers.contains(modifier) {
-                                            modifiers.remove(modifier)
-                                        } else {
-                                            modifiers.insert(modifier)
-                                        }
-                                        reassignIfMapped()
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    KeyChooser(
-                        selection: Binding(
-                            get: { current?.binding?.key ?? "" },
-                            set: {
-                                assign(.action(.sendKey(KeyBinding(key: $0, modifiers: ordered))))
-                            }
-                        ),
-                        columns: 5,
-                        height: nil
-                    )
-                }
+            if !isGesture, let message = model.reservationMessage(for: source) {
+                reservedCard(message)
             } else {
-                MacActionEditor(
-                    output: output, current: current, hasPro: model.canUse(.macAction),
-                    assignmentLabel: isGesture
-                        ? "Assigned to this gesture" : "Assigned to this key",
-                    activate: { model.onOpenProSettings?() }
-                ) { action in
-                    guard model.canUse(.macAction), model.selectedLayer.id == layerID,
-                        model.selectedApplicationID == applicationID,
-                        !isGesture || model.selectedGesture?.rawValue == source
-                    else { return }
-                    assign(.action(.macAction(action)))
-                }
-                .id(output)
+                editor(layerID: layerID, applicationID: applicationID)
             }
         }
         .onAppear {
@@ -614,6 +566,118 @@ private struct MappingInspector: View {
         .onChange(of: current) { _, mapping in
             modifiers = Set(mapping?.binding?.modifiers ?? [])
             output = MappingOutput(mapping: mapping)
+        }
+    }
+
+    private func reservedCard(_ message: String) -> some View {
+        InspectorCard(title: "Layer trigger") {
+            VStack(alignment: .leading, spacing: DS.Space.small) {
+                Text(message)
+                    .font(DS.Typography.body).foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let current, current != .transparent {
+                    Text(
+                        "Saved mapping: \(current.keyboardLabel). This mapping cannot run while the key is a layer trigger."
+                    )
+                    .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                Button("Edit trigger") {
+                    if let layer = model.profile.reservingLayers(for: source).first {
+                        model.selectedLayerID = layer.id
+                    }
+                }
+                .buttonStyle(RoundedActionStyle())
+            }
+            .padding(Inspector.rowInset)
+        }
+    }
+
+    @ViewBuilder
+    private func editor(layerID: UUID, applicationID: String?) -> some View {
+        if isGesture {
+            Text(
+                "Swipe with two fingers while the layer is active. Unassigned directions scroll normally."
+            )
+            .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+        }
+        if let name = model.editingApplicationName {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(name).sectionLabel()
+                Text(
+                    "Default: \((isGesture ? model.selectedLayer.gestures[source] : model.selectedLayer.mappings[source])?.keyboardLabel ?? (isGesture ? "Unassigned" : "Normal key"))"
+                )
+                .font(DS.Typography.label).foregroundStyle(DS.Ink.tertiary)
+                if (isGesture
+                    ? model.selectedGestures[source] : model.selectedMappings[source])
+                    == nil && model.license.hasProAccess
+                {
+                    Text(
+                        isGesture
+                            ? "Using Default. Choose an output to customize this swipe."
+                            : "Using Default. Choose an output to customize this key."
+                    )
+                    .font(DS.Typography.label).foregroundStyle(DS.Ink.secondary)
+                }
+            }
+        }
+        MappingOutputPicker(selection: $output, hasPro: model.canUse(.macAction))
+        if output == .key {
+            if applicationID != nil && !model.license.hasProAccess {
+                ProFeaturePrompt(
+                    title: "App overrides are inactive",
+                    detail:
+                        "Your saved overrides are preserved. Activate Tenuo Pro to use or edit them; this app currently uses Default."
+                ) {
+                    model.onOpenProSettings?()
+                }
+            } else {
+                InspectorCard(title: "Output") {
+                    InspectorWideRow(label: "Modifiers", divider: false) {
+                        HStack(spacing: 5) {
+                            ForEach(Modifier.allCases, id: \.self) { modifier in
+                                CycleChip(
+                                    symbol: modifier.symbol,
+                                    isOn: modifiers.contains(modifier)
+                                ) {
+                                    if modifiers.contains(modifier) {
+                                        modifiers.remove(modifier)
+                                    } else {
+                                        modifiers.insert(modifier)
+                                    }
+                                    reassignIfMapped()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                KeyChooser(
+                    selection: Binding(
+                        get: { current?.binding?.key ?? "" },
+                        set: {
+                            assign(
+                                .action(.sendKey(KeyBinding(key: $0, modifiers: ordered))))
+                        }
+                    ),
+                    columns: 5,
+                    height: nil
+                )
+            }
+        } else {
+            MacActionEditor(
+                output: output, current: current, hasPro: model.canUse(.macAction),
+                assignmentLabel: isGesture
+                    ? "Assigned to this gesture" : "Assigned to this key",
+                activate: { model.onOpenProSettings?() }
+            ) { action in
+                guard model.canUse(.macAction), model.selectedLayer.id == layerID,
+                    model.selectedApplicationID == applicationID,
+                    !isGesture || model.selectedGesture?.rawValue == source
+                else { return }
+                assign(.action(.macAction(action)))
+            }
+            .id(output)
         }
     }
 

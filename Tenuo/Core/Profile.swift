@@ -162,6 +162,15 @@ struct Layer: Codable, Equatable, Identifiable, Sendable {
         return mappings.merging(override.mappings) { _, override in override }
     }
 
+    var mappedSourceCodes: Set<UInt16> {
+        Set(
+            ([mappings] + applications.values.map(\.mappings)).flatMap { mappings in
+                mappings.compactMap { source, mapping in
+                    mapping == .transparent ? nil : SourceKeyCatalog.observedCode(for: source)
+                }
+            })
+    }
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -270,6 +279,52 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
 
     var canAddLayer: Bool { triggeredLayers.count < Self.maxTriggeredLayers }
 
+    var requiresCapsLockRemap: Bool {
+        layers.contains { layer in
+            if layer.trigger?.key == .capsLock { return true }
+            return ([layer.mappings] + layer.applications.values.map(\.mappings)).contains {
+                $0.contains { source, mapping in
+                    SourceKeyCatalog.key(named: source)?.code == KeyCode.capsLock
+                        && mapping != .transparent
+                }
+            }
+        }
+    }
+
+    var mappedSourceCodes: Set<UInt16> {
+        layers.reduce(into: []) { $0.formUnion($1.mappedSourceCodes) }
+    }
+
+    func reservingLayers(for source: String) -> [Layer] {
+        guard let code = SourceKeyCatalog.observedCode(for: source) else { return [] }
+        return triggeredLayers.filter { $0.trigger?.key.observedKeyCode == code }
+    }
+
+    // These are assignment diagnostics, not structural errors. Older profiles
+    // with unreachable mappings must still load, sync and support undo.
+    var mappingConflicts: [MappingReservationConflict] {
+        layers.flatMap { layer in
+            let contexts: [(String?, [String: LayerMapping])] =
+                [(nil, layer.mappings)]
+                + layer.applications.keys.sorted().map { ($0, layer.applications[$0]!.mappings) }
+            return contexts.flatMap { applicationID, mappings in
+                mappings.keys.sorted().flatMap { source -> [MappingReservationConflict] in
+                    guard let mapping = mappings[source], mapping != .transparent else { return [] }
+                    return reservingLayers(for: source).map {
+                        MappingReservationConflict(
+                            source: source, mappingLayerID: layer.id, triggerLayerID: $0.id,
+                            applicationID: applicationID, mapping: mapping)
+                    }
+                }
+            }
+        }
+    }
+
+    func newMappingConflict(comparedTo previous: Profile) -> MappingReservationConflict? {
+        let existing = Set(previous.mappingConflicts)
+        return mappingConflicts.first { !existing.contains($0) }
+    }
+
     func validate() throws {
         let baseLayerCount = layers.filter(\.isBase).count
         guard baseLayerCount == 1 else {
@@ -307,7 +362,7 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
 
             let allMappings = [layer.mappings] + layer.applications.values.map(\.mappings)
             for (source, action) in allMappings.flatMap({ Array($0) }) {
-                guard KeyCatalog.code(for: source) != nil else {
+                guard SourceKeyCatalog.observedCode(for: source) != nil else {
                     throw ProfileError.unknownSourceKey(layer: layer.name, key: source)
                 }
                 if let binding = action.binding, binding.keyCode == nil {
@@ -353,6 +408,25 @@ struct Profile: Codable, Equatable, Sendable, Identifiable {
             }
         }
         return found
+    }
+}
+
+struct MappingReservationConflict: Hashable {
+    let source: String
+    let mappingLayerID: UUID
+    let triggerLayerID: UUID
+    let applicationID: String?
+    let mapping: LayerMapping
+
+    func message(in profile: Profile) -> String {
+        let key = TriggerKey(rawValue: source).displayName
+        let mappingLayer = profile.layers.first { $0.id == mappingLayerID }
+        let triggerLayer = profile.layers.first { $0.id == triggerLayerID }?.name ?? "Layer"
+        let context =
+            applicationID.flatMap { mappingLayer?.applications[$0]?.name }
+            .map { " for \($0)" } ?? ""
+        return
+            "\(key) activates “\(triggerLayer)”. Clear its mapping in “\(mappingLayer?.name ?? "Layer")”\(context), or choose another trigger key."
     }
 }
 

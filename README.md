@@ -11,7 +11,8 @@ to typing.
 
 - **Visual mapping editor.** Assign keys and shortcuts without writing config
   files. Select several keys to edit together, copy mappings between layers,
-  and undo changes.
+  and undo changes. Caps Lock, Fn, and left/right modifiers can be mapped just
+  like other keys. Key outputs stay pressed until the source key is released.
 - **Keyboard layers.** Choose a trigger, hold it to use a layer, or set up
   toggle and one-shot layers. Give the trigger a separate action when tapped.
 - **Hyper key.** Send Control, Option, Command, and Shift together from one
@@ -41,6 +42,11 @@ Requires macOS 15 or later.
 Open Tenuo, grant Accessibility access when prompted, then open the editor
 from the menu bar. The default profile uses Caps Lock to activate a layer
 and sends Escape when you tap it.
+
+A layer's trigger key is reserved throughout its profile. To map Caps Lock
+to a shortcut such as Control–Option–Command–R, first give any layer using
+Caps Lock a different trigger, then select Caps Lock and choose the output
+key and modifiers. Put the mapping in Base to use it without holding a layer.
 
 ## Privacy
 

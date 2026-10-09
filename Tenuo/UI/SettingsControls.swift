@@ -187,11 +187,13 @@ struct KeyChooser: View {
     @Binding var selection: String
     var columns: Int = 8
     var height: CGFloat? = 170
+    var isSource = false
     @State private var query = ""
 
     private var groups: [(KeyCatalog.Group, [KeyCatalog.Key])] {
         KeyCatalog.Group.allCases.compactMap { group in
-            let keys = KeyCatalog.keys(in: group).filter(matches)
+            let catalog = isSource ? SourceKeyCatalog.all : KeyCatalog.all
+            let keys = catalog.filter { $0.group == group }.filter(matches)
             return keys.isEmpty ? nil : (group, keys)
         }
     }
@@ -201,6 +203,7 @@ struct KeyChooser: View {
         let needle = query.lowercased()
         return key.name.lowercased().contains(needle)
             || keyboard.label(for: key.name).lowercased().contains(needle)
+            || keyboard.displayName(for: key.name).lowercased().contains(needle)
     }
 
     var body: some View {

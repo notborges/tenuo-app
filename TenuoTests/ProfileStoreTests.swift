@@ -207,8 +207,14 @@ final class ProfileStoreTests: XCTestCase {
         profile.layers[1].trigger = LayerTrigger(key: .key("jisKana"))
         profile.layers[1].tapAction = .sendKey(KeyBinding(key: "jisEisu"))
         profile.layers[1].mappings["isoSection"] = .action(.sendKey(KeyBinding(key: "jisYen")))
+        profile.layers[1].mappings["capsLock"] = .action(
+            .sendKey(KeyBinding(key: "r", modifiers: [.control, .option, .command])))
+        profile.layers[1].mappings["leftControl"] = .action(.sendKey(KeyBinding(key: "escape")))
         profile.layers[1].applications["com.apple.Safari"] = ApplicationOverride(
-            name: "Safari", mappings: ["jisUnderscore": .blocked])
+            name: "Safari",
+            mappings: [
+                "jisUnderscore": .blocked, "rightCommand": .blocked, "function": .transparent,
+            ])
         let imported = try store.importProfile(ProfileDocument.encoder.encode(profile))
 
         XCTAssertEqual(store.profiles.count, before + 1)
@@ -229,6 +235,61 @@ final class ProfileStoreTests: XCTestCase {
             Profile.self,
             from: store.exportProfile(store.manualProfile))
         XCTAssertEqual(exported, store.manualProfile)
+    }
+
+    func testTriggerReservationsGuardEditsWithoutRejectingLegacyProfiles() throws {
+        let store = UserDefaultsProfileStore(defaults: defaults)
+        for key in [
+            TriggerKey.capsLock, .leftControl, .rightControl, .function, .key("a"), .key("f1"),
+        ] {
+            let mapping: LayerMapping = .action(.sendKey(KeyBinding(key: "b")))
+            let trigger = Layer(
+                name: "Layer", trigger: LayerTrigger(key: key, modifiers: [.rightShift]))
+            let clean = Profile(name: key.rawValue, layers: [Layer(name: "Base"), trigger])
+            var conflict = clean
+            conflict.layers[0].mappings[key.rawValue] = mapping
+            // Trigger precedence predates this editor rule: existing profiles
+            // must still validate, import and reopen without losing mappings.
+            try conflict.validate()
+            let imported = try store.importProfile(ProfileDocument.encoder.encode(conflict))
+            XCTAssertEqual(imported.layers[0].mappings[key.rawValue], mapping)
+            XCTAssertNotNil(conflict.newMappingConflict(comparedTo: clean))
+            XCTAssertEqual(conflict.reservingLayers(for: key.rawValue).map(\.id), [trigger.id])
+            XCTAssertTrue(conflict.reservingLayers(for: "rightShift").isEmpty)
+            if key == .leftControl {
+                XCTAssertTrue(conflict.reservingLayers(for: "rightControl").isEmpty)
+            }
+            if key == .capsLock {
+                XCTAssertEqual(conflict.reservingLayers(for: "f18").map(\.id), [trigger.id])
+            }
+            var unrelated = conflict
+            unrelated.layers[0].mappings["c"] = .blocked
+            XCTAssertNil(unrelated.newMappingConflict(comparedTo: conflict))
+            var reassigned = conflict
+            reassigned.layers[0].mappings[key.rawValue] = .blocked
+            XCTAssertNotNil(reassigned.newMappingConflict(comparedTo: conflict))
+            var repaired = conflict
+            repaired.layers[0].mappings[key.rawValue] = nil
+            XCTAssertNil(repaired.newMappingConflict(comparedTo: conflict))
+            XCTAssertTrue(repaired.mappingConflicts.isEmpty)
+            var changedTrigger = conflict
+            changedTrigger.layers[1].trigger?.key = .key("c")
+            changedTrigger.layers[0].applications["com.apple.Safari"] = ApplicationOverride(
+                name: "Safari", mappings: ["c": mapping])
+            XCTAssertNotNil(changedTrigger.newMappingConflict(comparedTo: conflict))
+            var pasted = clean
+            pasted.layers[0].mappings = [key.rawValue: mapping, "c": .blocked]
+            XCTAssertNotNil(pasted.newMappingConflict(comparedTo: clean))
+        }
+        let reopened = UserDefaultsProfileStore(defaults: defaults)
+        XCTAssertEqual(reopened.snapshot, store.snapshot)
+        var engine = LayerEngine(profile: reopened.manualProfile)
+        let code = reopened.manualProfile.layers[1].trigger!.key.observedKeyCode!
+        XCTAssertEqual(
+            engine.handle(
+                InputEvent(kind: .keyDown, keyCode: code, flags: [.shift, .deviceRightShift])
+            ) { _ in }, .suppress)
+        XCTAssertTrue(engine.isLayerActive)
     }
 
     func testInvalidImportLeavesProfilesUnchanged() {

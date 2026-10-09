@@ -104,6 +104,42 @@ enum TriggerKey: Hashable, Codable, Sendable {
         }
     }
 
+    var physicalKeyCode: UInt16? {
+        self == .capsLock ? KeyCode.capsLock : observedKeyCode
+    }
+
+    var deviceFlag: EventFlags? {
+        switch self {
+        case .leftControl: return .deviceLeftControl
+        case .rightControl: return .deviceRightControl
+        case .leftOption: return .deviceLeftOption
+        case .rightOption: return .deviceRightOption
+        case .leftCommand: return .deviceLeftCommand
+        case .rightCommand: return .deviceRightCommand
+        case .leftShift: return .deviceLeftShift
+        case .rightShift: return .deviceRightShift
+        default: return nil
+        }
+    }
+
+    var modifierSideFlags: EventFlags {
+        switch self {
+        case .leftControl, .rightControl: return [.deviceLeftControl, .deviceRightControl]
+        case .leftOption, .rightOption: return [.deviceLeftOption, .deviceRightOption]
+        case .leftCommand, .rightCommand: return [.deviceLeftCommand, .deviceRightCommand]
+        case .leftShift, .rightShift: return [.deviceLeftShift, .deviceRightShift]
+        default: return []
+        }
+    }
+
+    func isDown(flags: EventFlags) -> Bool {
+        guard let modifierFlag else { return false }
+        if let deviceFlag, !flags.intersection(modifierSideFlags).isEmpty {
+            return flags.contains(deviceFlag)
+        }
+        return flags.contains(modifierFlag)
+    }
+
     var modifierFlag: EventFlags? {
         switch self {
         case .leftCommand, .rightCommand: return .command

@@ -10,7 +10,14 @@ struct MenuPanelView: View {
 
     private static let width: CGFloat = 460
 
-    private var featured: Layer? { model.profile.triggeredLayers.first }
+    // A profile can work entirely from Base mappings, with no triggered layer.
+    private var featured: Layer? {
+        model.profile.triggeredLayers.first
+            ?? model.profile.baseLayer.flatMap { base in
+                model.liveMappings(for: base).isEmpty && model.liveGestures(for: base).isEmpty
+                    ? nil : base
+            }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -81,6 +88,10 @@ struct MenuPanelView: View {
         guard model.isTrusted else { return "Needs Accessibility access" }
         guard model.isEnabled else { return "Off" }
         let count = model.profile.triggeredLayers.count
+        if count == 0, let base = featured {
+            let keys = model.liveMappings(for: base).count
+            return "On · Base · \(keys) key\(keys == 1 ? "" : "s")"
+        }
         return "On · \(count) layer\(count == 1 ? "" : "s")"
     }
 

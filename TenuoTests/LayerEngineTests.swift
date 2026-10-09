@@ -327,11 +327,29 @@ final class LayerEngineTests: XCTestCase {
         let disposition = harness.keyDown(KeyCode.h, flags: leftShiftHeld)
         XCTAssertEqual(rewrittenKey(disposition), KeyCode.leftArrow)
         XCTAssertTrue(rewrittenFlags(disposition)?.contains(.shift) == true)
-        _ = harness.keyUp(KeyCode.h)
+        XCTAssertTrue(harness.emitted.isEmpty)
+        XCTAssertEqual(rewrittenKey(harness.keyUp(KeyCode.h)), KeyCode.leftArrow)
         harness.modifiers([])
         XCTAssertFalse(harness.engine.isLayerActive)
         XCTAssertTrue(harness.engine.activeLayerStates.isEmpty)
         XCTAssertEqual(harness.keyDown(KeyCode.h), .passThrough)
+
+        let binding = KeyBinding(key: "b", modifiers: [.control, .option, .command])
+        var modifierLayout = layout
+        modifierLayout.layers[1].mappings["function"] = .action(.sendKey(binding))
+        harness = Harness(profile: modifierLayout)
+        harness.capsDown()
+        harness.capsUp(at: 50 * milliseconds)
+        XCTAssertEqual(
+            harness.send(
+                InputEvent(kind: .flagsChanged, keyCode: KeyCode.function, flags: [.secondaryFn])),
+            .replace(kind: .keyDown, keyCode: KeyCode.b, flags: binding.flags))
+        XCTAssertTrue(harness.emitted.isEmpty)
+        XCTAssertFalse(harness.engine.isLayerActive)
+        XCTAssertEqual(
+            harness.send(InputEvent(kind: .flagsChanged, keyCode: KeyCode.function)),
+            .replace(kind: .keyUp, keyCode: KeyCode.b, flags: binding.flags))
+        XCTAssertTrue(harness.engine.isQuiescent)
     }
 
     func testResetClearsPersistentTapActionState() {
@@ -434,39 +452,256 @@ final class LayerEngineTests: XCTestCase {
         XCTAssertEqual(harness.send(InputEvent(kind: .keyDown, keyCode: KeyCode.f18)), .suppress)
         XCTAssertTrue(harness.engine.isLayerActive)
     }
+
+    func testModifierMappingsProduceKeyEventsAndConsumeOnlyTheirOwnSide() throws {
+        let pairs: [(TriggerKey, TriggerKey?)] = [
+            (.leftControl, .rightControl), (.rightControl, .leftControl),
+            (.leftOption, .rightOption), (.rightOption, .leftOption),
+            (.leftCommand, .rightCommand), (.rightCommand, .leftCommand),
+            (.leftShift, .rightShift), (.rightShift, .leftShift), (.function, nil),
+        ]
+        for (source, opposite) in pairs {
+            let code = try XCTUnwrap(source.physicalKeyCode)
+            let sourceFlags = source.modifierFlag!.union(source.deviceFlag ?? [])
+            let oppositeFlags = opposite.map { $0.modifierFlag!.union($0.deviceFlag ?? []) } ?? []
+            let profile = Profile(
+                name: "Modifiers",
+                layers: [
+                    Layer(
+                        name: "Base",
+                        mappings: [source.rawValue: .action(.sendKey(KeyBinding(key: "a")))])
+                ])
+            var harness = Harness(profile: profile)
+            let down = InputEvent(kind: .flagsChanged, keyCode: code, flags: sourceFlags)
+            XCTAssertEqual(
+                harness.send(down), .replace(kind: .keyDown, keyCode: KeyCode.a, flags: []))
+            XCTAssertEqual(harness.send(down), .suppress)
+            XCTAssertEqual(
+                harness.keyDown(KeyCode.h, flags: sourceFlags.union(oppositeFlags)),
+                .rewrite(keyCode: KeyCode.h, flags: oppositeFlags))
+            if let oppositeCode = opposite?.physicalKeyCode {
+                XCTAssertEqual(
+                    harness.send(
+                        InputEvent(
+                            kind: .flagsChanged, keyCode: oppositeCode,
+                            flags: sourceFlags.union(oppositeFlags))),
+                    .rewrite(keyCode: oppositeCode, flags: oppositeFlags))
+            }
+            XCTAssertEqual(
+                harness.send(InputEvent(kind: .flagsChanged, keyCode: code, flags: oppositeFlags)),
+                .replace(
+                    kind: .keyUp, keyCode: KeyCode.a,
+                    flags: oppositeFlags.subtracting(.allDeviceBits)))
+            XCTAssertTrue(harness.emitted.isEmpty)
+            XCTAssertFalse(harness.engine.hasPendingReleases)
+        }
+    }
+
+    func testModifierMappingsUseLayerPrecedenceAndRawTriggerRequirements() {
+        let shortcut = KeyBinding(key: "b", modifiers: [.control, .option, .command])
+        let flags: EventFlags = [.control, .deviceLeftControl]
+        let profile = Profile(
+            name: "Layers",
+            layers: [
+                Layer(
+                    name: "Base", mappings: ["leftControl": .action(.sendKey(KeyBinding(key: "a")))]
+                ),
+                Layer(
+                    name: "Dictation", trigger: LayerTrigger(key: .key("t")),
+                    mappings: ["leftControl": .action(.sendKey(shortcut))]),
+                Layer(
+                    name: "Chord", trigger: LayerTrigger(key: .key("h"), modifiers: [.leftControl]),
+                    mappings: ["c": .action(.sendKey(KeyBinding(key: "escape")))]),
+            ])
+        var harness = Harness(profile: profile)
+        XCTAssertEqual(harness.keyDown(KeyCode.t), .suppress)
+        XCTAssertEqual(
+            harness.send(
+                InputEvent(kind: .flagsChanged, keyCode: KeyCode.leftControl, flags: flags)),
+            .replace(kind: .keyDown, keyCode: KeyCode.b, flags: shortcut.flags))
+        // The consumed modifier still participates in physical trigger matching.
+        XCTAssertEqual(harness.keyDown(KeyCode.h, flags: flags), .suppress)
+        XCTAssertTrue(harness.engine.isActive(layerIndex: 2))
+        XCTAssertEqual(
+            harness.emitted,
+            [SyntheticKey(keyCode: KeyCode.b, flags: shortcut.flags, isKeyDown: false)])
+        XCTAssertEqual(harness.keyUp(KeyCode.h, flags: flags), .suppress)
+        XCTAssertEqual(harness.keyUp(KeyCode.t, flags: flags), .suppress)
+        XCTAssertEqual(
+            harness.send(InputEvent(kind: .flagsChanged, keyCode: KeyCode.leftControl)), .suppress)
+        XCTAssertEqual(harness.emitted.count, 1)
+        XCTAssertEqual(
+            harness.send(
+                InputEvent(kind: .flagsChanged, keyCode: KeyCode.leftControl, flags: flags)),
+            .replace(kind: .keyDown, keyCode: KeyCode.a, flags: []))
+        XCTAssertEqual(
+            harness.send(InputEvent(kind: .flagsChanged, keyCode: KeyCode.leftControl)),
+            .replace(kind: .keyUp, keyCode: KeyCode.a, flags: []))
+
+        // A consumed release must still update chords which depend on this
+        // physical modifier's state after a profile change.
+        _ = harness.send(
+            InputEvent(kind: .flagsChanged, keyCode: KeyCode.leftControl, flags: flags))
+        harness.reset()
+        harness.engine.apply(profile: profile)
+        harness.keyDown(KeyCode.h, flags: flags)
+        XCTAssertTrue(harness.engine.isActive(layerIndex: 2))
+        let c = KeyCatalog.code(for: "c")!
+        XCTAssertEqual(rewrittenKey(harness.keyDown(c, flags: flags)), KeyCode.escape)
+        XCTAssertEqual(
+            harness.send(InputEvent(kind: .flagsChanged, keyCode: KeyCode.leftControl)), .suppress)
+        XCTAssertFalse(harness.engine.isActive(layerIndex: 2))
+        XCTAssertEqual(
+            harness.emitted.last, SyntheticKey(keyCode: KeyCode.escape, flags: [], isKeyDown: false)
+        )
+        XCTAssertEqual(harness.keyUp(c), .suppress)
+    }
+
+    func testCleanupBalancesOutputsAndDrainsSourcesAcrossProfileDisableAndRecovery() throws {
+        let sources: [TriggerKey] = [.key("a"), .capsLock, .leftControl, .function]
+        for source in sources {
+            for cleanup in ["profile", "disable", "recovery"] {
+                let code = try XCTUnwrap(source.observedKeyCode)
+                let flags = (source.modifierFlag ?? []).union(source.deviceFlag ?? [])
+                let kind: InputEvent.Kind = source.isModifier ? .flagsChanged : .keyDown
+                let binding = KeyBinding(key: "b", modifiers: [.command])
+                let profile = Profile(
+                    name: "Mapped",
+                    layers: [
+                        Layer(name: "Base", mappings: [source.rawValue: .action(.sendKey(binding))])
+                    ])
+                var harness = Harness(profile: profile)
+                let press = InputEvent(kind: kind, keyCode: code, flags: flags)
+                _ = harness.send(press)
+                harness.reset()
+                XCTAssertEqual(
+                    harness.emitted,
+                    [SyntheticKey(keyCode: KeyCode.b, flags: binding.flags, isKeyDown: false)])
+                XCTAssertTrue(harness.engine.hasPendingReleases)
+                if cleanup == "profile" {
+                    harness.engine.apply(
+                        profile: Profile(
+                            name: "Trigger",
+                            layers: [
+                                Layer(name: "Base"),
+                                Layer(
+                                    name: "Layer", trigger: LayerTrigger(key: source),
+                                    tapAction: .toggleLayer(.current)),
+                            ]))
+                } else if cleanup == "disable" {
+                    harness.engine.isEnabled = false
+                } else {
+                    harness.engine.reconcilePhysicalState(keysDown: [code])
+                }
+                var repeated = press
+                repeated.isRepeat = true
+                XCTAssertEqual(harness.send(repeated), .suppress)
+                if source.isModifier {
+                    XCTAssertEqual(
+                        harness.keyDown(KeyCode.h, flags: flags),
+                        .rewrite(keyCode: KeyCode.h, flags: []))
+                }
+                if cleanup == "recovery" {
+                    harness.engine.reconcilePhysicalState()
+                } else {
+                    XCTAssertEqual(
+                        harness.send(
+                            InputEvent(
+                                kind: source.isModifier ? .flagsChanged : .keyUp, keyCode: code)),
+                        .suppress)
+                    XCTAssertFalse(harness.engine.isLayerActive)
+                }
+                XCTAssertFalse(harness.engine.hasPendingReleases)
+                harness.reset()
+                XCTAssertEqual(harness.emitted.count, 1)
+            }
+        }
+    }
+
+    func testCapsLockUsesMappingsOverridesAndNativeFallbackUntilBridgeIsRemoved() {
+        let binding = KeyBinding(key: "b", modifiers: [.control, .option, .command])
+        var layer = Layer(
+            name: "Dictation", trigger: LayerTrigger(key: .key("t")),
+            mappings: ["capsLock": .action(.sendKey(binding))])
+        layer.applications["com.apple.Safari"] = ApplicationOverride(
+            name: "Safari", mappings: ["capsLock": .transparent])
+        let profile = Profile(name: "Caps Lock", layers: [Layer(name: "Base"), layer])
+        var harness = Harness(profile: profile)
+        // Interpret bridge events correctly before installation's callback.
+        harness.engine.isCapsLockRemapped = false
+        XCTAssertEqual(harness.capsDown(), .toggleCapsLock)
+        XCTAssertEqual(harness.keyDown(KeyCode.f18, isRepeat: true), .suppress)
+        XCTAssertEqual(harness.capsUp(), .suppress)
+        harness.keyDown(KeyCode.t)
+        XCTAssertEqual(
+            harness.capsDown(flags: [.secondaryFn]),
+            .rewrite(keyCode: KeyCode.b, flags: binding.flags))
+        harness.engine.updateApplication("com.apple.Safari")
+        XCTAssertEqual(
+            harness.capsUp(flags: [.secondaryFn]),
+            .rewrite(keyCode: KeyCode.b, flags: binding.flags))
+        XCTAssertEqual(harness.capsDown(), .toggleCapsLock)
+        XCTAssertEqual(harness.capsUp(), .suppress)
+        harness.engine.updateApplication(nil)
+        _ = harness.send(
+            InputEvent(kind: .flagsChanged, keyCode: KeyCode.function, flags: [.secondaryFn]))
+        XCTAssertEqual(
+            harness.capsDown(flags: [.secondaryFn]),
+            .rewrite(keyCode: KeyCode.b, flags: binding.flags.union(.secondaryFn)))
+        XCTAssertEqual(
+            harness.capsUp(flags: [.secondaryFn]),
+            .rewrite(keyCode: KeyCode.b, flags: binding.flags.union(.secondaryFn)))
+        _ = harness.send(InputEvent(kind: .flagsChanged, keyCode: KeyCode.function))
+        harness.keyUp(KeyCode.t)
+        harness.reset()
+        harness.engine.isCapsLockRemapped = true
+        harness.engine.apply(
+            profile: Profile(name: "No Caps mapping", layers: [Layer(name: "Base")]))
+        harness.engine.isEnabled = false
+        XCTAssertEqual(harness.capsDown(), .toggleCapsLock)
+        XCTAssertEqual(harness.capsUp(), .suppress)
+        harness.engine.isCapsLockRemapped = false
+        XCTAssertEqual(harness.capsDown(), .passThrough)
+        XCTAssertEqual(harness.capsUp(), .passThrough)
+    }
 }
 
 final class MacActionEngineTests: XCTestCase {
     func testActionFiresOnceAndConsumesReleaseAfterApplicationAndLicenseChange() {
-        let entitlement = LicenseEntitlement()
-        entitlement.setProAccess(true)
         let action = MacAction.application(
             NamedActionTarget(id: "com.apple.Safari", name: "Safari"))
-        var profile = Presets.navigation
-        profile.layers[0].mappings["a"] = .action(.macAction(action))
-        profile.layers[0].applications["com.apple.Safari"] = ApplicationOverride(
-            name: "Safari", mappings: ["a": .action(.sendKey(KeyBinding(key: "b")))])
-        var engine = LayerEngine(profile: profile, actionAvailability: entitlement)
-        XCTAssertEqual(
-            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a)) { _ in }, .suppress)
-        XCTAssertEqual(engine.takePendingActions(), [action])
-        engine.updateApplication("com.apple.Safari")
-        entitlement.setProAccess(false)
-        XCTAssertEqual(
-            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a, isRepeat: true)) { _ in },
-            .suppress)
-        XCTAssertTrue(engine.takePendingActions().isEmpty)
-        XCTAssertEqual(
-            engine.handle(InputEvent(kind: .keyUp, keyCode: KeyCode.a)) { _ in }, .suppress)
-        engine.updateApplication(nil)
-        XCTAssertEqual(
-            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a)) { _ in }, .suppress)
-        XCTAssertTrue(engine.takePendingActions().isEmpty)
-        XCTAssertEqual(
-            engine.handle(InputEvent(kind: .keyUp, keyCode: KeyCode.a)) { _ in }, .suppress)
-        engine.isEnabled = false
-        XCTAssertEqual(
-            engine.handle(InputEvent(kind: .keyDown, keyCode: KeyCode.a)) { _ in }, .passThrough)
+        for source in [TriggerKey.key("a"), .capsLock, .leftControl, .function] {
+            let entitlement = LicenseEntitlement()
+            entitlement.setProAccess(true)
+            let code = source.observedKeyCode!
+            let flags = (source.modifierFlag ?? []).union(source.deviceFlag ?? [])
+            let down = InputEvent(
+                kind: source.isModifier ? .flagsChanged : .keyDown, keyCode: code, flags: flags)
+            let up = InputEvent(kind: source.isModifier ? .flagsChanged : .keyUp, keyCode: code)
+            var profile = Profile(name: "Actions", layers: [Layer(name: "Base")])
+            profile.layers[0].mappings[source.rawValue] = .action(.macAction(action))
+            profile.layers[0].applications["com.apple.Safari"] = ApplicationOverride(
+                name: "Safari", mappings: [source.rawValue: .action(.sendKey(KeyBinding(key: "b")))]
+            )
+            var engine = LayerEngine(profile: profile, actionAvailability: entitlement)
+            XCTAssertEqual(engine.handle(down) { _ in }, .suppress)
+            XCTAssertEqual(engine.takePendingActions(), [action])
+            engine.updateApplication("com.apple.Safari")
+            entitlement.setProAccess(false)
+            var repeatDown = down
+            repeatDown.isRepeat = true
+            XCTAssertEqual(engine.handle(repeatDown) { _ in }, .suppress)
+            XCTAssertTrue(engine.takePendingActions().isEmpty)
+            XCTAssertEqual(engine.handle(up) { _ in }, .suppress)
+            engine.updateApplication(nil)
+            XCTAssertEqual(engine.handle(down) { _ in }, .suppress)
+            XCTAssertTrue(engine.takePendingActions().isEmpty)
+            XCTAssertEqual(engine.handle(up) { _ in }, .suppress)
+            engine.isEnabled = false
+            XCTAssertEqual(
+                engine.handle(down) { _ in }, source == .capsLock ? .toggleCapsLock : .passThrough)
+            if source == .capsLock { XCTAssertEqual(engine.handle(up) { _ in }, .suppress) }
+        }
     }
 
     func testTapActionOnlyRunsForAnUnusedTapAndResetDiscardsQueuedActions() {

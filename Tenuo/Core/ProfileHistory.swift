@@ -128,7 +128,7 @@ enum ProfileHistoryComparison {
                 for key in appKeys.sorted() where oldApp?.mappings[key] != newApp?.mappings[key] {
                     append(
                         "app/\(appID)/\(key)",
-                        "\(name) · \(KeyCatalog.key(named: key)?.displayName ?? key)",
+                        "\(name) · \(TriggerKey(rawValue: key).displayName)",
                         oldApp?.mappings[key].map { mappingLabel($0, in: before) } ?? "Use Default",
                         newApp?.mappings[key].map { mappingLabel($0, in: after) } ?? "Use Default",
                         layer: layer, key: key, applicationID: appID)
@@ -146,7 +146,7 @@ enum ProfileHistoryComparison {
                 .union(new?.mappings.keys.map { $0 } ?? [])
             for key in keys.sorted() where old?.mappings[key] != new?.mappings[key] {
                 append(
-                    "key/\(key)", KeyCatalog.key(named: key)?.displayName ?? key,
+                    "key/\(key)", TriggerKey(rawValue: key).displayName,
                     mappingLabel(old?.mappings[key], in: before),
                     mappingLabel(new?.mappings[key], in: after), layer: layer, key: key)
             }

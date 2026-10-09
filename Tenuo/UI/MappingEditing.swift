@@ -113,15 +113,21 @@ struct MappingGroupInspector: View {
                 HStack(spacing: DS.Space.small) {
                     Keycap(
                         label: KeyboardPresentation.shared.label(
-                            for: KeyCatalog.code(for: key) ?? 0),
+                            for: key),
                         width: 30, height: 30, legendSize: 11,
                         isLit: model.selectedMappings[key] != nil)
-                    Text(
-                        (model.selectedMappings[key] ?? model.inheritedMappings[key])
-                            .map(LayersPage.caption(for:)) ?? "Normal key"
-                    )
-                    .font(DS.Typography.body)
-                    .lineLimit(2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(
+                            (model.selectedMappings[key] ?? model.inheritedMappings[key])
+                                .map(LayersPage.caption(for:)) ?? "Normal key"
+                        )
+                        .font(DS.Typography.body)
+                        .lineLimit(2)
+                        if model.reservationMessage(for: key) != nil {
+                            Text("Layer trigger").font(DS.Typography.caption)
+                                .foregroundStyle(DS.Ink.secondary)
+                        }
+                    }
                 }
             }
             Divider()

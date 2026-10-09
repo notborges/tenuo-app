@@ -548,7 +548,7 @@ struct ProfileHistoryBrowser: View {
             } else if change.key != nil {
                 Keycap(
                     label: change.key.map {
-                        KeyboardPresentation.shared.label(for: KeyCatalog.code(for: $0) ?? 0)
+                        KeyboardPresentation.shared.label(for: $0)
                     }
                         ?? change.title, width: 30, height: 30, legendSize: 11, isLit: true
                 )
